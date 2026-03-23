@@ -2,134 +2,121 @@ import streamlit as st
 import os
 import urllib.parse
 
-# 1. CONFIGURACIÓN DE PÁGINA (Identidad CJ)
-# page_icon es el icono que sale en la pestaña del navegador
+# 1. IDENTIDAD CJ
 st.set_page_config(
     page_title="SISTEMA CJ",
     page_icon="logo_cj.jpg", 
     layout="centered"
 )
 
-# 2. CSS AVANZADO: Cuadrícula 2x2 sin Scroll Horizontal y Limpieza Total
+# 2. CSS DE PRECISIÓN: Nombres ajustados y eliminación de la corona
 st.markdown("""
     <style>
-    /* 1. Ocultar Corona y Menús de Streamlit (Limpieza Total) */
-    [data-testid="stToolbar"] {visibility: hidden; display: none !important;}
-    #MainMenu {visibility: hidden; display: none !important;}
-    footer {visibility: hidden; display: none !important;}
-    .stDeployButton {display:none; visibility: hidden !important;}
-    
+    /* OCULTAR TODO EL TOOLBAR DE STREAMLIT (Corona y Menús) */
+    [data-testid="stToolbar"] {visibility: hidden !important; display: none !important;}
+    footer {visibility: hidden !important; display: none !important;}
+    header {visibility: hidden !important; display: none !important;}
+    #MainMenu {visibility: hidden !important;}
+    .stDeployButton {display:none !important;}
+
     /* Fondo y Títulos */
     .stApp { background-color: #0b0e14; }
     h2, h3 { color: #e5c07b !important; text-align: center; font-weight: 800; }
     
-    /* 2. FORZAR CUADRÍCULA 2x2 PERFECTA SIN SCROLL HORIZONTAL */
+    /* FORZAR 2x2 SIN DESBORDE */
     [data-testid="stHorizontalBlock"] {
         display: grid !important;
         grid-template-columns: repeat(2, 1fr) !important;
-        gap: 10px !important;
-        margin-top: 20px !important;
-        overflow: visible !important; /* Asegurar que no haya scroll horizontal interno */
+        gap: 8px !important;
+        margin-top: 10px !important;
     }
     
-    /* Estilo de los Botones Principales (Secciones y Cursos) */
+    /* Botones de Cursos sin Iconos y con Texto Ajustado */
     div.stButton > button {
         width: 100%;
         border-radius: 12px;
-        height: 70px; /* Tamaño táctil cómodo */
+        height: 65px; 
         background-color: #1c2128;
         color: #e5c07b;
         border: 1px solid #30363d;
         font-weight: bold;
-        font-size: 13px;
-        transition: 0.3s;
-    }
-    div.stButton > button:hover {
-        border-color: #e5c07b;
-        background-color: #2d333b;
+        font-size: 11px; /* Letra un poco más pequeña para que entren nombres largos */
+        line-height: 1.2;
+        padding: 5px;
+        text-transform: uppercase; /* Se ve más ordenado como administrador */
     }
 
-    /* 3. Contenedor de PDF y Botones horizontales compactos */
+    /* Tarjetas de PDF */
     .pdf-card {
         background-color: #161b22;
         padding: 10px;
-        border-radius: 12px;
-        border-left: 5px solid #e5c07b;
-        margin-top: 15px;
-        margin-bottom: 5px;
+        border-radius: 10px;
+        border-left: 4px solid #e5c07b;
+        margin-bottom: 8px;
     }
-    .pdf-title { color: white; font-size: 14px; margin-bottom: 8px; font-weight: bold; }
-    
-    /* Asegurar que los botones de Leer/Bajar quepan en una fila */
-    .stDownloadButton, div.stButton {
-        display: inline-block;
-        width: 100% !important;
-    }
-    
+    .pdf-title { color: white; font-size: 13px; margin-bottom: 8px; font-weight: 600; }
     </style>
     """, unsafe_allow_html=True)
 
-# BARRA LATERAL (Solo para Logo y Reinicio)
+# BARRA LATERAL
 with st.sidebar:
     if os.path.exists("logo_cj.jpg"):
         st.image("logo_cj.jpg", use_container_width=True)
-    if st.button("🏠 Menú Principal"):
+    if st.button("🏠 INICIO"):
         st.session_state.clear()
         st.rerun()
 
 # --- MENÚ PRINCIPAL ---
 if 'seccion' not in st.session_state:
-    # MOSTRAMOS logo_general.png ARRIBA DE TODO EN EL INICIO
     if os.path.exists("logo_general.png"):
         st.image("logo_general.png", use_container_width=True)
     st.markdown("<h2>SISTEMA CJ</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: gray;'>Selecciona el área de gestión</p>", unsafe_allow_html=True)
     
-    # CUADRÍCULA 2x2 PERFECTA
-    cols_principal = st.columns(2)
-    with cols_principal[0]:
-        if st.button("📚 ACADEMIA"): st.session_state.seccion = 'ACADEMIA'
-        if st.button("🚛 OPERACIONES"): st.session_state.seccion = 'OPERACIONES'
-    with cols_principal[1]:
-        if st.button("🔬 LABORATORIO"): st.session_state.seccion = 'LABORATORIO'
-        if st.button("🏗️ PROYECTOS"): st.session_state.seccion = 'PROYECTOS'
+    cols_main = st.columns(2)
+    with cols_main[0]:
+        if st.button("ACADEMIA"): st.session_state.seccion = 'ACADEMIA'
+        if st.button("OPERACIONES"): st.session_state.seccion = 'OPERACIONES'
+    with cols_main[1]:
+        if st.button("LABORATORIO"): st.session_state.seccion = 'LABORATORIO'
+        if st.button("PROYECTOS"): st.session_state.seccion = 'PROYECTOS'
 
+# --- SECCIÓN ACADEMIA ---
 elif st.session_state.seccion == 'ACADEMIA':
-    st.markdown("<h2 style='color: #e5c07b;'>📚 ACADEMIA</h2>", unsafe_allow_html=True)
+    st.markdown("<h3>ACADEMIA</h3>", unsafe_allow_html=True)
     
     ciclos = sorted([d for d in os.listdir('.') if os.path.isdir(d) and d.startswith('CICLO_')])
-    ciclo_sel = st.selectbox("📂 Selecciona Ciclo:", ["..."] + ciclos)
+    ciclo_sel = st.selectbox("📂 Ciclo:", ["..."] + ciclos)
 
     if ciclo_sel != "...":
         cursos = sorted([d for d in os.listdir(ciclo_sel) if os.path.isdir(os.path.join(ciclo_sel, d))])
         
-        # Cursos en CUADRÍCULA 2x2
-        st.write("#### Cursos:")
-        cols_cursos = st.columns(2)
-        for i, curso in enumerate(cursos):
-            with cols_cursos[i % 2]:
-                if st.button(f"📖 {curso}", key=f"c_{curso}"):
+        # Grid 2x2 para Cursos (Sin libros 📖)
+        st.write("#### Selecciona Curso:")
+        cols_c = st.columns(2)
+        for idx, curso in enumerate(cursos):
+            # Limpiamos el nombre del curso de guiones bajos para que se vea mejor
+            nombre_limpio = curso.replace("_", " ")
+            with cols_c[idx % 2]:
+                if st.button(nombre_limpio, key=f"c_{curso}"):
                     st.session_state.curso_sel = curso
 
-        # TEMAS Y DESCARGAS (Botones uno al lado del otro en la misma fila)
+        # Contenido de PDFs
         if 'curso_sel' in st.session_state:
-            curso_path = os.path.join(ciclo_sel, st.session_state.curso_sel)
-            st.markdown(f"--- \n**Temas de {st.session_state.curso_sel}:**")
+            path_c = os.path.join(ciclo_sel, st.session_state.curso_sel)
+            st.markdown(f"--- \n**Temas: {st.session_state.curso_sel}**")
             
-            pdfs = sorted([f for f in os.listdir(curso_path) if f.lower().endswith('.pdf')])
+            pdfs = sorted([f for f in os.listdir(path_c) if f.lower().endswith('.pdf')])
             for pdf in pdfs:
-                # Contenedor Visual para el PDF
                 st.markdown(f"<div class='pdf-card'><div class='pdf-title'>📄 {pdf}</div>", unsafe_allow_html=True)
                 
-                # BOTONES LADO A LADO SIN SCROLL HORIZONTAL
                 b_cols = st.columns(2)
                 raw_url = f"https://raw.githubusercontent.com/CJPANTA/cj-project/main/{ciclo_sel}/{st.session_state.curso_sel}/{pdf}"
-                google_viewer = f"https://docs.google.com/viewer?url={urllib.parse.quote(raw_url)}&embedded=true"
+                view_url = f"https://docs.google.com/viewer?url={urllib.parse.quote(raw_url)}&embedded=true"
                 
                 with b_cols[0]:
-                    if st.button(f"👁️ Leer", key=f"v_{pdf}"):
-                        st.markdown(f'<iframe src="{google_viewer}" width="100%" height="500"></iframe>', unsafe_allow_html=True)
+                    if st.button("👁️ Leer", key=f"v_{pdf}"):
+                        st.markdown(f'<iframe src="{view_url}" width="100%" height="500"></iframe>', unsafe_allow_html=True)
                 with b_cols[1]:
-                    with open(os.path.join(curso_path, pdf), "rb") as f:
+                    with open(os.path.join(path_c, pdf), "rb") as f:
                         st.download_button("📥 Bajar", f, file_name=pdf, key=f"d_{pdf}")
                 st.markdown("</div>", unsafe_allow_html=True)
