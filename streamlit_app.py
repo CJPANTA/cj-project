@@ -1,118 +1,92 @@
 import streamlit as st
 import os
+import urllib.parse
 
-# 1. Configuración de Nivel Administrador
-st.set_page_config(page_title="CJ PROJECT | Panel", page_icon="🏦", layout="wide")
+# 1. Configuración de App Móvil
+st.set_page_config(page_title="CJ PROJECT", page_icon="🏥", layout="centered")
 
-# 2. CSS Avanzado: Estética Profesional y "Letra Bonita"
+# 2. Estética "Premium" (Letra bonita y diseño fluido)
 st.markdown("""
     <style>
-    /* Fondo y Letra General */
-    .main { background-color: #0e1117; color: #e0e0e0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    
-    /* Títulos y Subtítulos */
-    h1, h2, h3 { color: #d4af37 !important; font-weight: 700; }
-    
-    /* Estilo de Tarjetas de Cursos (Botones) */
-    div.stButton > button {
+    .main { background-color: #0e1117; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+    h1 { color: #d4af37; text-align: center; font-size: 26px; font-weight: 800; margin-bottom: 5px; }
+    .stButton>button {
         background-color: #1c2128;
         color: #d4af37;
-        border: 2px solid #30363d;
+        border: 1px solid #30363d;
         border-radius: 12px;
-        padding: 25px;
-        font-size: 18px;
+        padding: 15px;
         font-weight: bold;
         width: 100%;
-        text-align: left;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
     }
-    div.stButton > button:hover {
-        background-color: #24292e;
-        border-color: #d4af37;
-        transform: translateY(-3px);
+    .pdf-card { 
+        background: #1c2128; 
+        padding: 20px; 
+        border-radius: 15px; 
+        margin-bottom: 15px; 
+        border-left: 5px solid #d4af37;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
     }
-
-    /* Indicadores (KPIs) */
-    .stMetric { background-color: #1c2128; padding: 20px; border-radius: 12px; border: 1px solid #30363d; }
-    .stMetric label { color: #8b949e !important; }
-    .stMetric .stMetricValue { color: #d4af37 !important; }
-
-    /* Barra Lateral */
-    .css-1d391kg { background-color: #161b22; }
-    .stSelectbox label { color: #d4af37 !important; font-weight: bold; }
+    .pdf-title { color: #ffffff; font-size: 16px; font-weight: 600; margin-bottom: 15px; }
     </style>
     """, unsafe_allow_html=True)
 
-# 3. Encabezado del Dashboard
-st.title("🏦 CJ PROJECT - Sistema de Gestión")
-st.write(f"Bienvenido, Administrador Jorge Luis. Panel de Control de Recursos Académicos.")
+# --- LOGO PERSONALIZADO ---
+# Aquí es donde pondremos tu logo. Por ahora usamos un icono profesional.
+st.markdown("<h1>🏦 CJ PROJECT</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #8b949e; font-size: 14px;'>SISTEMA DE GESTIÓN ACADÉMICA</p>", unsafe_allow_html=True)
 
-# --- SECCIÓN 1: INDICADORES CLAVE (v0 style) ---
-col1, col2, col3, col4 = st.columns(4)
-col1.metric("Ciclos Activos", "4")
-col2.metric("Sedes", "Aucallama / Lima")
-col3.metric("Base de Datos", "Conectada")
-col4.metric("Estado", "🟢 Online")
+# 3. Lógica de Navegación
+carpetas_ciclo = sorted([d for d in os.listdir('.') if os.path.isdir(d) and d.startswith('CICLO_')])
+ciclo_sel = st.sidebar.selectbox("📂 Seleccionar Ciclo", carpetas_ciclo)
 
-st.markdown("---")
-
-# --- SECCIÓN 2: EXPLORADOR VISUAL (Tu Idea de Tarjetas) ---
-st.sidebar.header("📂 NAVEGACIÓN")
-
-# Lógica automática para detectar tus ciclos
-carpetas_ciclo = [d for d in os.listdir('.') if os.path.isdir(d) and d.startswith('CICLO_')]
-carpetas_ciclo.sort()
-
-if carpetas_ciclo:
-    # FILTRO 1: Ciclo (en la barra lateral)
-    ciclo_sel = st.sidebar.selectbox("Seleccionar Ciclo", carpetas_ciclo)
-    st.header(f"🗂️ Cursos del {ciclo_sel}")
-
-    # Dentro del ciclo, buscamos los cursos para crear las TARJETAS
+if ciclo_sel:
     ruta_ciclo = ciclo_sel
-    cursos = [d for d in os.listdir(ruta_ciclo) if os.path.isdir(os.path.join(ruta_ciclo, d))]
+    cursos = sorted([d for d in os.listdir(ruta_ciclo) if os.path.isdir(os.path.join(ruta_ciclo, d))])
     
-    if cursos:
-        # CREACIÓN DE TARJETAS (Grilla de 2 columnas)
-        cols_cursos = st.columns(2)
-        for i, curso in enumerate(cursos):
-            with cols_cursos[i % 2]:
-                # Cada curso es un BOTÓN grande (tarjeta)
-                if st.button(f"📖 {curso}", key=curso):
-                    # Al darle clic, guardamos el curso seleccionado en la "memoria" de la App
-                    st.session_state['curso_activo'] = curso
-                    st.session_state['ruta_curso_activo'] = os.path.join(ruta_ciclo, curso)
+    st.markdown(f"### 📚 {ciclo_sel}")
+    
+    # Grid de Cursos (Botones grandes)
+    cols = st.columns(2)
+    for i, curso in enumerate(cursos):
+        with cols[i % 2]:
+            if st.button(f"📁 {curso}", key=curso):
+                st.session_state['curso_actual'] = curso
 
-        # MOSTRAR TEMAS (PDFs) DEL CURSO SELECCIONADO
-        if 'curso_activo' in st.session_state:
-            st.markdown("---")
-            st.subheader(f"📋 Temas Disponibles: {st.session_state['curso_activo']}")
+    # Mostrar PDFs del curso seleccionado
+    if 'curso_actual' in st.session_state:
+        st.markdown("---")
+        curso_activo = st.session_state['curso_actual']
+        st.markdown(f"<h3 style='color: #d4af37;'>📖 {curso_activo}</h3>", unsafe_allow_html=True)
+        
+        ruta_curso = os.path.join(ruta_ciclo, curso_activo)
+        archivos = sorted([f for f in os.listdir(ruta_curso) if f.lower().endswith('.pdf')])
+        
+        for pdf in archivos:
+            # Tarjeta por cada PDF
+            st.markdown(f"""<div class='pdf-card'><div class='pdf-title'>📄 {pdf}</div></div>""", unsafe_allow_html=True)
             
-            ruta_curso = st.session_state['ruta_curso_activo']
-            archivos_pdf = [f for f in os.listdir(ruta_curso) if f.lower().endswith('.pdf')]
+            # Botones de Acción (Ojo y Descarga)
+            col_ver, col_desc = st.columns(2)
             
-            if archivos_pdf:
-                # Mostramos los PDFs como una lista limpia
-                for pdf in archivos_pdf:
-                    col_pdf, col_btn = st.columns([3, 1])
-                    col_pdf.write(f"📄 {pdf}")
-                    
-                    # Botón Dorado para abrir el PDF en pestaña nueva
-                    with open(os.path.join(ruta_curso, pdf), "rb") as file:
-                        col_btn.download_button(
-                            label="Abrir",
-                            data=file,
-                            file_name=pdf,
-                            mime="application/pdf",
-                            key=pdf # Clave única para cada botón
-                        )
-            else:
-                st.warning("No se encontraron archivos PDF en este curso.")
-    else:
-        st.info("Crea subcarpetas de cursos dentro de este ciclo en GitHub.")
-else:
-    st.error("Error: No se detectan las carpetas CICLO_XX. Revisa tus nombres en GitHub.")
+            # Lógica para VER (Google Viewer)
+            raw_url = f"https://raw.githubusercontent.com/CJPANTA/cj-project/main/{ciclo_sel}/{curso_activo}/{pdf}"
+            encoded_url = urllib.parse.quote(raw_url, safe='')
+            google_viewer_url = f"https://docs.google.com/viewer?url={encoded_url}&embedded=true"
+            
+            with col_ver:
+                if st.button(f"👁️ Ver en Línea", key=f"ver_{pdf}"):
+                    st.markdown(f'<iframe src="{google_viewer_url}" width="100%" height="600"></iframe>', unsafe_allow_html=True)
+            
+            with col_desc:
+                with open(os.path.join(ruta_curso, pdf), "rb") as f:
+                    st.download_button(
+                        label="📥 Descargar",
+                        data=f,
+                        file_name=pdf,
+                        mime="application/pdf",
+                        key=f"desc_{pdf}"
+                    )
 
 st.sidebar.markdown("---")
 st.sidebar.write("👤 Jorge Luis - Admin")
