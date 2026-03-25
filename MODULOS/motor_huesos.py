@@ -2,32 +2,35 @@ import streamlit as st
 import pandas as pd
 
 def mostrar_buscador_huesos():
-    st.subheader("🦴 Buscador Anatómico") # Nombre serio solicitado
+    st.subheader("Buscador Anatomico") 
     
-    # Cargar la base de datos con codificación para tildes
+    ruta = "BASE_DATOS/03_CONFIG/huesos_maestro.csv"
+    
     try:
-        # Usamos encoding='latin-1' para que no de error con las tildes de Excel
-        df = pd.read_csv("BASE_DATOS/03_CONFIG/huesos_maestro.csv", encoding='latin-1')
-        
-        busqueda = st.text_input("Escribe el nombre del hueso o región:")
+        # Intento 1: UTF-8 (Estandar)
+        try:
+            df = pd.read_csv(ruta, encoding='utf-8')
+        except:
+            # Intento 2: Latin-1 (Excel comun)
+            df = pd.read_csv(ruta, encoding='latin-1', sep=None, engine='python')
+            
+        busqueda = st.text_input("Escribe el nombre del hueso o region:")
         
         if busqueda:
+            # Busqueda que ignora mayusculas y tildes si las hubiera
             resultado = df[df.apply(lambda row: busqueda.lower() in row.astype(str).str.lower().values, axis=1)]
             
             if not resultado.empty:
                 for index, row in resultado.iterrows():
-                    with st.expander(f"📍 {row['Nombre_Hueso']} ({row['Región']})"):
+                    with st.expander(f"Hueso: {row['Nombre_Hueso']} ({row['Región']})"):
                         col1, col2 = st.columns(2)
                         with col1:
                             st.write(f"**Accidentes:** {row['Accidentes_Clave']}")
-                            st.write(f"**Músculos:** {row['Musculos_Relacionados']}")
+                            st.write(f"**Musculos:** {row['Musculos_Relacionados']}")
                         with col2:
-                            st.write(f"**Función Biomecánica:** {row['Función_Biomecánica']}")
-                            st.info(f"⚡ **Agente Sugerido:** {row['Agente_Fisico']}")
-                        
-                        if pd.notna(row['Link_PDF_Carrion']):
-                            st.caption(f"📂 Ref: {row['Link_PDF_Carrion']}")
+                            st.write(f"**Funcion:** {row['Función_Biomecánica']}")
+                            st.info(f"Agente: {row['Agente_Fisico']}")
             else:
-                st.warning("No se encontró ese término. Intenta con otra palabra.")
+                st.warning("No se encontro el termino.")
     except Exception as e:
-        st.error(f"Error de lectura: Asegúrate que el archivo sea CSV delimitado por comas.")
+        st.error("Error critico: Por favor revisa que el archivo CSV este en la carpeta 03_CONFIG.")
