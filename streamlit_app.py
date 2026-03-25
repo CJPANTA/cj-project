@@ -13,11 +13,10 @@ opcion = st.sidebar.radio("Menu:", ["Inicio", "Buscador Anatomico", "Repositorio
 if opcion == "Inicio":
     st.title("Gestion Clinica CJ")
     st.write(f"### Bienvenido, Jorge Luis")
-    # (Aqui va tu logica de imagenes aleatorias que ya tenemos)
+    # (Mantenemos tu logica de imagenes y frases aleatorias aqui)
 
-# --- REPOSITORIO CARRION ---
+# --- REPOSITORIO CARRION (CONEXION REAL) ---
 elif opcion == "Repositorio Carrion":
-    # Logo mas grande y centrado
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
         if os.path.exists("logo_carrion.png"):
@@ -28,30 +27,50 @@ elif opcion == "Repositorio Carrion":
     tabs = st.tabs(["Ciclo 01", "Ciclo 02", "Ciclo 03", "Ciclo 04"])
     for i, tab in enumerate(tabs):
         with tab:
-            ruta_ciclo = f"BASE_DATOS/01_CARRION/CICLO_0{i+1}"
+            ciclo_num = f"0{i+1}"
+            ruta_ciclo = f"BASE_DATOS/01_CARRION/CICLO_{ciclo_num}"
+            
             if os.path.exists(ruta_ciclo):
-                archivos = os.listdir(ruta_ciclo)
-                if archivos:
-                    for archi in archivos:
-                        st.download_button(f"📖 {archi}", data=archi, file_name=archi)
+                # Listamos carpetas de cursos dentro del ciclo
+                cursos = [c for c in os.listdir(ruta_ciclo) if os.path.isdir(os.path.join(ruta_ciclo, c))]
+                if cursos:
+                    for curso in cursos:
+                        with st.expander(f"📚 Curso: {curso.replace('_', ' ')}"):
+                            ruta_curso = os.path.join(ruta_ciclo, curso)
+                            archivos = [f for f in os.listdir(ruta_curso) if f.endswith('.pdf')]
+                            for archi in archivos:
+                                st.write(f"📄 {archi}")
+                                # Boton de descarga simulado o link a GitHub
+                                st.caption("Disponible para consulta local")
                 else:
-                    st.info("Aun no hay archivos en esta carpeta.")
+                    st.info(f"Organiza tus PDFs en carpetas por curso dentro de CICLO_{ciclo_num}")
+            else:
+                st.error(f"No se encontro la ruta: {ruta_ciclo}")
 
-# --- BIBLIOTECA TECNICA (RAMA 02_SISTEMAS) ---
+# --- BIBLIOTECA TECNICA (BUSCADOR FLEXIBLE) ---
 elif opcion == "Biblioteca Tecnica":
     st.title("📚 Biblioteca de Sistemas")
-    st.write("Tratados y libros tecnicos (Netter, Kapandji, etc.)")
+    st.write("Busqueda flexible: Escribe una palabra clave (ej. Netter, Estiramiento, Anatomia)")
     
-    filtro = st.text_input("Filtrar libros por nombre:")
+    filtro = st.text_input("🔍 ¿Que libro o tema buscas?")
     ruta_libros = "BASE_DATOS/02_SISTEMAS"
     
     if os.path.exists(ruta_libros):
-        libros = [l for l in os.listdir(ruta_libros) if filtro.lower() in l.lower()]
+        # Busqueda flexible: no importa si es mayuscula o minuscula
+        todos_los_libros = [l for l in os.listdir(ruta_libros) if l.endswith('.pdf')]
+        libros_filtrados = [l for l in todos_los_libros if filtro.lower() in l.lower()]
         
-        # Grid de miniaturas (3 columnas)
-        cols = st.columns(3)
-        for idx, libro in enumerate(libros):
-            with cols[idx % 3]:
-                st.image("https://cdn-icons-png.flaticon.com/512/3308/3308335.png", width=100) # Icono de libro
-                st.write(f"**{libro}**")
-                st.button("Abrir", key=libro)
+        if libros_filtrados:
+            st.write(f"Se encontraron {len(libros_filtrados)} resultados:")
+            cols = st.columns(3) # Cuadricula de 3 columnas
+            for idx, libro in enumerate(libros_filtrados):
+                with cols[idx % 3]:
+                    # Mostramos una miniatura generica (puedes subir portadas luego)
+                    st.image("https://cdn-icons-png.flaticon.com/512/3308/3308335.png", width=80)
+                    nombre_limpio = libro.replace('_', ' ').replace('.pdf', '')
+                    st.write(f"**{nombre_limpio}**")
+                    st.caption("Rama: 02_SISTEMAS")
+        else:
+            st.warning("No hay libros que coincidan con esa palabra.")
+    else:
+        st.error("Crea la carpeta BASE_DATOS/02_SISTEMAS en GitHub para ver tus libros.")
