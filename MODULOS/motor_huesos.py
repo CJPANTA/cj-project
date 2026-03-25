@@ -7,30 +7,25 @@ def mostrar_buscador_huesos():
     ruta = "BASE_DATOS/03_CONFIG/huesos_maestro.csv"
     
     try:
-        # Intento 1: UTF-8 (Estandar)
-        try:
-            df = pd.read_csv(ruta, encoding='utf-8')
-        except:
-            # Intento 2: Latin-1 (Excel comun)
-            df = pd.read_csv(ruta, encoding='latin-1', sep=None, engine='python')
-            
-        busqueda = st.text_input("Escribe el nombre del hueso o region:")
+        # El separador sep=None hace que Python adivine si usaste coma o punto y coma
+        df = pd.read_csv(ruta, sep=None, engine='python', encoding='latin-1')
+        
+        busqueda = st.text_input("Escribe el nombre del hueso o region (ej. Frontal):")
         
         if busqueda:
-            # Busqueda que ignora mayusculas y tildes si las hubiera
-            resultado = df[df.apply(lambda row: busqueda.lower() in row.astype(str).str.lower().values, axis=1)]
+            # Busqueda flexible
+            mask = df.apply(lambda row: row.astype(str).str.contains(busqueda, case=False).any(), axis=1)
+            resultado = df[mask]
             
             if not resultado.empty:
                 for index, row in resultado.iterrows():
-                    with st.expander(f"Hueso: {row['Nombre_Hueso']} ({row['Región']})"):
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            st.write(f"**Accidentes:** {row['Accidentes_Clave']}")
-                            st.write(f"**Musculos:** {row['Musculos_Relacionados']}")
-                        with col2:
-                            st.write(f"**Funcion:** {row['Función_Biomecánica']}")
-                            st.info(f"Agente: {row['Agente_Fisico']}")
+                    with st.expander(f"Hueso: {row['Nombre_Hueso']}"):
+                        st.write(f"**Region:** {row['Región']}")
+                        st.write(f"**Accidentes:** {row['Accidentes_Clave']}")
+                        st.write(f"**Musculos:** {row['Musculos_Relacionados']}")
+                        st.write(f"**Funcion:** {row['Función_Biomecánica']}")
+                        st.info(f"Agente Sugerido: {row['Agente_Fisico']}")
             else:
-                st.warning("No se encontro el termino.")
+                st.warning("No se encontro el termino. Prueba con otra palabra.")
     except Exception as e:
-        st.error("Error critico: Por favor revisa que el archivo CSV este en la carpeta 03_CONFIG.")
+        st.error(f"Error: Revisa que el archivo CSV no este abierto en tu PC.")
