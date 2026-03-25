@@ -11,22 +11,31 @@ opcion = st.sidebar.radio("Navegacion:", ["Inicio", "Buscador Anatomico", "Repos
 
 if opcion == "Inicio":
     st.title("Gestion de Conocimiento - Fisioterapia")
-    st.write(f"Bienvenido, Jorge Luis. Listo para una sesion de estudio eficiente.")
     
-    # Lista de imagenes de fisioterapia para ir rotando
-    imagenes_fisio = [
-        "https://images.unsplash.com/photo-1576091160550-2173dba999ef?q=80&w=1000", # Terapia manual
-        "https://images.unsplash.com/photo-1597452485669-2c7bb5fef90d?q=80&w=1000", # Anatomia
-        "https://images.unsplash.com/photo-1530026405186-ed1f139313f8?q=80&w=1000"  # Rehabilitacion
+    # Bienvenida personalizada (Esto cambiara cuando pongamos Login)
+    st.write("### Bienvenido, Jorge Luis")
+    
+    # Galeria educativa de Fisioterapia (10 imagenes reales)
+    imagenes_educativas = [
+        "https://images.unsplash.com/photo-1559757175-5700dde675bc?q=80&w=1000", # Musculos Espalda
+        "https://images.unsplash.com/photo-1576086213369-97a306d36557?q=80&w=1000", # Neurona
+        "https://images.unsplash.com/photo-1530026405186-ed1f139313f8?q=80&w=1000", # Rehabilitacion Rodilla
+        "https://images.unsplash.com/photo-1582719471384-894fbb16e074?q=80&w=1000", # Columna Vertebral
+        "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?q=80&w=1000", # Ejercicio Funcional
+        "https://images.unsplash.com/photo-1597452485669-2c7bb5fef90d?q=80&w=1000", # Craneo Lateral
+        "https://images.unsplash.com/photo-1581594693702-fbdc51b2763b?q=80&w=1000", # Red Neuronal
+        "https://images.unsplash.com/photo-1579154235820-221200062b14?q=80&w=1000", # Microcosmos Celular
+        "https://images.unsplash.com/photo-1579684385127-1ef15d508118?q=80&w=1000", # Analisis Medico
+        "https://images.unsplash.com/photo-1516549655169-df83a0774514?q=80&w=1000"  # Laboratorio Anatomico
     ]
     
-    # Selecciona una imagen al azar cada vez que se carga
-    img_seleccionada = random.choice(imagenes_fisio)
-    st.image(img_seleccionada, use_container_width=True, caption="Enfoque Clinico Profesional")
+    img_hoy = random.choice(imagenes_educativas)
+    st.image(img_hoy, use_container_width=True)
+    st.info("💡 Tip del dia: La repeticion espaciada es la clave para dominar la anatomia.")
 
 elif opcion == "Buscador Anatomico":
     mostrar_buscador_huesos()
 
 elif opcion == "Repositorio Carrion":
     st.title("Repositorio de Clases (PDFs de Oro)")
-    st.info("Conexion en proceso... pronto veras tus ciclos aqui.")
+    st.info("Conectando con BASE_DATOS/01_CARRION...")
