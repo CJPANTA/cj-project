@@ -2,15 +2,17 @@ import streamlit as st
 import sys
 import os
 
-# Agregamos la carpeta Codigos al camino de búsqueda de Python
-sys.path.append(os.path.join(os.path.dirname(__file__), "Codigos"))
+# 1. Referencia absoluta a la raíz
+ROOT_PATH = os.path.dirname(os.path.abspath(__file__))
 
-# Ahora importamos la función correcta
+# 2. Agregamos la carpeta de Codigos al sistema
+sys.path.append(os.path.join(ROOT_PATH, "Codigos"))
+
+# 3. Lanzamos la aplicación
 try:
     from motor_huesos import main_app
     main_app()
-except ImportError as e:
-    st.error(f"Error de Importación: {e}")
-    st.write("Asegúrate de que 'motor_huesos.py' esté dentro de la carpeta 'Codigos'")
 except Exception as e:
-    st.error(f"Ocurrió un error inesperado: {e}")
+    st.error(f"Error de sistema: {e}")
+    st.info("Revisando carpetas...")
+    st.write("Archivos en raíz:", os.listdir(ROOT_PATH))
