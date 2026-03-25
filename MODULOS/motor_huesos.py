@@ -1,31 +1,28 @@
 import streamlit as st
 import pandas as pd
+import os
 
 def mostrar_buscador_huesos():
-    st.subheader("Buscador Anatomico") 
-    
+    st.subheader("🔍 Buscador Anatomico")
     ruta = "BASE_DATOS/03_CONFIG/huesos_maestro.csv"
     
-    try:
-        # El separador sep=None hace que Python adivine si usaste coma o punto y coma
-        df = pd.read_csv(ruta, sep=None, engine='python', encoding='latin-1')
-        
-        busqueda = st.text_input("Escribe el nombre del hueso o region (ej. Frontal):")
-        
-        if busqueda:
-            # Busqueda flexible
-            mask = df.apply(lambda row: row.astype(str).str.contains(busqueda, case=False).any(), axis=1)
-            resultado = df[mask]
+    if os.path.exists(ruta):
+        try:
+            # Lectura flexible para evitar errores de codificacion
+            df = pd.read_csv(ruta, sep=None, engine='python', encoding='latin-1')
             
-            if not resultado.empty:
-                for index, row in resultado.iterrows():
-                    with st.expander(f"Hueso: {row['Nombre_Hueso']}"):
-                        st.write(f"**Region:** {row['Región']}")
-                        st.write(f"**Accidentes:** {row['Accidentes_Clave']}")
-                        st.write(f"**Musculos:** {row['Musculos_Relacionados']}")
-                        st.write(f"**Funcion:** {row['Función_Biomecánica']}")
-                        st.info(f"Agente Sugerido: {row['Agente_Fisico']}")
-            else:
-                st.warning("No se encontro el termino. Prueba con otra palabra.")
-    except Exception as e:
-        st.error(f"Error: Revisa que el archivo CSV no este abierto en tu PC.")
+            busqueda = st.text_input("Ingresa el hueso a buscar:")
+            if busqueda:
+                resultado = df[df.apply(lambda row: busqueda.lower() in row.astype(str).str.lower().values, axis=1)]
+                if not resultado.empty:
+                    for _, row in resultado.iterrows():
+                        with st.expander(f"🦴 {row['Nombre_Hueso']}"):
+                            st.write(f"**Region:** {row['Región']}")
+                            st.write(f"**Musculos:** {row['Musculos_Relacionados']}")
+                            st.success(f"⚡ Agente: {row['Agente_Fisico']}")
+                else:
+                    st.warning("No se encontro informacion.")
+        except Exception as e:
+            st.error(f"Error al leer los datos. Revisa el formato del CSV.")
+    else:
+        st.error(f"No se encuentra el archivo en: {ruta}")
