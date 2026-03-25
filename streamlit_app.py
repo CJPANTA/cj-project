@@ -2,70 +2,100 @@ import streamlit as st
 import sys
 import os
 
-# Asegurar que MODULOS sea visible
+# Asegurar conexión con MODULOS
 sys.path.append(os.path.join(os.path.dirname(__file__), "MODULOS"))
-from motor_huesos import cargar_csv_maestro, listar_archivos_biblioteca, DIR_CARRION, DIR_SISTEMAS, DIR_PORTADAS
+from motor_huesos import cargar_csv_maestro, obtener_archivos, DIR_CARRION, DIR_SISTEMAS
 
-st.set_page_config(page_title="PROYECTO CJ", layout="wide")
+# --- CONFIGURACIÓN DE PÁGINA ---
+st.set_page_config(page_title="CJ PROYECTOS - Jorge Luis", layout="wide")
 
-# --- BARRA LATERAL ESTILO "CARRION" ---
-st.sidebar.image("https://images.unsplash.com/photo-1576091160550-2173dbc999ef?q=80&w=400", caption="Anatomía Digital CJ")
-menu = st.sidebar.radio("MENÚ PRINCIPAL", ["🏠 Inicio", "🦴 Anatomía Maestro", "📖 Biblioteca Carrión", "📚 Biblioteca Técnica"])
-
-# URL Base para GitHub (Ajustar a tu repo)
+# URL del Logo CJ en tu GitHub (Basado en tus capturas)
+URL_LOGO_CJ = "https://raw.githubusercontent.com/CJPANTA/cj-project/main/BASE_DATOS/04_PORTADAS/LOGO_CJ.png"
 LINK_RAW = "https://raw.githubusercontent.com/CJPANTA/cj-project/main/BASE_DATOS/"
 
-# --- SECCIÓN 1: ANATOMÍA ---
-if menu == "🦴 Anatomía Maestro":
+# --- SIDEBAR: IDENTIDAD ---
+with st.sidebar:
+    st.image(URL_LOGO_CJ, width=150)
+    st.markdown(f"### CJ PROYECTOS\n**Lic. Jorge Luis Chiroque**")
+    st.divider()
+    menu = st.sidebar.radio("MENÚ PRINCIPAL", ["🏠 Inicio", "🦴 Anatomía Maestro", "📖 Repositorio Carrión", "📚 Biblioteca Técnica"])
+
+# --- SECCIÓN: INICIO ---
+if menu == "🏠 Inicio":
+    st.title("Bienvenido al Sistema de Optimización de Estudio")
+    st.subheader(f"Lic. Jorge Luis Chiroque Panta")
+    st.image("https://images.unsplash.com/photo-1576091160550-2173dbc999ef?q=80&w=2000", use_container_width=True)
+    st.success("Eficiencia máxima en Fisioterapia. Selecciona un módulo para empezar.")
+
+# --- SECCIÓN: ANATOMÍA MAESTRO ---
+elif menu == "🦴 Anatomía Maestro":
     st.title("🦴 Buscador Anatomía Maestro")
     df, error = cargar_csv_maestro()
     
     if error:
-        st.error(f"Error de conexión: {error}")
+        st.error(f"Error: {error}")
     else:
-        busqueda = st.text_input("🔍 Filtra por hueso o región (Ej: Frontal, Fémur)...")
+        busqueda = st.text_input("🔍 Buscar por Hueso, Región o Píldora BRI:", placeholder="Escribe aquí...")
+        
         if busqueda:
-            df = df[df.apply(lambda r: busqueda.lower() in r.astype(str).lower().values, axis=1)]
+            # Filtro inteligente que no da error si hay nulos o typos
+            df = df[df.apply(lambda row: busqueda.lower() in row.astype(str).lower().values, axis=1)]
 
         cols = st.columns(3)
         for i, (_, row) in enumerate(df.iterrows()):
             with cols[i % 3]:
                 with st.container(border=True):
-                    # Imagen dinámica por hueso
-                    st.image(f"https://loremflickr.com/400/200/anatomy,bone/all?lock={i}")
-                    st.subheader(row.get('Nombre_Hueso', 'N/A'))
-                    st.write(f"**📍 Región:** {row.get('Region', 'N/A')}")
-                    st.info(f"**💡 Píldora BRI:** {row.get('Accion_Sugerida', 'N/A')}")
+                    st.markdown(f"### {row.get('Nombre_Hueso', 'Sin nombre')}")
+                    st.caption(f"📍 {row.get('Region', 'General')}")
+                    st.info(f"**Píldora BRI:** {row.get('Accion_Sugerida', 'Revisar manual')}")
                     
-                    c1, c2 = st.columns(2)
+                    with st.expander("Ver Detalles"):
+                        st.write(f"**Cara:** {row.get('Cara', 'N/A')}")
+                        st.write(f"**Accidentes:** {row.get('Accidentes_Oseos', 'N/A')}")
+                    
                     if row.get('Link_PDF_Carrion'):
                         url = f"{LINK_RAW}01_CARRION/{row['Link_PDF_Carrion']}".replace(" ","%20")
-                        c1.link_button("📄 Ver Clase", url, use_container_width=True)
-                    if row.get('Referencia_Netter'):
-                        c2.link_button("📚 Libro", "#", use_container_width=True)
+                        st.link_button("📄 Ver Clase PDF", url, use_container_width=True)
 
-# --- SECCIÓN 2: BIBLIOTECA CARRIÓN (ORGANIZADA POR CICLOS) ---
-elif menu == "📖 Biblioteca Carrión":
-    st.title("📖 Repositorio de Ciclos - Carrión")
-    ciclos = listar_archivos_biblioteca(DIR_CARRION)
-    ciclos = [c for c in ciclos if os.path.isdir(os.path.join(DIR_CARRION, c))]
+# --- SECCIÓN: REPOSITORIO CARRIÓN (AHORA EN PANTALLA PRINCIPAL) ---
+elif menu == "📖 Repositorio Carrión":
+    st.title("📖 Repositorio de Ciclos Carrión")
+    ciclos = obtener_archivos(DIR_CARRION)
     
     if ciclos:
-        ciclo_sel = st.sidebar.selectbox("Seleccionar Ciclo:", ciclos)
+        # El selector de ciclo ahora está en la pantalla principal, no en el lateral
+        ciclo_sel = st.selectbox("Selecciona el Ciclo a estudiar:", ciclos)
         ruta_ciclo = os.path.join(DIR_CARRION, ciclo_sel)
         pdfs = [f for f in os.listdir(ruta_ciclo) if f.endswith('.pdf')]
         
-        c_grid = st.columns(4)
-        for i, pdf in enumerate(pdfs):
-            with c_grid[i % 4]:
-                st.markdown(f"📄 **{pdf[:20]}...**")
-                url_c = f"{LINK_RAW}01_CARRION/{ciclo_sel}/{pdf}".replace(" ","%20")
-                st.link_button("Abrir", url_c, use_container_width=True)
+        if pdfs:
+            st.write(f"### Archivos en {ciclo_sel}")
+            c_grid = st.columns(4)
+            for i, pdf in enumerate(pdfs):
+                with c_grid[i % 4]:
+                    with st.container(border=True):
+                        st.write(f"📄 {pdf[:25]}...")
+                        url_pdf = f"{LINK_RAW}01_CARRION/{ciclo_sel}/{pdf}".replace(" ","%20")
+                        st.link_button("Abrir", url_pdf, use_container_width=True)
+        else:
+            st.warning("No hay archivos PDF en esta carpeta.")
     else:
-        st.warning("No se encontraron carpetas de ciclos en 01_CARRION.")
+        st.error("No se detectaron carpetas en 01_CARRION.")
 
-# --- SECCIÓN 3: INICIO (PÁGINA DE BIENVENIDA) ---
-elif menu == "🏠 Inicio":
-    st.title("Sistema de Optimización de Estudio")
-    st.image("https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=1200", use_container_width=True)
-    st.success("Bienvenido Jorge Luis. Sistema cargado y listo para Aucallama.")
+# --- SECCIÓN: BIBLIOTECA TÉCNICA ---
+elif menu == "📚 Biblioteca Técnica":
+    st.title("📚 Libros de Fisioterapia y Sistemas")
+    libros = [f for f in obtener_archivos(DIR_SISTEMAS) if f.endswith('.pdf')]
+    
+    if libros:
+        c_lib = st.columns(4)
+        for i, lib in enumerate(libros):
+            with c_lib[i % 4]:
+                with st.container(border=True):
+                    # Portada genérica si no hay imagen específica
+                    st.markdown("📘")
+                    st.write(f"**{lib[:30]}**")
+                    url_lib = f"{LINK_RAW}02_SISTEMAS/{lib}".replace(" ","%20")
+                    st.link_button("Ver Libro", url_lib, use_container_width=True)
+    else:
+        st.warning("No se encontraron libros en la carpeta 02_SISTEMAS.")
