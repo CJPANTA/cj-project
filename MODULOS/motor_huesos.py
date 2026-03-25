@@ -2,91 +2,88 @@ import streamlit as st
 import pandas as pd
 import os
 
-# --- CONFIGURACIÓN DE RUTAS ---
+# --- RUTAS ---
 BASE_PATH = "BASE_DATOS"
-RUTA_SESIONES = f"{BASE_PATH}/01_SESIONES"
-RUTA_SISTEMAS = f"{BASE_PATH}/02_SISTEMAS"
-RUTA_PORTADAS = f"{BASE_PATH}/04_PORTADAS"
+RUTA_SESIONES = os.path.join(BASE_PATH, "01_SESIONES")
+RUTA_SISTEMAS = os.path.join(BASE_PATH, "02_SISTEMAS")
+RUTA_PORTADAS = os.path.join(BASE_PATH, "04_PORTADAS")
 CSV_MAESTRO = "huesos_maestro.csv"
-# Reemplaza con tu link real de GitHub
-LINK_RAW = "https://raw.githubusercontent.com/TuUsuario/TuRepo/main/" 
+LINK_RAW = "https://raw.githubusercontent.com/TuUsuario/TuRepo/main/"
 
-def listar_alfanumerico(ruta):
-    if os.path.exists(ruta):
-        # Filtra solo carpetas y ordena A-Z
-        return sorted([d for d in os.listdir(ruta) if os.path.isdir(os.path.join(ruta, d))])
-    return []
+def cargar_csv_seguro():
+    if os.path.exists(CSV_MAESTRO):
+        # Leemos con el separador real de tu archivo
+        df = pd.read_csv(CSV_MAESTRO, sep=';', encoding='utf-8')
+        df.columns = df.columns.str.strip() # Limpia espacios invisibles
+        return df.fillna("")
+    return None
 
-def mostrar_item(archivo_pdf, carpeta_padre):
-    """Renderiza la tarjeta de libro/clase con tamaño homogéneo"""
-    nombre_base = archivo_pdf.replace(".pdf", "")
-    ruta_img = f"{RUTA_PORTADAS}/{nombre_base}.jpg"
+def mostrar_tarjeta(archivo_pdf, carpeta_origen):
+    nombre_sin_ext = archivo_pdf.replace(".pdf", "")
+    ruta_img = os.path.join(RUTA_PORTADAS, f"{nombre_sin_ext}.jpg")
     
     with st.container():
         if os.path.exists(ruta_img):
             st.image(ruta_img, use_container_width=True)
         else:
-            st.markdown(f"<div style='height:180px; display:flex; align-items:center; justify-content:center; background:#262730; border-radius:10px; font-size:30px;'>📚</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='height:180px; display:flex; align-items:center; justify-content:center; background:#262730; border-radius:10px; font-size:40px;'>📚</div>", unsafe_allow_html=True)
         
-        st.caption(f"**{nombre_base}**")
-        # Link directo al PDF en GitHub
-        url_final = f"{LINK_RAW}{carpeta_padre}/{archivo_pdf}".replace(" ", "%20")
-        st.link_button("👁️ Abrir", url_final, use_container_width=True)
+        st.caption(f"**{nombre_sin_ext}**")
+        url_archivo = f"{LINK_RAW}{carpeta_origen}/{archivo_pdf}".replace(" ", "%20")
+        st.link_button("👁️ Abrir", url_archivo, use_container_width=True)
 
-# --- SIDEBAR ---
-st.sidebar.title("Proyecto CJ")
-seccion = st.sidebar.radio("Ir a:", ["Anatomía Maestro", "Biblioteca Carrión", "Biblioteca Técnica"])
+# --- NAVEGACIÓN ---
+st.sidebar.title("PROYECTO CJ")
+seccion = st.sidebar.radio("Menú:", ["Anatomía Maestro", "Biblioteca Carrión", "Biblioteca Técnica"])
 
-# --- 1. ANATOMÍA MAESTRO (Buscador Corregido) ---
 if seccion == "Anatomía Maestro":
     st.title("🦴 Anatomía Maestro")
-    if os.path.exists(CSV_MAESTRO):
-        df = pd.read_csv(CSV_MAESTRO, sep=';').fillna("") # fillna evita errores en el buscador
-        busqueda = st.text_input("🔍 Buscar hueso, zona o pildora:")
-        
+    df = cargar_csv_seguro()
+    
+    if df is not None:
+        busqueda = st.text_input("🔍 Búsqueda Inteligente:")
         if busqueda:
-            # Buscador corregido para evitar errores de tipo de dato
-            mask = df.apply(lambda r: r.astype(str).str.contains(busqueda, case=False).any(), axis=1)
-            df = df[mask]
+            df = df[df.apply(lambda r: busqueda.lower() in r.astype(str).lower().values, axis=1)]
 
         for _, row in df.iterrows():
-            with st.expander(f"{row['Nombre_Hueso']} | {row['Prioridad_BRI']}"):
-                st.write(f"**💡 BRI:** {row['Accion_Sugerida']}")
-                st.write(f"**📍 Ubicación:** {row['Cara']} - {row['Accidentes_Oseos']}")
-                st.write(f"**🔬 Articulación:** {row['Articulaciones_Clave']}")
+            # USANDO COLUMNAS REALES DE TU ARCHIVO:
+            # ID;Region;Nombre_Hueso;Cara;Accidentes_Oseos;Musculos_Relacionados;Funcion_Bio;Articulaciones_Clave;Agente_Fisico;Referencia_Netter;Link_PDF_Carrion;Prioridad_BRI;Accion_Sugerida
+            titulo = f"{row['Nombre_Hueso']} ({row['Region']})"
+            with st.expander(titulo):
+                c1, c2 = st.columns([2, 1])
+                with c1:
+                    st.write(f"**💡 Píldora BRI:** {row['Accion_Sugerida']}")
+                    st.write(f"**📍 Cara/Accidente:** {row['Cara']} - {row['Accidentes_Oseos']}")
+                    st.write(f"**🤝 Agente:** {row['Agente_Fisico']}")
+                with c2:
+                    prio = row['Prioridad_BRI']
+                    if prio == "Rojo": st.error(f"PRIORIDAD: {prio}")
+                    elif prio == "Verde": st.success(f"PRIORIDAD: {prio}")
+                    else: st.info(f"PRIORIDAD: {prio}")
+                    
+                    # Link directo a la sesión de Carrión asociada
+                    if row['Link_PDF_Carrion']:
+                        st.caption(f"Ref: {row['Link_PDF_Carrion']}")
 
-# --- 2. BIBLIOTECA CARRIÓN (Conexión Corregida) ---
 elif seccion == "Biblioteca Carrión":
     st.title("📖 Ciclos Carrión")
-    ciclos = listar_alfanumerico(RUTA_SESIONES)
-    
-    if ciclos:
-        ciclo_sel = st.sidebar.selectbox("Seleccionar Ciclo:", ciclos)
-        ruta_clases = f"{RUTA_SESIONES}/{ciclo_sel}"
-        
-        # Leemos y ordenamos los archivos de la carpeta del ciclo
-        archivos = sorted([f for f in os.listdir(ruta_clases) if f.endswith('.pdf')])
-        
-        if archivos:
+    if os.path.exists(RUTA_SESIONES):
+        ciclos = sorted([d for d in os.listdir(RUTA_SESIONES) if os.path.isdir(os.path.join(RUTA_SESIONES, d))])
+        if ciclos:
+            ciclo_sel = st.sidebar.selectbox("Seleccionar Ciclo:", ciclos)
+            ruta_final = os.path.join(RUTA_SESIONES, ciclo_sel)
+            archivos = sorted([f for f in os.listdir(ruta_final) if f.endswith('.pdf')])
+            
             cols = st.columns(3)
             for i, arc in enumerate(archivos):
                 with cols[i % 3]:
-                    mostrar_item(arc, ruta_clases)
-        else:
-            st.info("No hay PDFs en esta carpeta aún.")
+                    mostrar_tarjeta(arc, f"BASE_DATOS/01_SESIONES/{ciclo_sel}")
 
-# --- 3. BIBLIOTECA TÉCNICA (Orden Corregido) ---
 elif seccion == "Biblioteca Técnica":
     st.title("📚 Libros de Sistemas")
-    filtro = st.text_input("🔍 Buscar libro:")
-    
     if os.path.exists(RUTA_SISTEMAS):
-        # Orden alfanumérico estricto
         libros = sorted([l for l in os.listdir(RUTA_SISTEMAS) if l.endswith('.pdf')])
-        if filtro:
-            libros = [l for l in libros if filtro.lower() in l.lower()]
-            
         cols = st.columns(3)
         for i, lib in enumerate(libros):
             with cols[i % 3]:
-                mostrar_item(lib, RUTA_SISTEMAS)
+                mostrar_tarjeta(lib, "BASE_DATOS/02_SISTEMAS")
