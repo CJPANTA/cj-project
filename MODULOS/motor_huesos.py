@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import os
 
-# --- RUTAS ---
+# --- CONFIGURACIÓN DE RUTAS ---
 BASE_PATH = "BASE_DATOS"
 RUTA_SESIONES = os.path.join(BASE_PATH, "01_SESIONES")
 RUTA_SISTEMAS = os.path.join(BASE_PATH, "02_SISTEMAS")
@@ -10,11 +10,13 @@ RUTA_PORTADAS = os.path.join(BASE_PATH, "04_PORTADAS")
 CSV_MAESTRO = "huesos_maestro.csv"
 LINK_RAW = "https://raw.githubusercontent.com/TuUsuario/TuRepo/main/"
 
-def cargar_csv_seguro():
+def cargar_datos_v2():
+    """Carga el CSV detectando automáticamente el separador y limpiando basura"""
     if os.path.exists(CSV_MAESTRO):
-        # Leemos con el separador real de tu archivo
-        df = pd.read_csv(CSV_MAESTRO, sep=';', encoding='utf-8')
-        df.columns = df.columns.str.strip() # Limpia espacios invisibles
+        # Intentamos leer con ; que es el de tu archivo
+        df = pd.read_csv(CSV_MAESTRO, sep=';', encoding='utf-8', engine='python')
+        # LIMPIEZA CRÍTICA: Quitamos espacios raros de los nombres de columnas
+        df.columns = [c.strip() for c in df.columns]
         return df.fillna("")
     return None
 
@@ -26,7 +28,7 @@ def mostrar_tarjeta(archivo_pdf, carpeta_origen):
         if os.path.exists(ruta_img):
             st.image(ruta_img, use_container_width=True)
         else:
-            st.markdown(f"<div style='height:180px; display:flex; align-items:center; justify-content:center; background:#262730; border-radius:10px; font-size:40px;'>📚</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='height:160px; display:flex; align-items:center; justify-content:center; background:#333; border-radius:10px; font-size:40px;'>📚</div>", unsafe_allow_html=True)
         
         st.caption(f"**{nombre_sin_ext}**")
         url_archivo = f"{LINK_RAW}{carpeta_origen}/{archivo_pdf}".replace(" ", "%20")
@@ -34,43 +36,46 @@ def mostrar_tarjeta(archivo_pdf, carpeta_origen):
 
 # --- NAVEGACIÓN ---
 st.sidebar.title("PROYECTO CJ")
-seccion = st.sidebar.radio("Menú:", ["Anatomía Maestro", "Biblioteca Carrión", "Biblioteca Técnica"])
+# Eliminamos radios por ahora para asegurar que cargue lo principal
+seccion = st.sidebar.selectbox("Ir a:", ["Anatomía Maestro", "Biblioteca Carrión", "Biblioteca Técnica"])
 
+# --- 1. ANATOMÍA MAESTRO ---
 if seccion == "Anatomía Maestro":
     st.title("🦴 Anatomía Maestro")
-    df = cargar_csv_seguro()
+    df = cargar_datos_v2()
     
     if df is not None:
-        busqueda = st.text_input("🔍 Búsqueda Inteligente:")
+        # Imprime las columnas en la app solo para que tú verifiques que ya las leyó
+        # st.write(df.columns.tolist()) # Puedes desmarcar esto para debuggear
+        
+        busqueda = st.text_input("🔍 Buscador:")
         if busqueda:
             df = df[df.apply(lambda r: busqueda.lower() in r.astype(str).lower().values, axis=1)]
 
         for _, row in df.iterrows():
-            # USANDO COLUMNAS REALES DE TU ARCHIVO:
-            # ID;Region;Nombre_Hueso;Cara;Accidentes_Oseos;Musculos_Relacionados;Funcion_Bio;Articulaciones_Clave;Agente_Fisico;Referencia_Netter;Link_PDF_Carrion;Prioridad_BRI;Accion_Sugerida
-            titulo = f"{row['Nombre_Hueso']} ({row['Region']})"
-            with st.expander(titulo):
-                c1, c2 = st.columns([2, 1])
-                with c1:
-                    st.write(f"**💡 Píldora BRI:** {row['Accion_Sugerida']}")
-                    st.write(f"**📍 Cara/Accidente:** {row['Cara']} - {row['Accidentes_Oseos']}")
-                    st.write(f"**🤝 Agente:** {row['Agente_Fisico']}")
-                with c2:
-                    prio = row['Prioridad_BRI']
-                    if prio == "Rojo": st.error(f"PRIORIDAD: {prio}")
-                    elif prio == "Verde": st.success(f"PRIORIDAD: {prio}")
-                    else: st.info(f"PRIORIDAD: {prio}")
-                    
-                    # Link directo a la sesión de Carrión asociada
-                    if row['Link_PDF_Carrion']:
-                        st.caption(f"Ref: {row['Link_PDF_Carrion']}")
+            # Usamos row.get para que si falla el nombre, no salga la pantalla roja
+            hueso = row.get('Nombre_Hueso', 'Columna no encontrada')
+            region = row.get('Region', '')
+            prio = row.get('Prioridad_BRI', 'Blanco')
+            
+            with st.expander(f"{hueso} - {region} | {prio}"):
+                col1, col2 = st.columns([2, 1])
+                with col1:
+                    st.markdown(f"**💡 BRI:** {row.get('Accion_Sugerida', 'N/A')}")
+                    st.write(f"**📍 Cara:** {row.get('Cara', '')}")
+                    st.write(f"**🔬 Articulación:** {row.get('Articulaciones_Clave', '')}")
+                with col2:
+                    if prio == "Rojo": st.error("CRÍTICO")
+                    elif prio == "Verde": st.success("NORMAL")
+                    else: st.info("ESTÁNDAR")
 
+# --- 2. BIBLIOTECA CARRIÓN ---
 elif seccion == "Biblioteca Carrión":
     st.title("📖 Ciclos Carrión")
     if os.path.exists(RUTA_SESIONES):
         ciclos = sorted([d for d in os.listdir(RUTA_SESIONES) if os.path.isdir(os.path.join(RUTA_SESIONES, d))])
         if ciclos:
-            ciclo_sel = st.sidebar.selectbox("Seleccionar Ciclo:", ciclos)
+            ciclo_sel = st.sidebar.selectbox("Ciclo:", ciclos)
             ruta_final = os.path.join(RUTA_SESIONES, ciclo_sel)
             archivos = sorted([f for f in os.listdir(ruta_final) if f.endswith('.pdf')])
             
@@ -78,12 +83,3 @@ elif seccion == "Biblioteca Carrión":
             for i, arc in enumerate(archivos):
                 with cols[i % 3]:
                     mostrar_tarjeta(arc, f"BASE_DATOS/01_SESIONES/{ciclo_sel}")
-
-elif seccion == "Biblioteca Técnica":
-    st.title("📚 Libros de Sistemas")
-    if os.path.exists(RUTA_SISTEMAS):
-        libros = sorted([l for l in os.listdir(RUTA_SISTEMAS) if l.endswith('.pdf')])
-        cols = st.columns(3)
-        for i, lib in enumerate(libros):
-            with cols[i % 3]:
-                mostrar_tarjeta(lib, "BASE_DATOS/02_SISTEMAS")
