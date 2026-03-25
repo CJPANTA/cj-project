@@ -8,21 +8,35 @@ def mostrar_buscador_huesos():
     
     if os.path.exists(ruta):
         try:
-            # Lectura flexible para evitar errores de codificacion
-            df = pd.read_csv(ruta, sep=None, engine='python', encoding='latin-1')
+            # AJUSTE DE AUDITORIA: Leemos con separador ';' y codificacion latin-1
+            df = pd.read_csv(ruta, sep=';', encoding='latin-1', on_bad_lines='skip')
             
-            busqueda = st.text_input("Ingresa el hueso a buscar:")
+            # Limpiamos nombres de columnas por si tienen espacios invisibles
+            df.columns = df.columns.str.strip()
+            
+            busqueda = st.text_input("Ingresa el hueso a buscar (ej. Frontal):")
+            
             if busqueda:
-                resultado = df[df.apply(lambda row: busqueda.lower() in row.astype(str).str.lower().values, axis=1)]
+                # Busqueda en todo el documento
+                mask = df.apply(lambda row: row.astype(str).str.contains(busqueda, case=False).any(), axis=1)
+                resultado = df[mask]
+                
                 if not resultado.empty:
                     for _, row in resultado.iterrows():
-                        with st.expander(f"🦴 {row['Nombre_Hueso']}"):
-                            st.write(f"**Region:** {row['Región']}")
-                            st.write(f"**Musculos:** {row['Musculos_Relacionados']}")
-                            st.success(f"⚡ Agente: {row['Agente_Fisico']}")
+                        # Usamos los nombres exactos de tus columnas del CSV
+                        nombre = row['Nombre_Hueso'] if 'Nombre_Hueso' in row else "Sin nombre"
+                        region = row['Region'] if 'Region' in row else "N/A"
+                        
+                        with st.expander(f"🦴 {nombre} ({region})"):
+                            st.write(f"**Accidentes:** {row.get('Accidentes_Clave', 'N/A')}")
+                            st.write(f"**Musculos:** {row.get('Musculos_Relacionados', 'N/A')}")
+                            st.write(f"**Funcion:** {row.get('Funcion_Biomecanica', 'N/A')}")
+                            st.success(f"⚡ Agente Sugerido: {row.get('Agente_Fisico', 'N/A')}")
+                            if 'Link_PDF_Carrion' in row:
+                                st.caption(f"📖 Ref: {row['Link_PDF_Carrion']}")
                 else:
-                    st.warning("No se encontro informacion.")
+                    st.warning("No se encontro coincidencia. Intenta con otra palabra.")
         except Exception as e:
-            st.error(f"Error al leer los datos. Revisa el formato del CSV.")
+            st.error(f"Error de lectura: {e}")
     else:
-        st.error(f"No se encuentra el archivo en: {ruta}")
+        st.error(f"El archivo no existe en la ruta: {ruta}")
