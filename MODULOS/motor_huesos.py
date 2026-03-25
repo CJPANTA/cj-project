@@ -2,66 +2,82 @@ import streamlit as st
 import pandas as pd
 import os
 
-# --- CONFIGURACIÓN DE RUTAS Y RECURSOS ---
-LINK_VIEW = "https://github.com/TuUsuario/TuRepo/blob/main/" # Ajusta con tu URL real
-LINK_RAW = "https://github.com/TuUsuario/TuRepo/raw/main/"
+# --- CONFIGURACIÓN DE RUTAS ---
+# Mantenemos la estructura de carpetas que confirmamos
+BASE_PATH = "BASE_DATOS"
+RUTA_SESIONES = f"{BASE_PATH}/01_SESIONES"
+RUTA_PORTADAS = f"{BASE_PATH}/04_PORTADAS"
+CSV_MAESTRO = "huesos_maestro.csv"
+LINK_RAW = "https://github.com/TuUsuario/TuRepo/raw/main/" # Cambia TuUsuario/TuRepo
 
-def aplicar_estilo_prioridad(val):
-    """Lógica de colores para Prioridad_BRI: Verde (Bajo), Rojo (Urgente), Blanco (Estándar)"""
-    color = 'white'
-    if val == 'Verde': color = '#d4edda'
-    elif val == 'Rojo': color = '#f8d7da'
-    return f'background-color: {color}'
+def listar_alfanumerico(ruta):
+    """Lista directorios de forma ordenada (Ciclo 01, 02... 06)"""
+    if os.path.exists(ruta):
+        return sorted([d for d in os.listdir(ruta) if os.path.isdir(os.path.join(ruta, d))])
+    return []
 
-# --- TRONCO DE LA APP: ANATOMÍA MAESTRO ---
-def seccion_anatomia_maestro():
-    st.title("🦴 Anatomía Maestro - Base de Datos Técnica")
+def mostrar_portada_decente(archivo_pdf, subcarpeta):
+    """Muestra portadas homogéneas. Si no existe, pone un placeholder."""
+    nombre_base = archivo_pdf.replace(".pdf", "")
+    ruta_img = f"{RUTA_PORTADAS}/{nombre_base}.jpg"
     
-    file_path = 'huesos_maestro.csv'
-    if os.path.exists(file_path):
-        df = pd.read_csv(file_path, sep=';')
+    # Contenedor para mantener alineación vertical
+    with st.container():
+        if os.path.exists(ruta_img):
+            st.image(ruta_img, use_container_width=True)
+        else:
+            # Cuadro gris estético si falta la imagen
+            st.markdown(f"<div style='height:200px; display:flex; align-items:center; justify-content:center; background:#262730; border-radius:10px;'>📚</div>", unsafe_allow_html=True)
         
-        # 1. Filtro Abierto (Para detectar cualquier rama nueva)
-        busqueda = st.text_input("🔍 Buscar en Anatomía (Hueso, Región o Accidentes):")
+        st.caption(f"**{nombre_base}**")
         
+        # Botones de acción directa al GitHub
+        url_v = f"{LINK_RAW}{subcarpeta}/{archivo_pdf}".replace(" ", "%20")
+        st.link_button("👁️ Ver", url_v, use_container_width=True)
+
+# --- INTERFAZ PRINCIPAL ---
+st.sidebar.title("Proyecto CJ")
+seccion = st.sidebar.radio("Menú Principal:", ["Anatomía Maestro", "Biblioteca Carrión"])
+
+if seccion == "Anatomía Maestro":
+    st.title("🦴 Anatomía Maestro")
+    if os.path.exists(CSV_MAESTRO):
+        df = pd.read_csv(CSV_MAESTRO, sep=';')
+        
+        # Búsqueda abierta (detecta cualquier texto en el CSV)
+        busqueda = st.text_input("🔍 Búsqueda Inteligente (Hueso, Acción o Prioridad):")
         if busqueda:
-            df = df[df.apply(lambda row: busqueda.lower() in row.astype(str).lower().values, axis=1)]
+            df = df[df.apply(lambda r: busqueda.lower() in r.astype(str).lower().values, axis=1)]
 
-        # 2. Sincronización de PDFs y Formateo a 10 Encabezados Maestros
-        biblioteca_maestra = []
         for _, row in df.iterrows():
-            # Construcción de la ruta al PDF en 01_SESIONES
-            url_pdf = f"{LINK_VIEW}BASE_DATOS/01_SESIONES/{row['Link_PDF_Carrion']}"
-            
-            protocolo = {
-                "Patología / Zona": f"{row['Nombre_Hueso']} - {row['Accidentes_Oseos']}",
-                "Modo Sugerido": row['Agente_Fisico'],
-                "Ubicación Electrodos 📍": f"{row['Cara']} en {row['Nombre_Hueso']}",
-                "Objetivo Fisiológico": row['Funcion_Bio'],
-                "Terapia Ideal 🤝": "Crioterapia / Magneto",
-                "Ejercicio Activo 🏋️": row['Accion_Sugerida'],
-                "Lógica Combinación": f"Art. {row['Articulaciones_Clave']}",
-                "Prioridad": row['Prioridad_BRI'],
-                "Documento": f"[📄 Ver Clase]({url_pdf})",
-                "Netter": row['Referencia_Netter']
-            }
-            biblioteca_maestra.append(protocolo)
+            # Píldora BRI integrada en el expander
+            label = f"{row['Nombre_Hueso']} | BRI: {row['Prioridad_BRI']}"
+            with st.expander(label):
+                c1, c2 = st.columns([2, 1])
+                with c1:
+                    st.write(f"**💡 Píldora BRI:** {row['Accion_Sugerida']}")
+                    st.write(f"**📍 Ubicación:** {row['Cara']} - {row['Accidentes_Oseos']}")
+                    st.write(f"**🤝 Terapia:** {row['Agente_Fisico']}")
+                with c2:
+                    # Indicador visual rápido
+                    if row['Prioridad_BRI'] == "Rojo": st.error("URGENTE")
+                    elif row['Prioridad_BRI'] == "Verde": st.success("PREVENTIVO")
+                    else: st.info("ESTÁNDAR")
+
+elif seccion == "Biblioteca Carrión":
+    st.title("📖 Biblioteca Carrión")
+    ciclos = listar_alfanumerico(RUTA_SESIONES)
+    
+    if ciclos:
+        ciclo_sel = st.sidebar.selectbox("Seleccionar Ciclo:", ciclos)
+        ruta_actual = f"{RUTA_SESIONES}/{ciclo_sel}"
         
-        df_display = pd.DataFrame(biblioteca_maestra)
+        archivos = sorted([f for f in os.listdir(ruta_actual) if f.endswith('.pdf')])
         
-        # 3. Visualización de Prioridades con Estilo
-        st.write("### Protocolos Activos")
-        st.dataframe(df_display.style.applymap(aplicar_estilo_prioridad, subset=['Prioridad']))
+        # 3 columnas para que las portadas se vean grandes y homogéneas
+        cols = st.columns(3)
+        for i, arc in enumerate(archivos):
+            with cols[i % 3]:
+                mostrar_portada_decente(arc, ruta_actual)
     else:
-        st.error("No se encontró el archivo huesos_maestro.csv en la raíz.")
-
-# --- LÓGICA DE NAVEGACIÓN (ABIERTA A CICLOS 05 Y 06) ---
-opciones = ["Ciclo 04", "Ciclo 05", "Ciclo 06", "Anatomía Maestro", "Biblioteca Técnica"]
-opcion = st.sidebar.selectbox("Seleccione Ciclo o Sección:", opciones)
-
-if opcion == "Anatomía Maestro":
-    seccion_anatomia_maestro()
-elif opcion in ["Ciclo 05", "Ciclo 06"]:
-    st.title(f"🚀 {opcion}")
-    st.info(f"Sección preparada. Cargando archivos de la rama {opcion} en GitHub...")
-    # Aquí la app ya está lista para listar PDFs en cuanto los subas a sus carpetas
+        st.warning("No se detectaron carpetas de ciclos en 01_SESIONES.")
