@@ -1,0 +1,21 @@
+ID;Region;Nombre_Hueso;Accidentes_Clave;Musculos_Relacionados;Funcion_Biomecanica;Agente_Fisico;Link_PDF_Carrion
+H001;Cabeza;Frontal;Glabela, Arcos superciliares;Corrugador superciliar;Protección del lóbulo frontal;Laserterapia;CICLO_01/Anatomia/Clase_01.pdf
+H002;Cabeza;Parietal (2);Líneas temporales sup e inf;Fascia temporal;Bóveda craneal y protección;-;CICLO_01/Anatomia/Clase_01.pdf
+H003;Cabeza;Temporal (2);Apófisis mastoides, C. auditivo;Esternocleidomastoideo;Apoyo para mandíbula (ATM);Magnetoterapia;CICLO_01/Anatomia/Clase_02.pdf
+H004;Cabeza;Occipital;Agujero magno, Cóndilos;Trapecio, Complexos;Inserción de músculos nuca;Termoterapia;CICLO_01/Anatomia/Clase_02.pdf
+H005;Cara;Mandíbula;Apófisis coronoides, Cóndilo;Masetero, Temporal;Masticación y habla;Ultrasonido;CICLO_02/Fisica/Clase_ATM.pdf
+H006;Cara;Maxilar;Apófisis alveolar, Seno maxilar;Buccinador;Soporte dental superior;-;CICLO_01/Anatomia/Clase_02.pdf
+H007;Cara;Cigomático;Apófisis temporal;Masetero (origen);Pómulo y protección ocular;-;CICLO_01/Anatomia/Clase_02.pdf
+H008;Cara;Nasal;Tabique nasal óseo;Prócer;Forma de pirámide nasal;-;CICLO_01/Anatomia/Clase_02.pdf
+H009;Cara;Esfenoides;Silla turca, Alas mayores;Pterigoideos;Base del cráneo (llave);-;CICLO_01/Anatomia/Clase_02.pdf
+H010;Cara;Etmoides;Crista galli, Lámina cribosa;-;Formación de fosas nasales;-;CICLO_01/Anatomia/Clase_02.pdf
+H011;Cuello;Hioides;Astas mayores y menores;Suprahioideos;Deglución y fonación;-;CICLO_01/Anatomia/Cuello.pdf
+H012;Columna;Atlas (C1);Masas laterales;Recto posterior menor;Rotación y apoyo del cráneo;TENS;CICLO_03/Biomecanica/C1.pdf
+H013;Columna;Axis (C2);Apófisis odontoides;Oblicuo inferior cabeza;Eje de rotación cervical;Magnetoterapia;CICLO_03/Biomecanica/C2.pdf
+H014;Columna;Vértebra C7;Apófisis espinosa prominente;Trapecio sup.;Transición cérvico-dorsal;Termoterapia;CICLO_01/Anatomia/Columna.pdf
+H015;Columna;Vértebras Dorsales;Fositas costales;Multífidos, Erectores;Protección medular y tórax;Masoterapia;CICLO_02/Fisiologia/Postura.pdf
+H016;Columna;Vértebras Lumbares;Cuerpo vertebral grueso;Psoas mayor;Carga de peso corporal;Interferenciales;CICLO_03/Biomecanica/Lumbar.pdf
+H017;Columna;Sacro;Agujeros sacros, Cresta;Glúteo mayor;Estabilidad pélvica;Ultrasonido;CICLO_01/Anatomia/Pelvis.pdf
+H018;Columna;Cóccix;Base y Vértice;Músculo coccígeo;Punto de inserción pélvica;-;CICLO_01/Anatomia/Pelvis.pdf
+H019;Tórax;Esternón;Manubrio, Cuerpo, Xifoides;Pectoral mayor;Protección corazón y pulmón;-;CICLO_01/Anatomia/Torax.pdf
+H020;Tórax;Costillas;Cabeza, Cuello, Tubérculo;Intercostales, Serratos;Dinámica respiratoria;Laserterapia;CICLO_01/Anatomia/Torax.pdf
