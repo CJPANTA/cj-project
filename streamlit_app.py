@@ -1,23 +1,23 @@
 import streamlit as st
 from MODULOS.motor_huesos import mostrar_buscador_huesos
 
-# Configuración de página
-st.set_page_config(page_title="Sistema CJ 5000", layout="wide")
+# Configuración seria
+st.set_page_config(page_title="Sistema de Gestión Anatómica - CJ", layout="wide")
 
-# Sidebar con Logo
+# Sidebar
 st.sidebar.image("logo_cj.jpg", width=150)
-st.sidebar.title("Menú Principal")
-opcion = st.sidebar.radio("Ir a:", ["Inicio", "Buscador de Huesos", "Mis Clases Carrión"])
+st.sidebar.title("Plataforma Clínica CJ")
+opcion = st.sidebar.radio("Navegación:", ["Inicio", "Buscador Anatómico", "Repositorio Carrión"])
 
-# Lógica de Navegación
 if opcion == "Inicio":
-    st.title("Bienvenido, Jorge Luis")
-    st.write("Selecciona una opción en el menú de la izquierda para empezar a estudiar.")
-    st.image("https://images.unsplash.com/photo-1530026405186-ed1f139313f8?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80", caption="Fisioterapia y Tecnología")
+    st.title("Gestión de Conocimiento en Fisioterapia")
+    st.write("Bienvenido, Jorge Luis. Esta herramienta está optimizada para la consulta rápida de estructuras y agentes físicos.")
+    # Imagen de sistema muscular para un fisio de verdad
+    st.image("https://images.unsplash.com/photo-1559757175-5700dde675bc?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80", caption="Anatomía Muscular Aplicada")
 
-elif opcion == "Buscador de Huesos":
+elif opcion == "Buscador Anatómico":
     mostrar_buscador_huesos()
 
-elif opcion == "Mis Clases Carrión":
-    st.title("📚 Repositorio de Clases")
-    st.write("Próximamente: Conexión directa con tus carpetas de Ciclo 01 a 04.")
+elif opcion == "Repositorio Carrión":
+    st.title("📚 Repositorio de Clases (PDFs de Oro)")
+    st.info("Estamos conectando la base de datos... pronto verás tus ciclos aquí.")
