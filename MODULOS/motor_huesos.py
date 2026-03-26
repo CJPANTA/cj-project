@@ -2,7 +2,6 @@ import streamlit as st
 import os
 import base64
 
-# Ruta raíz para logos
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def cargar_imagen_raiz(nombre_archivo):
