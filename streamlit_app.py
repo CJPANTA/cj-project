@@ -2,74 +2,85 @@ import streamlit as st
 import sys
 import os
 
-# --- 1. CONFIGURACIÓN DE RUTAS ---
+# --- CONFIGURACIÓN DE RUTAS ---
 ruta_actual = os.path.dirname(os.path.abspath(__file__))
 ruta_modulos = os.path.join(ruta_actual, "MODULOS")
-
 if ruta_modulos not in sys.path:
     sys.path.append(ruta_modulos)
 
-# Importación protegida
-try:
-    from motor_huesos import cargar_imagen_raiz
-except ImportError as e:
-    st.error(f"Error técnico: No se encuentra la función en motor_huesos.py. Detalles: {e}")
-    st.stop()
+from motor_huesos import cargar_imagen_raiz
 
-# --- 2. CONFIGURACIÓN DE PÁGINA ---
+# --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="CJ PROYECTOS - Jorge Luis", layout="wide")
 
-# Diseño Responsive
+# --- RECUPERACIÓN DE ESTILO VISUAL (DORADO Y FUENTES) ---
 st.markdown("""
     <style>
-    .titulo-dorado {
-        font-family: 'serif';
-        color: #B8860B;
+    /* Estilo para el título principal */
+    .titulo-cj {
+        font-family: 'Playfair Display', serif;
+        color: #B8860B; /* Dorado Oscuro */
         text-align: center;
         font-weight: bold;
-        padding: 10px;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        margin-bottom: 0px;
     }
-    @media (min-width: 768px) { .titulo-dorado { font-size: 60px; } }
-    @media (max-width: 767px) { .titulo-dorado { font-size: 35px; } }
+    
+    /* Ajuste de tamaño por dispositivo */
+    @media (min-width: 768px) { .titulo-cj { font-size: 65px; } }
+    @media (max-width: 767px) { .titulo-cj { font-size: 38px; } }
+
+    /* Estilo de los contenedores */
+    .stApp {
+        background-color: #ffffff;
+    }
+    
+    .subtitulo-cj {
+        color: #5d5d5d;
+        text-align: center;
+        font-size: 20px;
+        margin-top: -10px;
+        font-style: italic;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. CARGA DE LOGOS ---
-# Si los logos están en la raíz, el motor los encontrará
+# --- CARGA DE LOGOS ---
 logo_cj = cargar_imagen_raiz("logo_cj.jpg")
 logo_carrion = cargar_imagen_raiz("logo_carrion.png")
 
-# --- 4. BARRA LATERAL ---
+# --- SIDEBAR PROFESIONAL ---
 with st.sidebar:
     if logo_cj:
-        st.image(logo_cj, width=120)
-    else:
-        st.warning("⚠️ logo_cj.jpg no detectado en la raíz")
-    
-    st.markdown("### **PROYECTO CJ**")
-    st.write("Lic. Jorge Luis Chiroque")
+        st.image(logo_cj, width=140)
+    st.markdown("<h2 style='text-align: center; color: #B8860B;'>PROYECTO CJ</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center;'>Lic. Jorge Luis Chiroque Panta</p>", unsafe_allow_html=True)
     st.divider()
-    menu = st.radio("NAVEGACIÓN", ["🏠 INICIO", "🦴 ANATOMÍA", "📖 CARRION", "📚 BIBLIOTECA"])
+    menu = st.radio("MENÚ DE GESTIÓN", ["🏠 INICIO", "🦴 ANATOMÍA MAESTRO", "📖 REPOSITORIO CARRION", "📚 BIBLIOTECA TÉCNICA"])
 
-# --- 5. SECCIÓN: INICIO ---
+# --- SECCIÓN: INICIO (DISEÑO FINAL PASO 1) ---
 if menu == "🏠 INICIO":
-    st.markdown('<h1 class="titulo-dorado">PROYECTO CJ</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="titulo-cj">PROYECTO CJ</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="subtitulo-cj">Fisioterapia & Rehabilitación Especializada</p>', unsafe_allow_html=True)
     
-    st.image("https://images.unsplash.com/photo-1576091160550-2173dbc999ef?q=80&w=2070", 
-             caption="Excelencia en Fisioterapia y Rehabilitación", 
+    # Imagen de Unsplash de alta calidad (Fisioterapia)
+    st.image("https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=2070", 
              use_container_width=True)
     
     st.divider()
     
     col1, col2 = st.columns([2, 1])
     with col1:
-        st.subheader("Sistema de Optimización de Estudio")
-        st.write("Bienvenido, Jorge Luis. Tu centro de gestión ahora es responsive.")
+        st.subheader("Optimización de Estudio y Práctica Clínica")
+        st.write("""
+            Bienvenido al ecosistema digital diseñado para potenciar tu carrera en Fisioterapia. 
+            Aquí encontrarás tus recursos de Carrión, bibliografía técnica y el motor de búsqueda 
+            de anatomía avanzada.
+        """)
     with col2:
         if logo_carrion:
-            st.image(logo_carrion, width=150)
-        else:
-            st.caption("Falta logo_carrion.png en raíz")
+            st.image(logo_carrion, width=180)
+        st.caption("Convenio Institucional / Recursos Académicos")
 
 else:
-    st.info(f"Sección **{menu}** en espera del Paso 2.")
+    st.info(f"Módulo **{menu}** conectado. Listo para restaurar diseño en el Paso 2.")
