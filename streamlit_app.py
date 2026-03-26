@@ -2,120 +2,65 @@ import streamlit as st
 import sys
 import os
 
-# --- RUTAS ---
-ruta_actual = os.path.dirname(os.path.abspath(__file__))
-ruta_modulos = os.path.join(ruta_actual, "MODULOS")
-if ruta_modulos not in sys.path:
-    sys.path.append(ruta_modulos)
-
-from motor_huesos import cargar_imagen_raiz
-
-# --- CONFIGURACIÓN ---
+# --- CONFIGURACIÓN E IDENTIDAD ---
 st.set_page_config(page_title="SISTEMA CJ - Lic. Jorge Luis", layout="wide")
 
-# --- CSS DEFINITIVO: ELEGANCIA Y FUNCIONALIDAD ---
+# CSS Basado en tu archivo original con tus colores [cite: 1, 2]
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Montserrat:wght@300;400;600&display=swap');
-
     .stApp {{ background-color: #06101c !important; color: #FFFFFF; }}
-
-    /* BARRA LATERAL */
-    [data-testid="stSidebar"] {{
-        background-color: #06101c !important;
-        border-right: 1px solid #6e4f02 !important;
-        min-width: 300px !important;
-    }}
-
-    /* TARJETAS CLICKABLES (BOTÓN INVISIBLE SOBRE DISEÑO) */
-    .stButton>button {{
-        position: absolute;
-        top: 0; left: 0; width: 100%; height: 200px;
-        background-color: transparent !important;
-        color: transparent !important;
-        border: none !important;
-        z-index: 10;
-        cursor: pointer;
-    }}
-
-    .contenedor-tarjeta {{
-        height: 200px;
-        border: 1px solid #6e4f02;
-        background: rgba(110, 79, 2, 0.05);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        margin-bottom: 20px;
-        position: relative;
-    }}
+    [data-testid="stSidebar"] {{ background-color: #06101c !important; border-right: 1px solid #6e4f02 !important; }}
     
-    .contenedor-tarjeta:hover {{
-        background: rgba(110, 79, 2, 0.18);
-        border-color: #D4AF37;
-        transform: scale(1.02);
-        box-shadow: 0px 12px 25px rgba(0,0,0,0.7);
+    .contenedor-tarjeta {{
+        height: 200px; border: 1px solid #6e4f02; background: rgba(110, 79, 2, 0.05);
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        text-align: center; transition: 0.4s; margin-bottom: 20px; position: relative;
     }}
-
-    /* TIPOGRAFÍA DE LAS TARJETAS */
-    .card-label {{ font-family: 'Montserrat', sans-serif; font-size: 10px; letter-spacing: 3px; opacity: 0.6; }}
-    .card-num {{ font-family: 'Playfair Display', serif; color: #6e4f02; font-size: 38px; font-weight: bold; margin: 5px 0; }}
-    .card-title {{ font-family: 'Montserrat', sans-serif; font-size: 14px; font-weight: 600; color: #D4AF37; text-transform: uppercase; letter-spacing: 1px; }}
-
-    .linea-fina {{ border-bottom: 1px solid #6e4f02; margin: 25px 0; opacity: 0.4; }}
+    .card-num {{ font-family: 'Playfair Display', serif; color: #6e4f02; font-size: 38px; font-weight: bold; }}
+    .card-title {{ font-family: 'Montserrat', sans-serif; font-size: 14px; font-weight: 600; color: #D4AF37; text-transform: uppercase; }}
     </style>
     """, unsafe_allow_html=True)
 
-# --- IDENTIDAD ---
-logo_cj = cargar_imagen_raiz("logo_cj.jpg") 
-
-# --- SIDEBAR ---
+# --- NAVEGACIÓN ---
 with st.sidebar:
-    if logo_cj:
-        st.markdown(f'<div style="text-align: center; padding: 20px;"><img src="{logo_cj}" width="220" style="border: 1px solid #6e4f02; padding: 5px;"></div>', unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: center; color: #6e4f02; font-family: serif; letter-spacing: 3px;'>SISTEMA CJ</h3>", unsafe_allow_html=True)
-    st.divider()
-    menu = st.radio("NAVEGACIÓN", ["🏠 INICIO", "🦴 ANATOMÍA", "📖 REPOSITORIO CARRION", "🧬 LABORATORIO"])
+    st.markdown("<h3 style='text-align: center; color: #6e4f02;'>SISTEMA CJ</h3>", unsafe_allow_html=True)
+    menu = st.radio("NAVEGACIÓN", ["🏠 INICIO", "📖 REPOSITORIO CARRION"])
 
 # --- MODULO REPOSITORIO ---
 if menu == "📖 REPOSITORIO CARRION":
     if 'ciclo_activo' not in st.session_state:
-        st.markdown('<h1 style="color: #6e4f02; font-family: serif; text-align: center; font-size: 40px;">REPOSITORIO ACADÉMICO</h1>', unsafe_allow_html=True)
-        st.markdown("<div class='linea-fina'></div>", unsafe_allow_html=True)
-
-        ciclos = [
-            {"id": "01", "name": "FUNDAMENTOS", "sub": "HISTORIA Y BASES"},
-            {"id": "02", "name": "ANATOMÍA", "sub": "ESTRUCTURA HUMANA"},
-            {"id": "03", "name": "AGENTES I", "sub": "TERAPIAS FÍSICAS"},
-            {"id": "04", "name": "CLÍNICA IV", "sub": "CASOS Y PROTOCOLOS"}
-        ]
-
-        c1, c2 = st.columns(2)
-        for i, c in enumerate(ciclos):
-            with (c1 if i % 2 == 0 else c2):
-                st.markdown(f"""
-                    <div class="contenedor-tarjeta">
-                        <div class="card-label">NIVEL CARRION</div>
-                        <div class="card-num">CICLO {c['id']}</div>
-                        <div class="card-title">{c['name']}</div>
-                        <div style="font-size: 9px; opacity: 0.5; margin-top: 5px;">{c['sub']}</div>
-                    </div>
-                """, unsafe_allow_html=True)
-                if st.button(f"Entrar {c['id']}", key=f"btn_{c['id']}"):
-                    st.session_state['ciclo_activo'] = c['id']
-                    st.rerun()
+        st.markdown('<h1 style="color: #6e4f02; font-family: serif; text-align: center;">REPOSITORIO ACADÉMICO</h1>', unsafe_allow_html=True)
+        
+        # Tarjeta del Ciclo 04 
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("""<div class="contenedor-tarjeta"><div class="card-num">CICLO 04</div><div class="card-title">CLÍNICA IV</div></div>""", unsafe_allow_html=True)
+            if st.button("Entrar 04", key="btn_04"):
+                st.session_state['ciclo_activo'] = "04"
+                st.rerun()
     else:
-        # PANTALLA DE CURSOS
-        st.markdown(f'<h2 style="color: #6e4f02; font-family: serif;">CURSOS: CICLO {st.session_state["ciclo_activo"]}</h2>', unsafe_allow_html=True)
-        if st.button("⬅ VOLVER A CICLOS"):
+        # PANTALLA DE ESTUDIO (Lo que necesitas para el celular)
+        st.markdown(f'<h2 style="color: #6e4f02;">CURSOS: CICLO {st.session_state["ciclo_activo"]}</h2>', unsafe_allow_html=True)
+        if st.button("⬅ VOLVER"):
             del st.session_state['ciclo_activo']
             st.rerun()
-        st.markdown("<div class='linea-fina'></div>", unsafe_allow_html=True)
-        # Aquí irá la lógica de los archivos PDF
-        st.write(f"Cargando archivos del Ciclo {st.session_state['ciclo_activo']}...")
+
+        # LÓGICA DE ARCHIVOS (Busca en la raíz y en 02_SISTEMAS)
+        directorio = "02_SISTEMAS"
+        try:
+            archivos = [f for f in os.listdir(directorio) if f.endswith(".pdf")] if os.path.exists(directorio) else []
+            if archivos:
+                st.success(f"📚 {len(archivos)} archivos encontrados para estudiar.")
+                for pdf in archivos:
+                    with st.expander(f"📄 {pdf}"):
+                        with open(os.path.join(directorio, pdf), "rb") as f:
+                            st.download_button("📖 Abrir/Descargar PDF", data=f, file_name=pdf, key=pdf)
+            else:
+                st.warning("⚠️ No hay PDFs en la carpeta '02_SISTEMAS'. Verifica tu GitHub.")
+        except Exception as e:
+            st.error("Error al acceder a los archivos.")
 
 else:
-    st.markdown(f'<h1 style="text-align:center; color:#6e4f02; font-family:serif; font-size: 55px;">PROYECTO CJ</h1>', unsafe_allow_html=True)
-    st.image("https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?q=80&w=2070", use_container_width=True)
+    st.markdown('<h1 style="text-align:center; color:#6e4f02;">PROYECTO CJ</h1>', unsafe_allow_html=True)
+    st.info("Selecciona 'REPOSITORIO CARRION' en el menú para empezar a estudiar.")
