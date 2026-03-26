@@ -1,121 +1,84 @@
 import streamlit as st
-import sys
+import pandas as pd
 import os
 
-# --- RUTAS ---
-ruta_actual = os.path.dirname(os.path.abspath(__file__))
-ruta_modulos = os.path.join(ruta_actual, "MODULOS")
-if ruta_modulos not in sys.path:
-    sys.path.append(ruta_modulos)
+# 1. CONFIGURACIÓN DE IDENTIDAD VISUAL PREMIUM
+st.set_page_config(page_title="Proyecto CJ - Ciclo 04", layout="centered")
 
-from motor_huesos import cargar_imagen_raiz
-
-# --- CONFIGURACIÓN ---
-st.set_page_config(page_title="SISTEMA CJ - Lic. Jorge Luis", layout="wide")
-
-# --- CSS DEFINITIVO: ELEGANCIA Y FUNCIONALIDAD ---
 st.markdown(f"""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Montserrat:wght@300;400;600&display=swap');
-
-    .stApp {{ background-color: #06101c !important; color: #FFFFFF; }}
-
-    /* BARRA LATERAL */
-    [data-testid="stSidebar"] {{
-        background-color: #06101c !important;
-        border-right: 1px solid #6e4f02 !important;
-        min-width: 300px !important;
+    .stApp {{
+        background-color: #06101c;
+        color: #d1d5db;
     }}
-
-    /* TARJETAS CLICKABLES (BOTÓN INVISIBLE SOBRE DISEÑO) */
+    h1, h2, h3 {{
+        color: #6e4f02 !important;
+    }}
     .stButton>button {{
-        position: absolute;
-        top: 0; left: 0; width: 100%; height: 200px;
-        background-color: transparent !important;
-        color: transparent !important;
-        border: none !important;
-        z-index: 10;
-        cursor: pointer;
+        background-color: #008080;
+        color: white;
+        border-radius: 10px;
+        border: none;
     }}
-
-    .contenedor-tarjeta {{
-        height: 200px;
-        border: 1px solid #6e4f02;
-        background: rgba(110, 79, 2, 0.05);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        margin-bottom: 20px;
-        position: relative;
+    .card {{
+        background-color: #0e2f38;
+        padding: 15px;
+        border-radius: 10px;
+        border-left: 5px solid #6e4f02;
+        margin-bottom: 10px;
     }}
-    
-    .contenedor-tarjeta:hover {{
-        background: rgba(110, 79, 2, 0.18);
-        border-color: #D4AF37;
-        transform: scale(1.02);
-        box-shadow: 0px 12px 25px rgba(0,0,0,0.7);
-    }}
-
-    /* TIPOGRAFÍA DE LAS TARJETAS */
-    .card-label {{ font-family: 'Montserrat', sans-serif; font-size: 10px; letter-spacing: 3px; opacity: 0.6; }}
-    .card-num {{ font-family: 'Playfair Display', serif; color: #6e4f02; font-size: 38px; font-weight: bold; margin: 5px 0; }}
-    .card-title {{ font-family: 'Montserrat', sans-serif; font-size: 14px; font-weight: 600; color: #D4AF37; text-transform: uppercase; letter-spacing: 1px; }}
-
-    .linea-fina {{ border-bottom: 1px solid #6e4f02; margin: 25px 0; opacity: 0.4; }}
     </style>
     """, unsafe_allow_html=True)
 
-# --- IDENTIDAD ---
-logo_cj = cargar_imagen_raiz("logo_cj.jpg") 
+# 2. TÍTULO RÁPIDO PARA EL CELULAR
+st.title("🛡️ CJ: REPASO CICLO 04")
+st.subheader("Fisioterapia y Rehabilitación")
 
-# --- SIDEBAR ---
-with st.sidebar:
-    if logo_cj:
-        st.markdown(f'<div style="text-align: center; padding: 20px;"><img src="{logo_cj}" width="220" style="border: 1px solid #6e4f02; padding: 5px;"></div>', unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: center; color: #6e4f02; font-family: serif; letter-spacing: 3px;'>SISTEMA CJ</h3>", unsafe_allow_html=True)
-    st.divider()
-    menu = st.radio("NAVEGACIÓN", ["🏠 INICIO", "🦴 ANATOMÍA", "📖 REPOSITORIO CARRION", "🧬 LABORATORIO"])
+# 3. CARGA DE DATOS (CONEXIÓN INTELIGENTE)
+@st.cache_data
+def cargar_datos():
+    huesos = pd.read_csv("huesos_maestro.csv", sep=";")
+    diccionario = pd.read_csv("diccionario_maestro.csv", sep=";")
+    return huesos, diccionario
 
-# --- MODULO REPOSITORIO ---
-if menu == "📖 REPOSITORIO CARRION":
-    if 'ciclo_activo' not in st.session_state:
-        st.markdown('<h1 style="color: #6e4f02; font-family: serif; text-align: center; font-size: 40px;">REPOSITORIO ACADÉMICO</h1>', unsafe_allow_html=True)
-        st.markdown("<div class='linea-fina'></div>", unsafe_allow_html=True)
+try:
+    df_huesos, df_dic = cargar_datos()
+    
+    # 4. BUSCADOR DE EMERGENCIA PARA EL CAMINO
+    busqueda = st.text_input("🔍 Busca un hueso o término (Ej: Fémur, C7...)", "")
 
-        ciclos = [
-            {"id": "01", "name": "FUNDAMENTOS", "sub": "HISTORIA Y BASES"},
-            {"id": "02", "name": "ANATOMÍA", "sub": "ESTRUCTURA HUMANA"},
-            {"id": "03", "name": "AGENTES I", "sub": "TERAPIAS FÍSICAS"},
-            {"id": "04", "name": "CLÍNICA IV", "sub": "CASOS Y PROTOCOLOS"}
-        ]
-
-        c1, c2 = st.columns(2)
-        for i, c in enumerate(ciclos):
-            with (c1 if i % 2 == 0 else c2):
+    if busqueda:
+        resultado = df_huesos[df_huesos['Nombre_Hueso'].str.contains(busqueda, case=False) | 
+                              df_huesos['Region'].str.contains(busqueda, case=False)]
+        
+        for index, row in resultado.iterrows():
+            with st.container():
                 st.markdown(f"""
-                    <div class="contenedor-tarjeta">
-                        <div class="card-label">NIVEL CARRION</div>
-                        <div class="card-num">CICLO {c['id']}</div>
-                        <div class="card-title">{c['name']}</div>
-                        <div style="font-size: 9px; opacity: 0.5; margin-top: 5px;">{c['sub']}</div>
-                    </div>
+                <div class="card">
+                    <h4>🦴 {row['Nombre_Hueso']} ({row['Region']})</h4>
+                    <p><b>Accidentes:</b> {row['Accidentes_Oseos']}</p>
+                    <p><b>Agente Físico Sugerido:</b> {row['Agente_Fisico']}</p>
+                    <p><b>Prioridad:</b> {row['Prioridad_BRI']}</p>
+                </div>
                 """, unsafe_allow_html=True)
-                if st.button(f"Entrar {c['id']}", key=f"btn_{c['id']}"):
-                    st.session_state['ciclo_activo'] = c['id']
-                    st.rerun()
+                
+                # Botón para ver PDF de Carrión rápido
+                path_pdf = f"02_SISTEMAS/{row['Link_PDF_Carrion']}"
+                st.write(f"📖 Documento: {row['Link_PDF_Carrion']}")
+    
     else:
-        # PANTALLA DE CURSOS
-        st.markdown(f'<h2 style="color: #6e4f02; font-family: serif;">CURSOS: CICLO {st.session_state["ciclo_activo"]}</h2>', unsafe_allow_html=True)
-        if st.button("⬅ VOLVER A CICLOS"):
-            del st.session_state['ciclo_activo']
-            st.rerun()
-        st.markdown("<div class='linea-fina'></div>", unsafe_allow_html=True)
-        # Aquí irá la lógica de los archivos PDF
-        st.write(f"Cargando archivos del Ciclo {st.session_state['ciclo_activo']}...")
+        st.info("Escribe arriba para repasar los puntos clave de la clase.")
 
-else:
-    st.markdown(f'<h1 style="text-align:center; color:#6e4f02; font-family:serif; font-size: 55px;">PROYECTO CJ</h1>', unsafe_allow_html=True)
-    st.image("https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?q=80&w=2070", use_container_width=True)
+except Exception as e:
+    st.error("Asegúrate de tener los archivos CSV en la misma carpeta de GitHub.")
+
+# 5. ACCESO RÁPIDO A AGENTES FÍSICOS (Tu examen de ayer/hoy)
+st.markdown("---")
+st.markdown("### ⚡ Repaso Agentes Físicos")
+opciones_agentes = ["TENS", "Magnetoterapia", "Ultrasonido", "Laser"]
+agente_sel = st.selectbox("Selecciona Agente para ver parámetros:", opciones_agentes)
+
+if agente_sel == "TENS":
+    st.warning("Analgesia: 80-120 Hz / 50-100 μs (Fase Aguda)")
+elif agente_sel == "Magnetoterapia":
+    st.warning("Consolidación ósea: 1-50 Hz (Baja frecuencia)")
