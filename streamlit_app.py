@@ -1,58 +1,58 @@
 import streamlit as st
-import os
+import pandas as pd
 
-# 1. ESTILO PREMIUM CJ
-st.set_page_config(page_title="Repaso Urgente CJ", layout="centered")
+# 1. IDENTIDAD VISUAL ORIGINAL (Tus códigos confirmados)
+AZUL_FONDO = "#06101c"
+DORADO_TITULO = "#6e4f02"
+GRIS_TEXTO = "#d1d5db"
+
+st.set_page_config(page_title="Proyecto CJ - Academia", layout="wide")
+
 st.markdown(f"""
     <style>
-    .stApp {{ background-color: #06101c; color: #d1d5db; }}
-    h1 {{ color: #6e4f02 !important; }}
-    .stSelectbox {{ color: black; }}
+    .stApp {{
+        background-color: {AZUL_FONDO};
+        color: {GRIS_TEXTO};
+    }}
+    h1, h2, h3 {{
+        color: {DORADO_TITULO} !important;
+    }}
     </style>
     """, unsafe_allow_html=True)
 
-st.title("🛡️ PORTAL DE EMERGENCIA - CICLO 04")
+st.title("🦴 PROYECTO CJ: MUNDO ACADEMIA")
 
-# 2. LOCALIZADOR DE ARCHIVOS
-# Intentamos buscar en varias rutas comunes
-rutas_posibles = ["./", "02_SISTEMAS/", "../02_SISTEMAS/"]
-todos_los_archivos = []
+# 2. CARGA DE BASE DE DATOS (Interconexión Nivel 2)
+@st.cache_data
+def cargar_inventario():
+    # Volvemos a la carga simple que funcionaba
+    df = pd.read_csv("huesos_maestro.csv", sep=";")
+    return df
 
-for r in rutas_posibles:
-    try:
-        archivos = os.listdir(r)
-        todos_los_archivos.extend([os.path.join(r, f) for f in archivos if f.endswith('.pdf')])
-    except:
-        continue
-
-# 3. INTERFAZ DE ESTUDIO RÁPIDO
-if not todos_los_archivos:
-    st.error("❌ No encontré PDFs en '02_SISTEMAS'.")
-    st.info("Sube un PDF aquí rápido para leerlo ahora mismo:")
-    archivo_subido = st.file_uploader("Cargar clase de Carrión", type="pdf")
-    if archivo_subido:
-        st.success("¡Listo! Ya puedes leerlo abajo.")
-        # Aquí podrías usar un iframe para visualizarlo
-else:
-    st.success(f"✅ Se encontraron {len(todos_los_archivos)} archivos del ciclo.")
-    seleccion = st.selectbox("Selecciona tu clase para estudiar:", todos_los_archivos)
+try:
+    df_huesos = cargar_inventario()
     
-    if seleccion:
-        with open(seleccion, "rb") as f:
-            st.download_button(
-                label="🚀 ABRIR PDF AHORA",
-                data=f,
-                file_name=os.path.basename(seleccion),
-                mime="application/pdf"
-            )
+    # 3. INTERFAZ DE BÚSQUEDA
+    busqueda = st.text_input("🔍 Buscar Hueso o Región:", "")
 
-# 4. BOTÓN DE REPASO MENTAL (Sin archivos)
-st.markdown("---")
-st.subheader("💡 Repaso Relámpago (Agentes Físicos II)")
-col1, col2 = st.columns(2)
-with col1:
-    st.write("**Inflamación Aguda:**")
-    st.caption("Frío, TENS (80-120Hz), Reposo.")
-with col2:
-    st.write("**Inflamación Crónica:**")
-    st.caption("Calor, Magneto, TENS (1-10Hz).")
+    if busqueda:
+        # Filtrado por nombre o región
+        mask = df_huesos['Nombre_Hueso'].str.contains(busqueda, case=False) | \
+               df_huesos['Region'].str.contains(busqueda, case=False)
+        res = df_huesos[mask]
+        
+        if not res.empty:
+            st.dataframe(res)
+        else:
+            st.warning("No se encontraron coincidencias. Revisa el diccionario.")
+
+except Exception as e:
+    st.error("Error al conectar con GitHub. Verifica que los CSV estén en la raíz.")
+
+# 4. REPASO RÁPIDO AGENTES (Basado en tus estudios actuales)
+st.sidebar.header("⚡ Repaso Agentes Físicos")
+st.sidebar.info("""
+**Analgesia Aguda:**
+- 80-120 Hz
+- 50-100 μs
+""")
