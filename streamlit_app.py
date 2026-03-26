@@ -1,101 +1,91 @@
 import streamlit as st
 import sys
 import os
-from MODULOS.motor_huesos import cargar_imagen_local, cargar_csv, BASE_DIR
+from MODULOS.motor_huesos import cargar_imagen_base64, cargar_datos_csv, BASE_DIR
 
-st.set_page_config(page_title="CJ PROJECT - COMMAND CENTER", layout="wide")
+st.set_page_config(page_title="CJ PROYECTOS", layout="wide")
 
-# --- CSS: ESTÉTICA DARK TECH CJ ---
+# --- CSS SOBRIO Y ELEGANTE ---
 st.markdown("""
     <style>
-    /* Fondo Principal y Sidebar */
-    .stApp { background-color: #0E1117; color: #E0E0E0; }
-    [data-testid="stSidebar"] { background-color: #1A1C24; border-right: 2px solid #00F2FF; }
+    /* Fondo y Texto General */
+    .stApp { background-color: #FFFFFF; }
     
-    /* Título con Neón del Logo */
-    .titulo-tech {
-        font-family: 'Courier New', Courier, monospace;
-        color: #00F2FF; /* Cian Neón */
+    /* Título Elegante CJ */
+    .titulo-principal {
+        font-family: 'Times New Roman', serif;
+        color: #002147; /* Azul Marino */
         text-align: center;
-        font-size: 60px;
+        font-size: 55px;
         font-weight: bold;
-        text-shadow: 0 0 10px #00F2FF, 0 0 20px #00F2FF;
         margin-bottom: 0px;
     }
-    .naranja-tech { color: #FF6600; text-shadow: 0 0 10px #FF6600; }
+    .dorado { color: #B8860B; } /* Dorado del Logo */
     
-    /* Tarjetas y Contenedores */
-    div[data-testid="stVerticalBlock"] > div {
-        background-color: #1E2129;
-        border-radius: 10px;
-        border: 1px solid #333;
+    .subtitulo {
+        text-align: center;
+        color: #666;
+        font-size: 18px;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        margin-top: -10px;
     }
+
+    /* Sidebar Estilo Profesional */
+    [data-testid="stSidebar"] {
+        background-color: #002147;
+        color: white;
+    }
+    [data-testid="stSidebar"] * { color: white !important; }
     
-    /* Botones Estilo Gadget */
-    .stButton>button {
-        background-color: #00F2FF; color: #000;
-        font-weight: bold; border-radius: 5px;
-        border: none; transition: 0.3s;
+    /* Tarjetas de Contenido */
+    .stCard {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 15px;
+        transition: 0.3s;
     }
-    .stButton>button:hover { background-color: #FF6600; color: white; }
+    .stCard:hover { border-color: #B8860B; box-shadow: 2px 2px 10px rgba(0,0,0,0.1); }
     </style>
 """, unsafe_allow_html=True)
 
 LINK_RAW = "https://raw.githubusercontent.com/CJPANTA/cj-project/main/BASE_DATOS/"
 
-# --- SIDEBAR IDENTIDAD ---
+# --- SIDEBAR: EL LOGO ES EL PROTAGONISTA ---
 with st.sidebar:
-    logo_cj = cargar_imagen_local("logo_cj.jpg")
-    if logo_cj: st.image(logo_cj, use_container_width=True)
-    st.markdown("<h2 style='text-align:center; color:#00F2FF;'>COMMAND CENTER</h2>", unsafe_allow_html=True)
-    st.write(f"**👤 LIC. JORGE LUIS**")
+    logo_cj = cargar_imagen_base64("logo_cj.jpg")
+    if logo_cj:
+        st.image(logo_cj, use_container_width=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.write(f"**Lic. Jorge Luis Chiroque**")
     st.divider()
-    menu = st.radio("SISTEMA", ["🏠 DASHBOARD", "🦴 ANATOMÍA", "📖 CARRION", "📚 BIBLIOTECA"])
+    menu = st.radio("MENÚ DE GESTIÓN", ["🏠 INICIO", "🦴 ANATOMÍA", "📖 CARRION", "📚 BIBLIOTECA"])
 
-# --- SECCIÓN: DASHBOARD (PORTADA) ---
-if menu == "🏠 DASHBOARD":
-    st.markdown('<h1 class="titulo-tech">PROJECT <span class="naranja-tech">CJ</span></h1>', unsafe_allow_html=True)
-    st.markdown("<p style='text-align:center; color:#888;'>v2.0 | High Efficiency Study System</p>", unsafe_allow_html=True)
+# --- SECCIÓN: INICIO ---
+if menu == "🏠 INICIO":
+    st.markdown('<h1 class="titulo-principal">PROYECTO <span class="dorado">CJ</span></h1>', unsafe_allow_html=True)
+    st.markdown('<p class="subtitulo">Fisioterapia & Rehabilitación</p>', unsafe_allow_html=True)
     
-    # Imagen de impacto tecnológica
-    st.image("https://images.unsplash.com/photo-1551076805-e1869033e561?q=80&w=2000&auto=format&fit=crop", use_container_width=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+    # Imagen profesional de Unsplash
+    st.image("https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=2000", use_container_width=True)
     
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        st.subheader("🚀 Estado del Proyecto")
-        st.info("Módulos de Anatomía y Repositorio Carrión sincronizados con GitHub.")
-    with col2:
-        logo_c = cargar_imagen_local("logo_carrion.png")
+    c1, c2 = st.columns([2, 1])
+    with c1:
+        st.subheader("Centro de Optimización Académica")
+        st.write("Bienvenido, Jorge. Sistema configurado con los estándares de identidad visual CJ.")
+    with c2:
+        logo_c = cargar_imagen_base64("logo_carrion.png")
         if logo_c: st.image(logo_c, width=150)
 
-# --- SECCIÓN: ANATOMÍA (ESTILO TARJETAS DARK) ---
-elif menu == "🦴 ANATOMÍA":
-    st.title("🦴 Anatomía Maestro")
-    df = cargar_csv()
-    if df is not None:
-        busqueda = st.text_input("🔍 SCANNER DE DATOS:", placeholder="Ingrese hueso o región...")
-        if busqueda:
-            df = df[df.apply(lambda r: busqueda.lower() in r.astype(str).lower().values, axis=1)]
-        
-        cols = st.columns(3)
-        for i, (_, row) in enumerate(df.iterrows()):
-            with cols[i % 3]:
-                with st.container(border=True):
-                    st.markdown(f"<h3 style='color:#00F2FF;'>{row['Nombre_Hueso']}</h3>", unsafe_allow_html=True)
-                    st.write(f"**📍 Región:** {row['Region']}")
-                    st.warning(f"**Píldora BRI:** {row['Accion_Sugerida']}")
-                    
-                    url_p = f"{LINK_RAW}01_CARRION/{row['Link_PDF_Carrion']}".replace(" ","%20")
-                    st.link_button("📄 ABRIR DATA", url_p, use_container_width=True)
-
-# --- SECCIÓN: CARRION (PESTAÑAS TECH) ---
+# --- SECCIÓN: CARRION (PESTAÑAS LIMPIAS) ---
 elif menu == "📖 CARRION":
     st.title("📖 Repositorio Carrión")
     ruta_c = os.path.join(BASE_DIR, "BASE_DATOS", "01_CARRION")
     ciclos = sorted([d for d in os.listdir(ruta_c) if os.path.isdir(os.path.join(ruta_c, d))])
     
     if ciclos:
-        tabs = st.tabs([f"📡 {c}" for c in ciclos])
+        tabs = st.tabs(ciclos)
         for i, ciclo in enumerate(ciclos):
             with tabs[i]:
                 ruta_ciclo = os.path.join(ruta_c, ciclo)
@@ -104,7 +94,8 @@ elif menu == "📖 CARRION":
                 for j, pdf in enumerate(pdfs):
                     with grid[j % 4]:
                         with st.container(border=True):
-                            st.write(f"**{pdf[:18]}**")
-                            url_pdf = f"{LINK_RAW}01_CARRION/{ciclo}/{pdf}".replace(" ","%20")
-                            if st.button("👁️ VER", key=f"c_{i}_{j}"):
-                                st.markdown(f'<iframe src="{url_pdf}" width="100%" height="500px"></iframe>', unsafe_allow_html=True)
+                            st.write(f"**{pdf[:20]}**")
+                            url = f"{LINK_RAW}01_CARRION/{ciclo}/{pdf}".replace(" ","%20")
+                            if st.button("Ver Online", key=f"c_{i}_{j}"):
+                                st.markdown(f'<iframe src="{url}" width="100%" height="500px"></iframe>', unsafe_allow_html=True)
+                            st.link_button("Descargar", url, use_container_width=True)
