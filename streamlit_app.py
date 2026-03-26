@@ -3,52 +3,86 @@ import sys
 import os
 from MODULOS.motor_huesos import cargar_imagen_local, cargar_csv, BASE_DIR
 
-# --- CONFIGURACIÓN ---
 st.set_page_config(page_title="CJ PROYECTOS - Lic. Jorge Luis", layout="wide")
 
-# Estilo Dorado para el Título
-ESTILO_DORADO = """
+# --- DISEÑO DE COLORES CJ (Azul, Naranja, Blanco) ---
+ESTILO_CJ = """
     <style>
-    .titulo-cj {
-        font-family: 'Serif'; color: #B8860B; text-align: center;
-        font-size: 55px; font-weight: bold; text-shadow: 2px 2px 4px #000000;
+    .titulo-principal {
+        font-family: 'Helvetica Neue', sans-serif;
+        background: linear-gradient(90deg, #003366, #FF6600);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-align: center; font-size: 70px; font-weight: 900;
+        margin-bottom: 0px;
     }
-    .stTabs [data-baseweb="tab-list"] { gap: 10px; }
-    .stTabs [data-baseweb="tab"] { 
-        background-color: #f0f2f6; border-radius: 5px; padding: 10px; 
+    .subtitulo-cj {
+        color: #003366; text-align: center; font-size: 20px; 
+        font-weight: bold; margin-top: -20px; letter-spacing: 2px;
     }
+    [data-testid="stSidebar"] { background-color: #f8f9fa; border-right: 2px solid #003366; }
     </style>
 """
-st.markdown(ESTILO_DORADO, unsafe_allow_html=True)
+st.markdown(ESTILO_CJ, unsafe_allow_html=True)
 
-# URL para GitHub
 LINK_RAW = "https://raw.githubusercontent.com/CJPANTA/cj-project/main/BASE_DATOS/"
 
-# --- SIDEBAR ---
-logo_cj = cargar_imagen_local("logo_cj.jpg")
-if logo_cj: st.sidebar.image(logo_cj, width=150)
-st.sidebar.markdown(f"### Lic. Jorge Luis Chiroque\n**CJ Proyectos**")
-menu = st.sidebar.radio("MENÚ", ["🏠 INICIO", "🦴 ANATOMÍA", "📖 CARRION", "📚 BIBLIOTECA"])
+# --- SIDEBAR CON EL NUEVO LOGO ---
+with st.sidebar:
+    # Intentamos cargar el archivo del logo que acabas de subir (asumiendo que lo guardaste como logo_cj_nuevo.jpg)
+    logo_data = cargar_imagen_local("logo_cj_nuevo.jpg") # O el nombre exacto que le pusiste en 04_PORTADAS
+    if logo_data:
+        st.image(logo_data, use_container_width=True)
+    else:
+        st.markdown("### 🌀 CJ PROYECTOS") # Respaldo si no hay imagen
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.write(f"**👨‍⚕️ Lic. Jorge Luis Chiroque**")
+    menu = st.radio("NAVEGACIÓN", ["🏠 PORTADA", "🦴 ANATOMÍA", "📖 CARRION", "📚 BIBLIOTECA"])
 
 # --- SECCIÓN: INICIO ---
-if menu == "🏠 INICIO":
-    st.markdown('<h1 class="titulo-cj">PROYECTO CJ</h1>', unsafe_allow_html=True)
-    st.image("https://images.unsplash.com/photo-1597452485669-2c7bb5fef90d?q=80&w=2000&auto=format&fit=crop", caption="Excelencia en Fisioterapia")
-    st.divider()
-    col1, col2 = st.columns(2)
-    with col1:
-        st.info("Sistema de optimización de estudio y gestión clínica.")
-    with col2:
-        logo_carrion = cargar_imagen_local("logo_carrion.png")
-        if logo_carrion: st.image(logo_carrion, width=200)
-
-# --- SECCIÓN: CARRION (PESTAÑAS + LOGO) ---
-elif menu == "📖 CARRION":
-    logo_c = cargar_imagen_local("logo_carrion.png")
-    col_t, col_l = st.columns([4,1])
-    col_t.title("📖 Repositorio Ciclos Carrión")
-    if logo_c: col_l.image(logo_c, width=120)
+if menu == "🏠 PORTADA":
+    st.markdown('<p class="titulo-principal">PROYECTO CJ</p>', unsafe_allow_html=True)
+    st.markdown('<p class="subtitulo-cj">FISIOTERAPIA & REHABILITACIÓN</p>', unsafe_allow_html=True)
     
+    # Imagen de Unsplash enfocada en Fisio Profesional
+    st.image("https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?q=80&w=2070&auto=format&fit=crop", use_container_width=True)
+    
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        st.subheader("Optimización y Eficiencia en el Estudio")
+        st.write("Bienvenido Jorge. Esta plataforma centraliza tus bases de datos de anatomía, tus clases de Carrión y la biblioteca técnica de sistemas.")
+    with col2:
+        logo_c = cargar_imagen_local("logo_carrion.png")
+        if logo_c: st.image(logo_c, width=180)
+
+# --- SECCIÓN: ANATOMÍA (CON TARJETAS PROFESIONALES) ---
+elif menu == "🦴 ANATOMÍA":
+    st.title("🦴 Anatomía Maestro")
+    df = cargar_csv()
+    if df is not None:
+        busqueda = st.text_input("🔍 Buscar por Hueso o Región...")
+        if busqueda:
+            df = df[df.apply(lambda r: busqueda.lower() in r.astype(str).lower().values, axis=1)]
+        
+        grid = st.columns(3)
+        for i, (_, row) in enumerate(df.iterrows()):
+            with grid[i % 3]:
+                with st.container(border=True):
+                    st.image(f"https://loremflickr.com/400/250/skeleton,bone/all?lock={i}")
+                    st.markdown(f"### {row['Nombre_Hueso']}")
+                    st.info(f"**Píldora BRI:** {row['Accion_Sugerida']}")
+                    
+                    with st.expander("Detalles Técnicos"):
+                        st.write(f"**Cara:** {row['Cara']}")
+                        st.write(f"**Terapia:** {row['Agente_Fisico']}")
+                    
+                    url_p = f"{LINK_RAW}01_CARRION/{row['Link_PDF_Carrion']}".replace(" ","%20")
+                    st.link_button("📄 Ver Clase", url_p, use_container_width=True)
+
+# --- SECCIÓN: CARRION (PESTAÑAS) ---
+elif menu == "📖 CARRION":
+    st.title("📖 Ciclos Carrión")
     ruta_c = os.path.join(BASE_DIR, "BASE_DATOS", "01_CARRION")
     ciclos = sorted([d for d in os.listdir(ruta_c) if os.path.isdir(os.path.join(ruta_c, d))])
     
@@ -58,37 +92,13 @@ elif menu == "📖 CARRION":
             with tabs[i]:
                 ruta_ciclo = os.path.join(ruta_c, ciclo)
                 pdfs = [f for f in os.listdir(ruta_ciclo) if f.endswith('.pdf')]
-                grid = st.columns(4)
+                grid_c = st.columns(4)
                 for j, pdf in enumerate(pdfs):
-                    with grid[j % 4]:
+                    with grid_c[j % 4]:
                         with st.container(border=True):
-                            # Imagen estandarizada
-                            st.image("https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?w=400", use_container_width=True)
-                            st.write(f"**{pdf[:25]}**")
-                            url = f"{LINK_RAW}01_CARRION/{ciclo}/{pdf}".replace(" ","%20")
-                            # Visor dinámico
-                            if st.button("👁️ Ver Online", key=f"v_{i}_{j}"):
-                                st.markdown(f'<iframe src="{url}" width="100%" height="500px"></iframe>', unsafe_allow_html=True)
-                            st.link_button("📥 Descargar", url, use_container_width=True)
-
-# --- SECCIÓN: BIBLIOTECA (PAREJA Y ESTANDARIZADA) ---
-elif menu == "📚 BIBLIOTECA":
-    st.title("📚 Biblioteca Técnica")
-    ruta_s = os.path.join(BASE_DIR, "BASE_DATOS", "02_SISTEMAS")
-    libros = [f for f in os.listdir(ruta_s) if f.endswith('.pdf')]
-    
-    grid = st.columns(4)
-    for i, lib in enumerate(libros):
-        with grid[i % 4]:
-            with st.container(border=True):
-                # Intentar cargar portada con mismo nombre del PDF
-                nombre_base = os.path.splitext(lib)[0]
-                portada = cargar_imagen_local(f"{nombre_base}.jpg")
-                if portada: st.image(portada, height=250) # Altura fija para que sean PAREJOS
-                else: st.image("https://images.unsplash.com/photo-1544640808-32ca72ac7f37?w=400", height=250)
-                
-                st.write(f"**{lib[:30]}**")
-                url_l = f"{LINK_RAW}02_SISTEMAS/{lib}".replace(" ","%20")
-                if st.button("📖 Leer", key=f"l_{i}"):
-                    st.markdown(f'<iframe src="{url_l}" width="100%" height="500px"></iframe>', unsafe_allow_html=True)
-                st.link_button("⬇️ Bajar", url_l, use_container_width=True)
+                            st.image("https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400", height=150)
+                            st.write(f"**{pdf[:20]}**")
+                            url_pdf = f"{LINK_RAW}01_CARRION/{ciclo}/{pdf}".replace(" ","%20")
+                            if st.button("👁️ Leer", key=f"c_{i}_{j}"):
+                                st.markdown(f'<iframe src="{url_pdf}" width="100%" height="500px"></iframe>', unsafe_allow_html=True)
+                            st.link_button("📥 Bajar", url_pdf)
