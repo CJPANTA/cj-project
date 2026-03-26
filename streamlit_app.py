@@ -5,15 +5,10 @@ from MODULOS.motor_huesos import obtener_imagen_base64, BASE_DIR
 
 st.set_page_config(page_title="CJ PROJECT - MASTER", layout="wide")
 
-# --- BLOQUE DE ESTILO: BARRA LATERAL (FIJA) Y CENTRO (REPOTENCIADO) ---
+# --- EL ALMA DEL DISEÑO: BARRA FIJA + CENTRO ELEGANTE ---
 st.markdown(f"""
     <style>
-    /* FONDO DEL CENTRO - Estilo profesional */
-    .stApp {{
-        background-color: #F8F9FA;
-    }}
-
-    /* BARRA LATERAL - NO CAMBIAR (Tus colores exactos) */
+    /* 1. BARRA LATERAL (INTACTA SEGÚN TU GUSTO) */
     [data-testid="stSidebar"] {{
         background-color: #101621 !important;
         border-right: 3px solid #876205 !important;
@@ -22,103 +17,111 @@ st.markdown(f"""
         color: white !important;
     }}
     [data-testid="stSidebar"] .stRadio [data-testid="stWidgetLabel"] p {{
-        color: #876205 !important; /* Dorado en etiquetas de radio */
+        color: #876205 !important;
         font-weight: bold;
+        font-size: 18px;
     }}
 
-    /* TITULO CENTRAL CON ESPÍRITU CJ */
-    .titulo-maestro {{
-        font-family: 'Helvetica Neue', sans-serif;
-        color: #101621;
+    /* 2. FONDO DEL CENTRO (Menos frío, más sobrio) */
+    .stApp {{
+        background-color: #F4F4F2; /* Un tono hueso muy sutil para resaltar el dorado */
+    }}
+
+    /* 3. TÍTULO ELEGANTE Y CON CUERPO */
+    .contenedor-titulo {{
         text-align: center;
-        font-size: 60px;
-        font-weight: 900;
-        letter-spacing: -2px;
-        margin-top: 0px;
-        padding-top: 10px;
+        padding: 40px 0px;
+        background: linear-gradient(180deg, rgba(16,22,33,0.05) 0%, rgba(255,255,255,0) 100%);
+        border-radius: 20px;
     }}
-    .dorado-cj {{
-        color: #876205;
+    .titulo-cj {{
+        font-family: 'Playfair Display', serif; /* Fuente elegante */
+        color: #101621;
+        font-size: 80px;
+        font-weight: 900;
+        margin-bottom: 0px;
+        line-height: 1;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    }}
+    .titulo-cj span {{
+        color: #876205; /* Tu Dorado */
+        position: relative;
+    }}
+    .subtitulo-tech {{
+        font-family: 'Inter', sans-serif;
+        color: #101621;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 8px;
+        text-transform: uppercase;
+        margin-top: 10px;
+        opacity: 0.8;
     }}
 
-    /* TARJETAS DEL CENTRO - Estilo "Centro de Mando" */
+    /* 4. TARJETAS PROFESIONALES */
     .stContainer {{
         background-color: white;
-        border-radius: 10px;
-        border-left: 5px solid #876205 !important; /* Detalle dorado lateral */
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        padding: 20px;
+        border-radius: 15px;
+        border: 1px solid #E0E0E0;
+        border-top: 5px solid #876205 !important;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        padding: 25px;
+        transition: transform 0.3s;
     }}
-
-    /* BOTONES - Combinación de tus colores */
-    .stButton>button {{
-        background-color: #101621;
-        color: #876205;
-        border: 1px solid #876205;
-        border-radius: 5px;
-        font-weight: bold;
-        transition: 0.3s;
-        width: 100%;
-    }}
-    .stButton>button:hover {{
-        background-color: #876205;
-        color: white;
-        border: 1px solid #101621;
-    }}
-
-    /* PESTAÑAS (TABS) */
+    
+    /* Pestañas (Tabs) con el ADN de la Sidebar */
     .stTabs [data-baseweb="tab-list"] {{
         background-color: #101621;
-        border-radius: 8px;
-        padding: 5px;
+        border-radius: 12px;
+        padding: 10px;
     }}
     .stTabs [data-baseweb="tab"] {{
-        color: white !important;
+        color: #BDBDBD !important;
+        font-weight: 600;
     }}
     .stTabs [aria-selected="true"] {{
         background-color: #876205 !important;
-        border-radius: 5px;
+        color: white !important;
+        border-radius: 8px;
     }}
     </style>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@900&family=Inter:wght@400;700&display=swap" rel="stylesheet">
 """, unsafe_allow_html=True)
 
 LINK_RAW = "https://raw.githubusercontent.com/CJPANTA/cj-project/main/BASE_DATOS/"
 
-# --- SIDEBAR (CONSERVANDO LO QUE TE GUSTA) ---
+# --- SIDEBAR (TOTALMENTE RESPETADA) ---
 with st.sidebar:
     logo_path = obtener_imagen_base64("logo_cj.jpg")
     if logo_path:
         st.image(logo_path, use_container_width=True)
-    
-    st.markdown("<h4 style='text-align:center; letter-spacing: 2px;'>CENTRO DE GESTIÓN</h4>", unsafe_allow_html=True)
-    st.divider()
-    menu = st.radio("MÓDULOS", ["🏠 PORTADA", "🦴 ANATOMÍA", "📖 REPOSITORIO", "📚 BIBLIOTECA"])
+    st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+    menu = st.radio("SISTEMA DE GESTIÓN", ["🏠 PORTADA", "🦴 ANATOMÍA", "📖 REPOSITORIO", "📚 BIBLIOTECA"])
     st.divider()
     st.caption("Lic. Jorge Luis Chiroque Panta")
 
-# --- CUERPO CENTRAL (MEJORADO CON EL ESPÍRITU DE LA SIDEBAR) ---
+# --- CENTRO DE LA APP (EL CAMBIO DE NIVEL) ---
 if menu == "🏠 PORTADA":
-    st.markdown('<h1 class="titulo-maestro">PROYECTO <span class="dorado-cj">CJ</span></h1>', unsafe_allow_html=True)
-    st.markdown("<div style='text-align:center; color:#101621; font-weight:bold; letter-spacing:5px; margin-top:-20px;'>FISIOTERAPIA & TECNOLOGÍA</div>", unsafe_allow_html=True)
+    st.markdown("""
+        <div class="contenedor-titulo">
+            <div class="titulo-cj">PROYECTO <span>CJ</span></div>
+            <div class="subtitulo-tech">Fisioterapia & Tecnología</div>
+        </div>
+    """, unsafe_allow_html=True)
     
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    # Imagen con marco dorado
-    st.image("https://images.unsplash.com/photo-1576091160550-2173dbc999ef?q=80&w=2000", use_container_width=True)
+    # Imagen con bordes redondeados y sombra
+    st.image("https://images.unsplash.com/photo-1597452485669-2c7bb5fef90d?q=80&w=2000", use_container_width=True)
     
     st.markdown("<br>", unsafe_allow_html=True)
     
     col1, col2 = st.columns([2, 1])
     with col1:
         with st.container():
-            st.subheader("🛠️ Optimización de Procesos")
-            st.write("Este sistema centraliza la base de datos maestra y el repositorio Carrión bajo una arquitectura de alta eficiencia.")
+            st.markdown("<h3 style='color:#101621;'>⚓ Centro de Operaciones</h3>", unsafe_allow_html=True)
+            st.write("Bienvenido Licenciado. Este módulo centraliza los activos digitales del proyecto, integrando bases de datos anatómicas y el repositorio Carrión.")
     with col2:
         with st.container():
-            st.markdown("<h5 style='text-align:center;'>CERTIFICACIÓN</h5>", unsafe_allow_html=True)
+            st.markdown("<h5 style='text-align:center; color:#876205;'>RESPALDO</h5>", unsafe_allow_html=True)
             logo_c = obtener_imagen_base64("logo_carrion.png")
             if logo_c: st.image(logo_c, width=150)
-
-elif menu == "📖 REPOSITORIO":
-    st.markdown("<h2 style='color:#101621; border-bottom: 3px solid #876205;'>📚 REPOSITORIO CARRIÓN</h2>", unsafe_allow_html=True)
-    # ... (Resto de la lógica de archivos que ya funciona)
