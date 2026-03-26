@@ -1,84 +1,76 @@
 import streamlit as st
-import pandas as pd
 import os
 
-# 1. CONFIGURACIÓN DE IDENTIDAD VISUAL PREMIUM
-st.set_page_config(page_title="Proyecto CJ - Ciclo 04", layout="centered")
+# 1. CONFIGURACIÓN VISUAL (Tus colores #06101c y #6e4f02)
+st.set_page_config(page_title="CJ - Repaso Ciclo 04", layout="centered")
 
 st.markdown(f"""
     <style>
-    .stApp {{
-        background-color: #06101c;
-        color: #d1d5db;
+    .stApp {{ background-color: #06101c; color: #d1d5db; }}
+    h1, h2 {{ color: #6e4f02 !important; text-align: center; }}
+    .curso-card {{
+        background-color: #0e2f38;
+        padding: 20px;
+        border-radius: 15px;
+        border-left: 8px solid #6e4f02;
+        margin-bottom: 15px;
     }}
-    h1, h2, h3 {{
-        color: #6e4f02 !important;
-    }}
-    .stButton>button {{
+    .boton-acceso {{
+        display: block;
+        width: 100%;
+        padding: 10px;
         background-color: #008080;
         color: white;
-        border-radius: 10px;
-        border: none;
-    }}
-    .card {{
-        background-color: #0e2f38;
-        padding: 15px;
-        border-radius: 10px;
-        border-left: 5px solid #6e4f02;
-        margin-bottom: 10px;
+        text-align: center;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: bold;
     }}
     </style>
     """, unsafe_allow_html=True)
 
-# 2. TÍTULO RÁPIDO PARA EL CELULAR
-st.title("🛡️ CJ: REPASO CICLO 04")
-st.subheader("Fisioterapia y Rehabilitación")
+st.title("🏥 PORTAL CICLO 04 - CJ")
+st.write("Selecciona el curso para abrir tus PDFs de Carrión:")
 
-# 3. CARGA DE DATOS (CONEXIÓN INTELIGENTE)
-@st.cache_data
-def cargar_datos():
-    huesos = pd.read_csv("huesos_maestro.csv", sep=";")
-    diccionario = pd.read_csv("diccionario_maestro.csv", sep=";")
-    return huesos, diccionario
+# 2. DEFINICIÓN DE CURSOS DEL CICLO 04 (Basado en tus archivos)
+cursos = {
+    "⚡ Agentes Físicos II": "C04_Agentes_Fisicos_II",
+    "🦴 Morfofisiología del Aparato Locomotor": "C04_Morfofisio",
+    "🏃 Biomecánica": "C04_Biomecanica",
+    "💆 Masoterapia Clínica": "C04_Masoterapia",
+    "☯️ Terapias Alternativas (Moxa)": "C04_Terapias"
+}
 
-try:
-    df_huesos, df_dic = cargar_datos()
-    
-    # 4. BUSCADOR DE EMERGENCIA PARA EL CAMINO
-    busqueda = st.text_input("🔍 Busca un hueso o término (Ej: Fémur, C7...)", "")
-
-    if busqueda:
-        resultado = df_huesos[df_huesos['Nombre_Hueso'].str.contains(busqueda, case=False) | 
-                              df_huesos['Region'].str.contains(busqueda, case=False)]
+# 3. GENERADOR DE INTERFAZ MÓVIL
+for curso, prefijo in cursos.items():
+    with st.container():
+        st.markdown(f"""
+        <div class="curso-card">
+            <h3>{curso}</h3>
+            <p>Accede a tus clases, resúmenes y tablas de parámetros.</p>
+        </div>
+        """, unsafe_allow_html=True)
         
-        for index, row in resultado.iterrows():
-            with st.container():
-                st.markdown(f"""
-                <div class="card">
-                    <h4>🦴 {row['Nombre_Hueso']} ({row['Region']})</h4>
-                    <p><b>Accidentes:</b> {row['Accidentes_Oseos']}</p>
-                    <p><b>Agente Físico Sugerido:</b> {row['Agente_Fisico']}</p>
-                    <p><b>Prioridad:</b> {row['Prioridad_BRI']}</p>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                # Botón para ver PDF de Carrión rápido
-                path_pdf = f"02_SISTEMAS/{row['Link_PDF_Carrion']}"
-                st.write(f"📖 Documento: {row['Link_PDF_Carrion']}")
-    
-    else:
-        st.info("Escribe arriba para repasar los puntos clave de la clase.")
+        # Filtro inteligente: Busca en tu carpeta 02_SISTEMAS archivos que empiecen con el prefijo
+        try:
+            archivos_carpeta = os.listdir("02_SISTEMAS")
+            archivos_curso = [f for f in archivos_carpeta if f.startswith(prefijo)]
+            
+            if archivos_curso:
+                archivo_sel = st.selectbox(f"Clases disponibles ({curso})", archivos_curso, key=prefijo)
+                if st.button(f"Abrir Clase", key=f"btn_{prefijo}"):
+                    # Aquí la App abrirá el PDF directamente
+                    st.success(f"Abriendo: {archivo_sel}")
+                    st.download_button("Descargar para ver offline", data="contenido", file_name=archivo_sel)
+            else:
+                st.warning("No se encontraron archivos con este nombre en GitHub.")
+        except:
+            st.error("Error: Asegúrate de que la carpeta '02_SISTEMAS' exista en GitHub.")
 
-except Exception as e:
-    st.error("Asegúrate de tener los archivos CSV en la misma carpeta de GitHub.")
-
-# 5. ACCESO RÁPIDO A AGENTES FÍSICOS (Tu examen de ayer/hoy)
+# 4. BOTÓN DE EMERGENCIA: REPASO RÁPIDO AGENTES
 st.markdown("---")
-st.markdown("### ⚡ Repaso Agentes Físicos")
-opciones_agentes = ["TENS", "Magnetoterapia", "Ultrasonido", "Laser"]
-agente_sel = st.selectbox("Selecciona Agente para ver parámetros:", opciones_agentes)
-
-if agente_sel == "TENS":
-    st.warning("Analgesia: 80-120 Hz / 50-100 μs (Fase Aguda)")
-elif agente_sel == "Magnetoterapia":
-    st.warning("Consolidación ósea: 1-50 Hz (Baja frecuencia)")
+if st.button("🚨 RESUMEN DE EMERGENCIA EXAMEN"):
+    st.info("**Recordatorio Flash:**\n\n"
+            "* **TENS:** Agudo (Frecuencia ↑ / Fase ↓) | Crónico (Frecuencia ↓ / Fase ↑)\n"
+            "* **Ultrasonido:** 1MHz (Profundo) | 3MHz (Superficial)\n"
+            "* **Magneto:** Cicatrización y Fracturas (Baja Frecuencia)")
