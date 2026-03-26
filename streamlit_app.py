@@ -8,98 +8,95 @@ ruta_modulos = os.path.join(ruta_actual, "MODULOS")
 if ruta_modulos not in sys.path:
     sys.path.append(ruta_modulos)
 
-from motor_huesos import cargar_imagen_raiz
+try:
+    from motor_huesos import cargar_imagen_raiz
+except ImportError:
+    st.error("Error al conectar con MODULOS. Revisa que la carpeta exista.")
+    st.stop()
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="CJ PROYECTOS - Lic. Jorge Luis", layout="wide")
 
-# --- BLOQUE DE ESTILO INAMOVIBLE (COLORES Y FUENTES) ---
+# --- CSS DEFINITIVO (BLOQUEADO) ---
 st.markdown("""
     <style>
-    /* Fondo principal y fuentes */
-    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@300;400&display=swap');
+    /* Fondo General */
+    .stApp { background-color: #f8f9fa; }
+
+    /* BARRA LATERAL OSCURA (Tu Favorita) */
+    [data-testid="stSidebar"] {
+        background-color: #111111 !important;
+        border-right: 2px solid #B8860B;
+    }
     
-    .stApp {
-        background-color: #FFFFFF;
+    /* Texto en Sidebar */
+    [data-testid="stSidebar"] * { color: #ffffff !important; }
+    
+    /* Radio Buttons Dorados */
+    div[data-testid="stSidebar"] .stRadio > label {
+        color: #B8860B !important;
+        font-size: 18px !important;
+        font-weight: bold !important;
     }
 
-    /* Título CJ Dorado Elegante */
-    .titulo-cj {
-        font-family: 'Playfair Display', serif;
+    /* TÍTULO DORADO RESPONSIVE */
+    .titulo-principal {
+        font-family: 'Times New Roman', serif;
         color: #B8860B;
         text-align: center;
         font-weight: bold;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-        margin-top: 0px;
+        text-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+        margin-bottom: 5px;
     }
 
-    /* BARRA LATERAL (Los colores que te gustaron) */
-    [data-testid="stSidebar"] {
-        background-color: #1A1A1A; /* Oscuro elegante */
-        color: #FFFFFF;
-    }
-    
-    [data-testid="stSidebar"] * {
-        color: #FFFFFF !important;
-    }
+    @media (min-width: 768px) { .titulo-principal { font-size: 65px; } }
+    @media (max-width: 767px) { .titulo-principal { font-size: 38px; } }
 
-    /* Ajuste para Celulares */
-    @media (min-width: 768px) { .titulo-cj { font-size: 60px; } }
-    @media (max-width: 767px) { 
-        .titulo-cj { font-size: 35px; }
-        [data-testid="stSidebar"] { width: 100% !important; }
-    }
-
-    /* Botones y Radio Buttons en la barra lateral */
-    .stRadio > label {
-        color: #B8860B !important;
-        font-weight: bold;
+    .subtitulo {
+        text-align: center;
+        color: #444444;
+        font-size: 20px;
+        font-style: italic;
+        margin-top: -10px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- CARGA DE IDENTIDAD ---
+# --- CARGA DE LOGOS (RAÍZ) ---
 logo_cj = cargar_imagen_raiz("logo_cj.jpg")
 logo_carrion = cargar_imagen_raiz("logo_carrion.png")
 
-# --- BARRA LATERAL (RECUPERADA) ---
+# --- SIDEBAR IDENTIDAD ---
 with st.sidebar:
     if logo_cj:
-        st.image(logo_cj, width=150)
-    st.markdown("<h2 style='text-align: center; color: #B8860B; margin-bottom: 0px;'>PROYECTO CJ</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; font-size: 14px; opacity: 0.8;'>Lic. Jorge Luis Chiroque Panta</p>", unsafe_allow_html=True)
+        st.image(logo_cj, width=160)
+    st.markdown("<h2 style='text-align: center; color: #B8860B;'>PROYECTO CJ</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; opacity: 0.8;'>Lic. Jorge Luis Chiroque Panta</p>", unsafe_allow_html=True)
     st.divider()
     
-    # Menú con los nombres que fijamos
     menu = st.radio(
-        "MENÚ DE GESTIÓN", 
-        ["🏠 INICIO", "🦴 ANATOMÍA MAESTRO", "📖 REPOSITORIO CARRION", "📚 BIBLIOTECA TÉCNICA"],
-        index=0
+        "MENÚ DE NAVEGACIÓN", 
+        ["🏠 INICIO", "🦴 ANATOMÍA MAESTRO", "📖 REPOSITORIO CARRION", "📚 BIBLIOTECA TÉCNICA"]
     )
 
 # --- SECCIÓN: INICIO ---
 if menu == "🏠 INICIO":
-    st.markdown('<h1 class="titulo-cj">PROYECTO CJ</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="titulo-principal">PROYECTO CJ</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="subtitulo">Fisioterapia & Rehabilitación de Alto Nivel</p>', unsafe_allow_html=True)
     
-    # Imagen de Fisioterapia seleccionada (Unsplash)
+    # Imagen de Fisioterapia Profesional
     st.image("https://images.unsplash.com/photo-1576091160550-2173dbc999ef?q=80&w=2070", 
-             caption="Fisioterapia y Rehabilitación Especializada", 
              use_container_width=True)
     
     st.divider()
     
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        st.subheader("Optimización de Estudio y Gestión")
-        st.write("""
-            Bienvenido, Jorge Luis. Este entorno ha sido diseñado para centralizar 
-            tus recursos académicos de Carrión y herramientas técnicas de fisioterapia 
-            con la máxima eficiencia visual y operativa.
-        """)
-    with col2:
+    c1, c2 = st.columns([2, 1])
+    with c1:
+        st.subheader("Gestión Académica y Profesional")
+        st.write("Bienvenido Jorge Luis. Este entorno ha sido restaurado para ofrecerte la eficiencia que tu carrera exige, con el diseño que ya validamos.")
+    with c2:
         if logo_carrion:
-            st.image(logo_carrion, width=160)
-        st.caption("Recursos Ciclo IV - Carrión")
+            st.image(logo_carrion, width=150)
 
 else:
-    st.info(f"Módulo **{menu}** listo para recibir la actualización de contenido en el siguiente paso.")
+    st.info(f"El módulo **{menu}** está vinculado y listo. Confirmemos el Inicio para proceder.")
