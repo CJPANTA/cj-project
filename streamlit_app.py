@@ -2,155 +2,119 @@ import streamlit as st
 import sys
 import os
 
-# --- CONEXIÓN DE RUTAS ---
+# --- RUTAS DINÁMICAS ---
 ruta_actual = os.path.dirname(os.path.abspath(__file__))
 ruta_modulos = os.path.join(ruta_actual, "MODULOS")
+# Ruta para logos en 04_PORTADAS
+ruta_portadas = os.path.join(ruta_actual, "BASE_DATOS", "04_PORTADAS")
+
 if ruta_modulos not in sys.path:
     sys.path.append(ruta_modulos)
 
 from motor_huesos import cargar_imagen_raiz
 
-# --- CONFIGURACIÓN DE PÁGINA ---
-st.set_page_config(page_title="CJ PROYECTOS - Lic. Jorge Luis", layout="wide")
+# Función auxiliar para cargar desde la nueva carpeta de portadas
+def cargar_logo_portada(nombre):
+    ruta = os.path.join(ruta_portadas, nombre)
+    import base64
+    if os.path.exists(ruta):
+        with open(ruta, "rb") as f:
+            data = f.read()
+        return f"data:image/png;base64,{base64.b64encode(data).decode()}"
+    return None
 
-# --- CSS: ALMA VISUAL (VIDRIO + LÍNEAS DORADAS) ---
+# --- CONFIGURACIÓN ---
+st.set_page_config(page_title="CJ PROYECTOS", layout="wide")
+
+# --- CSS: AFINANDO LA BARRA LATERAL Y EL ESTILO ---
 st.markdown(f"""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Montserrat:wght@300;500&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Montserrat:wght@300;400&display=swap');
 
-    .stApp {{
-        background-color: #06101c !important;
-        color: #FFFFFF;
-    }}
+    .stApp {{ background-color: #06101c !important; color: #FFFFFF; }}
 
-    /* BARRA LATERAL ESTRECHA Y MARCADA */
+    /* BARRA LATERAL: Ajuste de texto para una sola línea */
     [data-testid="stSidebar"] {{
         background-color: #06101c !important;
         border-right: 1px solid #6e4f02 !important;
-        min-width: 260px !important;
+        min-width: 300px !important;
     }}
-
-    /* EFECTO VIDRIO (GLASSMORPHISM) PARA TARJETAS */
-    .glass-card {{
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid #6e4f02;
-        border-radius: 4px;
-        padding: 20px;
-        margin-bottom: 20px;
-        backdrop-filter: blur(10px);
-    }}
-
-    .metric-title {{
-        color: #6e4f02;
+    
+    .stRadio label p {{
+        color: #FFFFFF !important;
         font-family: 'Montserrat', sans-serif;
-        font-size: 12px;
+        font-size: 13px !important; /* Más pequeña para encuadrar */
         text-transform: uppercase;
-        letter-spacing: 2px;
-        margin-bottom: 5px;
+        letter-spacing: 1px;
+        white-space: nowrap; /* Evita el salto de línea */
     }}
 
-    .metric-value {{
-        font-family: 'Playfair Display', serif;
-        font-size: 24px;
-        color: #FFFFFF;
+    /* Estilo de Vidrio para el Dashboard en Carrión */
+    .glass-card {{
+        background: rgba(110, 79, 2, 0.05);
+        border: 1px solid #6e4f02;
+        padding: 15px;
+        border-radius: 2px;
+        backdrop-filter: blur(10px);
+        margin-bottom: 15px;
     }}
 
-    /* TÍTULOS */
     .titulo-cj {{
         font-family: 'Playfair Display', serif;
         color: #6e4f02;
         text-align: center;
-        letter-spacing: 3px;
-    }}
-
-    /* BOTONES ESTILO CLÍNICO */
-    .stButton>button {{
-        width: 100%;
-        background-color: transparent !important;
-        color: #6e4f02 !important;
-        border: 1px solid #6e4f02 !important;
-        border-radius: 0px !important;
-        font-family: 'Montserrat', sans-serif;
-        text-transform: uppercase;
-        transition: 0.3s;
-    }}
-    .stButton>button:hover {{
-        background-color: #6e4f02 !important;
-        color: #FFFFFF !important;
+        letter-spacing: 2px;
     }}
     </style>
     """, unsafe_allow_html=True)
 
-# --- CARGA DE LOGOS ---
+# --- CARGA DE LOGOS (Desde 04_PORTADAS) ---
 logo_cj = cargar_imagen_raiz("logo_cj.jpg")
+logo_carrion = cargar_logo_portada("logo_carrion.png")
 
 # --- SIDEBAR ---
 with st.sidebar:
     if logo_cj:
-        st.markdown(f'<div style="text-align: center;"><img src="{logo_cj}" width="130"></div>', unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: center; color: #6e4f02; font-family: serif;'>SISTEMA CJ</h3>", unsafe_allow_html=True)
+        st.markdown(f'<div style="text-align: center;"><img src="{logo_cj}" width="120"></div>', unsafe_allow_html=True)
+    st.markdown("<h4 style='text-align: center; color: #6e4f02; font-family: serif;'>SISTEMA CJ</h4>", unsafe_allow_html=True)
     st.divider()
     
     menu = st.radio(
-        "MÓDULOS DE GESTIÓN", 
-        ["🏠 PANEL DE CONTROL", "🦴 ANATOMÍA DINÁMICA", "📖 REPOSITORIO CARRION", "🧬 LABORATORIO CLÍNICO"]
+        "NAVEGACIÓN", 
+        ["🏠 INICIO PRINCIPAL", "🦴 ANATOMÍA MAESTRO", "📖 REPOSITORIO CARRION", "🧬 LABORATORIO AUCALLAMA"]
     )
 
-# --- 1. PANEL DE CONTROL (DASHBOARD) ---
-if menu == "🏠 PANEL DE CONTROL":
-    st.markdown('<h1 class="titulo-cj">DASHBOARD DE ESTUDIO</h1>', unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; opacity: 0.6;'>Control de Progreso Ciclo IV - Carrión</p>", unsafe_allow_html=True)
-    
-    # Métricas en Glassmorphism
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.markdown('<div class="glass-card"><p class="metric-title">Ciclo Académico</p><p class="metric-value">04 - Carrión</p></div>', unsafe_allow_html=True)
-    with col2:
-        st.markdown('<div class="glass-card"><p class="metric-title">Promedio Actual</p><p class="metric-value">18.5 / 20</p></div>', unsafe_allow_html=True)
-    with col3:
-        st.markdown('<div class="glass-card"><p class="metric-title">Próximo Hito</p><p class="metric-value">Examen Agentes</p></div>', unsafe_allow_html=True)
+# --- 1. PANTALLA PRINCIPAL (SOLO IMAGEN Y BIENVENIDA) ---
+if menu == "🏠 INICIO PRINCIPAL":
+    st.markdown('<h1 class="titulo-cj">PROYECTO CJ</h1>', unsafe_allow_html=True)
+    # Imagen del chico haciendo ejercicios (estética activa)
+    st.image("https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?q=80&w=2070", 
+             caption="Fisioterapia: Movimiento es Salud", use_container_width=True)
+    st.markdown("<p style='text-align: center; opacity: 0.7;'>Bienvenido al centro de gestión de Jorge Luis Chiroque.</p>", unsafe_allow_html=True)
 
-    st.markdown('<div class="glass-card"><h4>Resumen de Actividad Reciente</h4><p style="font-size:14px; opacity:0.8;">Revisión de protocolos de Moxibustión y actualización de base de datos anatómica.</p></div>', unsafe_allow_html=True)
-
-# --- 2. ANATOMÍA DINÁMICA ---
-elif menu == "🦴 ANATOMÍA DINÁMICA":
-    st.markdown('<h2 style="color: #6e4f02; font-family: serif;">Visor Anatómico Maestro</h2>', unsafe_allow_html=True)
-    
-    col_busqueda, col_visor = st.columns([1, 2])
-    
-    with col_busqueda:
-        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-        st.write("🔍 **Buscador Técnico**")
-        busqueda = st.text_input("Ingrese Músculo / Hueso:", placeholder="Ej. Deltoides...")
-        st.button("Consultar Ficha")
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-    with col_visor:
-        st.markdown('<div class="glass-card" style="height: 400px; display: flex; align-items: center; justify-content: center; border-style: dashed;">', unsafe_allow_html=True)
-        if busqueda:
-            st.markdown(f"<h4>Ficha Técnica: {busqueda}</h4><p>Cargando datos de inserción y función...</p>", unsafe_allow_html=True)
-        else:
-            st.markdown("<p style='opacity: 0.5;'>Seleccione un elemento para visualizar su estructura</p>", unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-# --- 3. REPOSITORIO CARRION ---
+# --- 2. REPOSITORIO CARRION (AQUÍ VA EL DASHBOARD) ---
 elif menu == "📖 REPOSITORIO CARRION":
-    st.markdown('<h2 style="color: #6e4f02; font-family: serif;">Biblioteca Digital Ciclo IV</h2>', unsafe_allow_html=True)
-    
-    items = ["Agentes Físicos I.pdf", "Anatomía Palpatoria.pdf", "Moxibustión Técnica.pdf"]
-    
-    for item in items:
-        with st.container():
-            col_a, col_b = st.columns([3, 1])
-            with col_a:
-                st.markdown(f'<div style="border-left: 3px solid #6e4f02; padding-left: 15px; margin-bottom: 10px;">{item}</div>', unsafe_allow_html=True)
-            with col_b:
-                st.button(f"Abrir", key=item)
+    col_t, col_l = st.columns([3, 1])
+    with col_t:
+        st.markdown('<h2 style="color: #6e4f02; font-family: serif;">REPOSITORIO CARRION</h2>', unsafe_allow_html=True)
+    with col_l:
+        if logo_carrion: st.image(logo_carrion, width=100)
 
-# --- 4. LABORATORIO CLÍNICO (HIJO PERSONAL) ---
+    # Dashboard de Estudios dentro de Carrión
+    st.markdown("### Dashboard de Usuario")
+    c1, c2, c3 = st.columns(3)
+    with c1: st.markdown('<div class="glass-card"><b>CICLO</b><br>IV - 2026</div>', unsafe_allow_html=True)
+    with c2: st.markdown('<div class="glass-card"><b>PROGRESO</b><br>85% Completado</div>', unsafe_allow_html=True)
+    with c3: st.markdown('<div class="glass-card"><b>NOTAS</b><br>Promedio: 18</div>', unsafe_allow_html=True)
+
+    st.divider()
+    st.subheader("Archivos de Clase")
+    # Simulación de lista de archivos
+    for doc in ["Clase 01 - Agentes.pdf", "Clase 02 - Anatomía.pdf"]:
+        col_doc, col_btn = st.columns([4, 1])
+        col_doc.write(f"📄 {doc}")
+        col_btn.button("Ver", key=doc)
+
+# --- OTROS MÓDULOS ---
 else:
-    st.markdown('<h2 class="titulo-cj">LABORATORIO "AUCALLAMA"</h2>', unsafe_allow_html=True)
-    st.markdown('<div class="glass-card" style="text-align: center; border: 2px solid #6e4f02;">', unsafe_allow_html=True)
-    st.write("🧬 **Módulo en Desarrollo**")
-    st.write("Este espacio procesará la lógica clínica y protocolos de rehabilitación.")
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.info(f"Módulo **{menu}** en desarrollo.")
