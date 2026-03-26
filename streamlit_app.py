@@ -2,10 +2,9 @@ import streamlit as st
 import sys
 import os
 
-# --- RUTAS DINÁMICAS ---
+# --- RUTAS ---
 ruta_actual = os.path.dirname(os.path.abspath(__file__))
 ruta_modulos = os.path.join(ruta_actual, "MODULOS")
-# Ruta para logos en 04_PORTADAS
 ruta_portadas = os.path.join(ruta_actual, "BASE_DATOS", "04_PORTADAS")
 
 if ruta_modulos not in sys.path:
@@ -13,108 +12,101 @@ if ruta_modulos not in sys.path:
 
 from motor_huesos import cargar_imagen_raiz
 
-# Función auxiliar para cargar desde la nueva carpeta de portadas
-def cargar_logo_portada(nombre):
-    ruta = os.path.join(ruta_portadas, nombre)
-    import base64
-    if os.path.exists(ruta):
-        with open(ruta, "rb") as f:
-            data = f.read()
-        return f"data:image/png;base64,{base64.b64encode(data).decode()}"
-    return None
-
 # --- CONFIGURACIÓN ---
 st.set_page_config(page_title="CJ PROYECTOS", layout="wide")
 
-# --- CSS: AFINANDO LA BARRA LATERAL Y EL ESTILO ---
+# --- CSS: REFINAMIENTO DE LÍNEAS Y JERARQUÍA ---
 st.markdown(f"""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Montserrat:wght@300;400&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Montserrat:wght@300;400;600&display=swap');
 
     .stApp {{ background-color: #06101c !important; color: #FFFFFF; }}
 
-    /* BARRA LATERAL: Ajuste de texto para una sola línea */
+    /* BARRA LATERAL */
     [data-testid="stSidebar"] {{
         background-color: #06101c !important;
         border-right: 1px solid #6e4f02 !important;
-        min-width: 300px !important;
     }}
     
     .stRadio label p {{
         color: #FFFFFF !important;
         font-family: 'Montserrat', sans-serif;
-        font-size: 13px !important; /* Más pequeña para encuadrar */
+        font-size: 13px !important;
         text-transform: uppercase;
-        letter-spacing: 1px;
-        white-space: nowrap; /* Evita el salto de línea */
+        white-space: nowrap;
     }}
 
-    /* Estilo de Vidrio para el Dashboard en Carrión */
-    .glass-card {{
-        background: rgba(110, 79, 2, 0.05);
+    /* TARJETAS DE CICLO (GLASSMORPHISM) */
+    .ciclo-card {{
         border: 1px solid #6e4f02;
         padding: 15px;
-        border-radius: 2px;
-        backdrop-filter: blur(10px);
-        margin-bottom: 15px;
+        background: rgba(110, 79, 2, 0.05);
+        border-radius: 4px;
+        margin-bottom: 10px;
+        transition: 0.3s;
+    }}
+    
+    .ciclo-card:hover {{
+        background: rgba(110, 79, 2, 0.15);
     }}
 
-    .titulo-cj {{
+    .titulo-seccion {{
         font-family: 'Playfair Display', serif;
         color: #6e4f02;
-        text-align: center;
-        letter-spacing: 2px;
+        border-bottom: 1px solid #6e4f02;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
     }}
     </style>
     """, unsafe_allow_html=True)
 
-# --- CARGA DE LOGOS (Desde 04_PORTADAS) ---
-logo_cj = cargar_imagen_raiz("logo_cj.jpg")
-logo_carrion = cargar_logo_portada("logo_carrion.png")
+# --- CARGA DE IDENTIDAD ---
+logo_cj = cargar_imagen_raiz("logo_cj.jpg") # Logo de la Clínica
+# Asumo que tu foto o logo personal se llama 'logo_personal.png' en la misma ruta
+logo_personal = cargar_imagen_raiz("logo_personal.png") 
 
 # --- SIDEBAR ---
 with st.sidebar:
-    if logo_cj:
-        st.markdown(f'<div style="text-align: center;"><img src="{logo_cj}" width="120"></div>', unsafe_allow_html=True)
-    st.markdown("<h4 style='text-align: center; color: #6e4f02; font-family: serif;'>SISTEMA CJ</h4>", unsafe_allow_html=True)
+    col_log1, col_log2 = st.columns(2)
+    with col_log1:
+        if logo_cj: st.image(logo_cj, width=80)
+    with col_log2:
+        if logo_personal: st.image(logo_personal, width=80)
+    
+    st.markdown("<h4 style='text-align: center; color: #6e4f02; font-family: serif; margin-top:10px;'>SISTEMA CJ</h4>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; font-size: 11px; opacity:0.8;'>LIC. JORGE LUIS CHIROQUE</p>", unsafe_allow_html=True)
     st.divider()
     
-    menu = st.radio(
-        "NAVEGACIÓN", 
-        ["🏠 INICIO PRINCIPAL", "🦴 ANATOMÍA MAESTRO", "📖 REPOSITORIO CARRION", "🧬 LABORATORIO AUCALLAMA"]
-    )
+    menu = st.radio("NAVEGACIÓN", ["🏠 INICIO", "🦴 ANATOMÍA", "📖 REPOSITORIO CARRION", "🧬 LABORATORIO"])
 
-# --- 1. PANTALLA PRINCIPAL (SOLO IMAGEN Y BIENVENIDA) ---
-if menu == "🏠 INICIO PRINCIPAL":
-    st.markdown('<h1 class="titulo-cj">PROYECTO CJ</h1>', unsafe_allow_html=True)
-    # Imagen del chico haciendo ejercicios (estética activa)
-    st.image("https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?q=80&w=2070", 
-             caption="Fisioterapia: Movimiento es Salud", use_container_width=True)
-    st.markdown("<p style='text-align: center; opacity: 0.7;'>Bienvenido al centro de gestión de Jorge Luis Chiroque.</p>", unsafe_allow_html=True)
+# --- CONTENIDO ---
+if menu == "🏠 INICIO":
+    st.markdown('<h1 style="text-align:center; color:#6e4f02; font-family:serif;">PROYECTO CJ</h1>', unsafe_allow_html=True)
+    st.image("https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?q=80&w=2070", use_container_width=True)
 
-# --- 2. REPOSITORIO CARRION (AQUÍ VA EL DASHBOARD) ---
 elif menu == "📖 REPOSITORIO CARRION":
-    col_t, col_l = st.columns([3, 1])
-    with col_t:
-        st.markdown('<h2 style="color: #6e4f02; font-family: serif;">REPOSITORIO CARRION</h2>', unsafe_allow_html=True)
-    with col_l:
-        if logo_carrion: st.image(logo_carrion, width=100)
+    st.markdown('<h2 class="titulo-seccion">REPOSITORIO ACADÉMICO</h2>', unsafe_allow_html=True)
+    
+    # Simulación de Estructura de Ciclos 1 al 4
+    for i in range(1, 5):
+        with st.expander(f"📌 CICLO 0{i}"):
+            # Sub-nivel: Cursos (Ejemplo para el Ciclo 4)
+            if i == 4:
+                col_c1, col_c2 = st.columns(2)
+                with col_c1:
+                    st.markdown("### 📚 Agentes Físicos II")
+                    with st.container():
+                        st.write("🟢 Tema 1: Termoterapia avanzada")
+                        st.write("🟢 Tema 2: Crioterapia clínica")
+                        st.button("Ver Material", key=f"btn_c4_a{i}")
+                with col_c2:
+                    st.markdown("### 📚 Anatomía Palpatoria")
+                    st.write("🟢 Tema 1: Miembro Superior")
+                    st.write("🟢 Tema 2: Miembro Inferior")
+                    st.button("Ver Material", key=f"btn_c4_b{i}")
+            else:
+                st.info(f"Contenido del Ciclo 0{i} archivado. Haz clic para desplegar cursos.")
+                st.button(f"Explorar Ciclo 0{i}", key=f"exp_{i}")
 
-    # Dashboard de Estudios dentro de Carrión
-    st.markdown("### Dashboard de Usuario")
-    c1, c2, c3 = st.columns(3)
-    with c1: st.markdown('<div class="glass-card"><b>CICLO</b><br>IV - 2026</div>', unsafe_allow_html=True)
-    with c2: st.markdown('<div class="glass-card"><b>PROGRESO</b><br>85% Completado</div>', unsafe_allow_html=True)
-    with c3: st.markdown('<div class="glass-card"><b>NOTAS</b><br>Promedio: 18</div>', unsafe_allow_html=True)
-
-    st.divider()
-    st.subheader("Archivos de Clase")
-    # Simulación de lista de archivos
-    for doc in ["Clase 01 - Agentes.pdf", "Clase 02 - Anatomía.pdf"]:
-        col_doc, col_btn = st.columns([4, 1])
-        col_doc.write(f"📄 {doc}")
-        col_btn.button("Ver", key=doc)
-
-# --- OTROS MÓDULOS ---
 else:
-    st.info(f"Módulo **{menu}** en desarrollo.")
+    st.info("Módulo en construcción...")
