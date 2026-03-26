@@ -2,96 +2,97 @@ import streamlit as st
 import sys
 import os
 
-# --- CONEXIÓN DE RUTAS ---
+# --- 1. CONEXIÓN TÉCNICA (MODULOS) ---
 ruta_actual = os.path.dirname(os.path.abspath(__file__))
 ruta_modulos = os.path.join(ruta_actual, "MODULOS")
 if ruta_modulos not in sys.path:
     sys.path.append(ruta_modulos)
 
-from motor_huesos import cargar_imagen_raiz
+try:
+    from motor_huesos import cargar_imagen_raiz
+except ImportError:
+    st.error("Error: No se encontró motor_huesos.py en la carpeta MODULOS.")
+    st.stop()
 
-# --- CONFIGURACIÓN DE PÁGINA ---
+# --- 2. CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="CJ PROYECTOS - Lic. Jorge Luis", layout="wide")
 
-# --- CSS DEFINITIVO: FORZANDO COLORES (#071420 y #876205) ---
+# --- 3. BLOQUE DE COLORES OFICIALES (INAMOVIBLE) ---
+# AZUL CJ: #071420 | DORADO CJ: #876205
 st.markdown(f"""
     <style>
-    /* 1. FONDO PRINCIPAL */
+    /* Fondo General */
     .stApp {{
         background-color: #071420 !important;
     }}
 
-    /* 2. BARRA LATERAL: FORZADO DE COLOR AZUL Y BORDE DORADO */
+    /* Barra Lateral Blindada */
     [data-testid="stSidebar"] {{
-        background-color: #071420 !important; /* Tu Azul */
-        border-right: 5px solid #876205 !important; /* Tu Dorado */
+        background-color: #071420 !important;
+        border-right: 5px solid #876205 !important;
     }}
 
-    /* 3. TEXTOS EN BARRA LATERAL (Blancos para que se lean) */
-    [data-testid="stSidebar"] {{
-        color: #FFFFFF !important;
-    }}
-    
-    /* Forzar color de los Radio Buttons y etiquetas en Sidebar */
+    /* Textos y Radio Buttons en Sidebar */
     [data-testid="stSidebar"] .stRadio label p {{
         color: #FFFFFF !important;
-        font-size: 17px !important;
         font-weight: 500 !important;
     }}
+    
+    [data-testid="stSidebar"] h2, [data-testid="stSidebar"] p {{
+        color: #876205 !important;
+    }}
 
-    /* 4. TÍTULO CJ DORADO */
+    /* Título Principal Dorado */
     .titulo-cj {{
         font-family: 'serif';
-        color: #876205; 
+        color: #876205;
         text-align: center;
         font-weight: bold;
         text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
     }}
 
-    @media (min-width: 768px) {{ .titulo-cj {{ font-size: 60px; }} }}
-    @media (max-width: 767px) {{ .titulo-cj {{ font-size: 35px; }} }}
-
-    /* Divisores Dorados */
-    hr {{
-        border-top: 2px solid #876205 !important;
+    /* Ajuste para Celular */
+    @media (max-width: 767px) {{
+        .titulo-cj {{ font-size: 35px; }}
     }}
+    @media (min-width: 768px) {{
+        .titulo-cj {{ font-size: 60px; }}
+    }}
+
+    /* Líneas y Divisores */
+    hr {{ border-top: 2px solid #876205 !important; }}
     </style>
     """, unsafe_allow_html=True)
 
-# --- CARGA DE IDENTIDAD ---
-logo_cj_data = cargar_imagen_raiz("logo_cj.jpg")
-logo_carrion_data = cargar_imagen_raiz("logo_carrion.png")
+# --- 4. CARGA DE LOGOS ---
+logo_cj = cargar_imagen_raiz("logo_cj.jpg")
+logo_carrion = cargar_imagen_raiz("logo_carrion.png")
 
-# --- BARRA LATERAL ---
+# --- 5. SIDEBAR ---
 with st.sidebar:
-    if logo_cj_data:
-        st.markdown(f'<div style="text-align: center; padding: 10px;"><img src="{logo_cj_data}" width="150"></div>', unsafe_allow_html=True)
-    
-    st.markdown("<h2 style='text-align: center; color: #876205; margin-bottom:0;'>PROYECTO CJ</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #FFFFFF; opacity: 0.8;'>Lic. Jorge Luis Chiroque Panta</p>", unsafe_allow_html=True)
+    if logo_cj:
+        st.markdown(f'<div style="text-align: center;"><img src="{logo_cj}" width="150"></div>', unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center;'>PROYECTO CJ</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: white !important; opacity: 0.8;'>Lic. Jorge Luis Chiroque Panta</p>", unsafe_allow_html=True)
     st.divider()
     
     menu = st.radio(
-        "MENÚ DE NAVEGACIÓN", 
+        "SISTEMA DE GESTIÓN", 
         ["🏠 INICIO", "🦴 ANATOMÍA MAESTRO", "📖 REPOSITORIO CARRION", "📚 BIBLIOTECA TÉCNICA"]
     )
 
-# --- CUERPO PRINCIPAL ---
+# --- 6. SECCIÓN: INICIO ---
 if menu == "🏠 INICIO":
     st.markdown('<h1 class="titulo-cj">PROYECTO CJ</h1>', unsafe_allow_html=True)
-    
-    st.image("https://images.unsplash.com/photo-1576091160550-2173dbc999ef?q=80&w=2070", 
-             use_container_width=True)
-    
+    st.image("https://images.unsplash.com/photo-1576091160550-2173dbc999ef?q=80&w=2070", use_container_width=True)
     st.divider()
     
-    c1, c2 = st.columns([2, 1])
-    with c1:
+    col1, col2 = st.columns([2, 1])
+    with col1:
         st.markdown("<h3 style='color: #876205;'>Excelencia en Fisioterapia</h3>", unsafe_allow_html=True)
-        st.write("Interfaz profesional adaptada con tus códigos de color exactos.")
-    with c2:
-        if logo_carrion_data:
-            st.image(logo_carrion_data, width=160)
-
+        st.write("Bienvenido, Jorge Luis. Interfaz profesional consolidada.")
+    with col2:
+        if logo_carrion:
+            st.image(logo_carrion, width=160)
 else:
-    st.info(f"Sección {menu} lista.")
+    st.info(f"Módulo **{menu}** activo bajo la identidad CJ.")
