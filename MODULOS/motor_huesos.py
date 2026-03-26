@@ -11,7 +11,8 @@ def cargar_imagen_local(nombre_archivo):
     ruta = os.path.join(DIR_PORTADAS, nombre_archivo)
     if os.path.exists(ruta):
         with open(ruta, "rb") as f:
-            return f"data:image/jpeg;base64,{base64.b64encode(f.read()).decode()}"
+            data = f.read()
+        return f"data:image/jpeg;base64,{base64.b64encode(data).decode()}"
     return None
 
 def cargar_csv():
