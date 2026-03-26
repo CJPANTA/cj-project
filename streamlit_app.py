@@ -13,53 +13,47 @@ from motor_huesos import cargar_imagen_raiz
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="CJ PROYECTOS - Lic. Jorge Luis", layout="wide")
 
-# --- CSS CON TUS COLORES EXACTOS (#071420 y #876205) ---
+# --- CSS DEFINITIVO: FORZANDO COLORES (#071420 y #876205) ---
 st.markdown(f"""
     <style>
-    /* Importar fuente elegante */
-    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap');
-
-    /* Fondo de la App (Tu Azul) */
+    /* 1. FONDO PRINCIPAL */
     .stApp {{
         background-color: #071420 !important;
-        color: #FFFFFF;
     }}
 
-    /* BARRA LATERAL CON TU BORDE DORADO */
+    /* 2. BARRA LATERAL: FORZADO DE COLOR AZUL Y BORDE DORADO */
     [data-testid="stSidebar"] {{
-        background-color: #FFFFFF !important; 
+        background-color: #071420 !important; /* Tu Azul */
         border-right: 5px solid #876205 !important; /* Tu Dorado */
-        box-shadow: 10px 0px 20px rgba(0,0,0,0.5);
     }}
 
-    /* Texto en Sidebar (Azul para contraste) */
-    [data-testid="stSidebar"] * {{
-        color: #071420 !important;
+    /* 3. TEXTOS EN BARRA LATERAL (Blancos para que se lean) */
+    [data-testid="stSidebar"] {{
+        color: #FFFFFF !important;
+    }}
+    
+    /* Forzar color de los Radio Buttons y etiquetas en Sidebar */
+    [data-testid="stSidebar"] .stRadio label p {{
+        color: #FFFFFF !important;
+        font-size: 17px !important;
+        font-weight: 500 !important;
     }}
 
-    /* Título CJ (Tu Dorado sobre Tu Azul) */
+    /* 4. TÍTULO CJ DORADO */
     .titulo-cj {{
-        font-family: 'Playfair Display', serif;
+        font-family: 'serif';
         color: #876205; 
         text-align: center;
         font-weight: bold;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-        margin-top: 0px;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
     }}
 
-    /* Ajuste de Título para Celular */
-    @media (min-width: 768px) {{ .titulo-cj {{ font-size: 65px; }} }}
-    @media (max-width: 767px) {{ .titulo-cj {{ font-size: 38px; }} }}
+    @media (min-width: 768px) {{ .titulo-cj {{ font-size: 60px; }} }}
+    @media (max-width: 767px) {{ .titulo-cj {{ font-size: 35px; }} }}
 
-    /* Líneas divisorias en Dorado */
+    /* Divisores Dorados */
     hr {{
         border-top: 2px solid #876205 !important;
-    }}
-
-    /* Ajuste de botones de radio en el Sidebar */
-    .stRadio > label {{
-        font-weight: bold !important;
-        font-size: 18px !important;
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -71,14 +65,14 @@ logo_carrion_data = cargar_imagen_raiz("logo_carrion.png")
 # --- BARRA LATERAL ---
 with st.sidebar:
     if logo_cj_data:
-        st.markdown(f'<div style="text-align: center; padding-bottom: 20px;"><img src="{logo_cj_data}" width="160"></div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="text-align: center; padding: 10px;"><img src="{logo_cj_data}" width="150"></div>', unsafe_allow_html=True)
     
-    st.markdown("<h2 style='text-align: center; font-family: serif; margin-bottom:0;'>PROYECTO CJ</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; font-size: 14px; opacity: 0.9;'>Lic. Jorge Luis Chiroque Panta</p>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center; color: #876205; margin-bottom:0;'>PROYECTO CJ</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #FFFFFF; opacity: 0.8;'>Lic. Jorge Luis Chiroque Panta</p>", unsafe_allow_html=True)
     st.divider()
     
     menu = st.radio(
-        "MENÚ DE GESTIÓN", 
+        "MENÚ DE NAVEGACIÓN", 
         ["🏠 INICIO", "🦴 ANATOMÍA MAESTRO", "📖 REPOSITORIO CARRION", "📚 BIBLIOTECA TÉCNICA"]
     )
 
@@ -86,20 +80,18 @@ with st.sidebar:
 if menu == "🏠 INICIO":
     st.markdown('<h1 class="titulo-cj">PROYECTO CJ</h1>', unsafe_allow_html=True)
     
-    # Imagen de Fisioterapia (Mantenemos la calidad de Unsplash)
     st.image("https://images.unsplash.com/photo-1576091160550-2173dbc999ef?q=80&w=2070", 
-             caption="Fisioterapia y Rehabilitación de Alto Nivel", 
              use_container_width=True)
     
     st.divider()
     
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        st.subheader("Optimización de Estudio y Gestión Clínica")
-        st.write(f"Bienvenido Jorge Luis. La interfaz ha sido actualizada con tus códigos oficiales: Azul (#071420) y Dorado (#876205).")
-    with col2:
+    c1, c2 = st.columns([2, 1])
+    with c1:
+        st.markdown("<h3 style='color: #876205;'>Excelencia en Fisioterapia</h3>", unsafe_allow_html=True)
+        st.write("Interfaz profesional adaptada con tus códigos de color exactos.")
+    with c2:
         if logo_carrion_data:
-            st.image(logo_carrion_data, width=180)
+            st.image(logo_carrion_data, width=160)
 
 else:
-    st.info(f"Módulo **{menu}** configurado con la nueva identidad visual.")
+    st.info(f"Sección {menu} lista.")
