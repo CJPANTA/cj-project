@@ -6,34 +6,42 @@ from MODULOS.motor_huesos import cargar_imagen_raiz
 # --- CONFIGURACIÓN ---
 st.set_page_config(page_title="SISTEMA CJ - Repositorio", layout="wide")
 
-# URL BASE GITHUB RAW (Ajustada a tu estructura de carpetas)
+# URL BASE GITHUB RAW
 LINK_RAW = "https://raw.githubusercontent.com/CJPANTA/cj-project/main/BASE_DATOS/01_CARRION/"
 
-# --- CSS PREMIUM ---
+# --- CSS DEFINITIVO (Volvemos a la elegancia) ---
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap');
-    .stApp {{ background-color: #06101c !important; color: #FFFFFF; }}
     
+    .stApp {{ background-color: #06101c !important; color: #d1d5db; }}
+    
+    /* TÍTULO DORADO */
     .titulo-cj {{
         font-family: 'Playfair Display', serif;
         background: linear-gradient(to bottom, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        text-align: center; font-weight: bold; font-size: 55px;
+        text-align: center; font-weight: bold; font-size: 50px; margin-bottom: 20px;
     }}
 
-    .contenedor-tarjeta {{
-        height: 160px; border: 2px solid #6e4f02; background: rgba(0, 128, 128, 0.05);
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-        border-radius: 15px; transition: 0.4s; margin-bottom: 10px;
+    /* ESTILO DE PESTAÑAS (TABS) */
+    .stTabs [data-baseweb="tab-list"] {{
+        background-color: #06101c;
+        border-bottom: 2px solid #6e4f02;
     }}
-    .contenedor-tarjeta:hover {{ border-color: #008080; background: rgba(0, 128, 128, 0.15); }}
-    .card-num {{ color: #6e4f02; font-size: 30px; font-weight: bold; }}
-    
+    .stTabs [data-baseweb="tab"] {{
+        color: #d1d5db !important;
+        font-weight: 600;
+    }}
+    .stTabs [aria-selected="true"] {{
+        color: #008080 !important;
+        border-bottom-color: #008080 !important;
+    }}
+
     /* BOTONES VERDE ESMERALDA */
     div.stButton > button {{
         background-color: #008080 !important; color: white !important;
-        border-radius: 10px; border: 1px solid #6e4f02; width: 100%; font-weight: bold;
+        border-radius: 8px; border: 1px solid #6e4f02; width: 100%;
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -41,65 +49,45 @@ st.markdown(f"""
 # --- SIDEBAR ---
 logo_cj = cargar_imagen_raiz("logo_cj.jpg")
 with st.sidebar:
-    if logo_cj: st.markdown(f'<div style="text-align: center;"><img src="{logo_cj}" width="140"></div>', unsafe_allow_html=True)
+    if logo_cj: st.markdown(f'<div style="text-align: center;"><img src="{logo_cj}" width="150"></div>', unsafe_allow_html=True)
     st.markdown("<h2 style='text-align: center; color: #6e4f02;'>PROYECTO CJ</h2>", unsafe_allow_html=True)
     st.divider()
-    menu = st.radio("NAVEGACIÓN", ["🏠 INICIO", "📖 REPOSITORIO"])
+    menu = st.radio("MENÚ", ["🏠 INICIO", "📖 REPOSITORIO"])
 
-# --- INICIO ---
+# --- INICIO (Recuperado) ---
 if menu == "🏠 INICIO":
     st.markdown('<h1 class="titulo-cj">PROYECTO CJ</h1>', unsafe_allow_html=True)
     st.image("https://images.unsplash.com/photo-1597452485669-2c7bb5fef90d?q=80&w=2000", use_container_width=True)
-    st.markdown("<h3 style='color: #6e4f02; text-align: center;'>Gestión Académica de Vanguardia</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='color: #6e4f02; text-align: center;'>Lic. Jorge Luis Chiroque</h3>", unsafe_allow_html=True)
 
-# --- REPOSITORIO ---
+# --- REPOSITORIO (Jerarquía por Pestañas) ---
 elif menu == "📖 REPOSITORIO":
     col_t, col_l = st.columns([4, 1])
-    col_t.markdown('<h1 style="color: #6e4f02;">BIBLIOTECA CARRIÓN</h1>', unsafe_allow_html=True)
+    col_t.markdown('<h1 style="color: #6e4f02; margin:0;">BIBLIOTECA CARRION</h1>', unsafe_allow_html=True)
     logo_c = cargar_imagen_raiz("logo_carrion.png")
-    if logo_c: col_l.image(logo_c, width=100)
+    if logo_c: col_l.image(logo_c, width=90)
 
-    if 'paso' not in st.session_state: st.session_state.paso = 'ciclos'
+    # Pestañas de Ciclos (Mucho más estable en celular)
+    t1, t2, t3, t4 = st.tabs(["CICLO 01", "CICLO 02", "CICLO 03", "CICLO 04"])
 
-    # PASO 1: CICLOS
-    if st.session_state.paso == 'ciclos':
-        st.write("### Selecciona el Ciclo:")
-        cols = st.columns(2)
-        ciclos = [("01", "FUNDAMENTOS"), ("02", "ANATOMÍA"), ("03", "AGENTES I"), ("04", "CLÍNICA IV")]
-        for i, (num, name) in enumerate(ciclos):
-            with cols[i % 2]:
-                st.markdown(f'<div class="contenedor-tarjeta"><div class="card-num">{num}</div><div style="color:#d1d5db;">{name}</div></div>', unsafe_allow_html=True)
-                if st.button(f"ABRIR CICLO {num}", key=f"c_{num}"):
-                    st.session_state.ciclo_sel = f"CICLO_{num}"
-                    st.session_state.paso = 'cursos'
-                    st.rerun()
-
-    # PASO 2: CURSOS
-    elif st.session_state.paso == 'cursos':
-        st.markdown(f"### 📂 {st.session_state.ciclo_sel} > Cursos:")
-        if st.button("⬅ VOLVER"): st.session_state.paso = 'ciclos'; st.rerun()
+    with t1:
+        st.write("### Cursos disponibles:")
+        expander = st.expander("📘 MASOTERAPIA", expanded=True)
+        with expander:
+            # Archivo confirmado por Jorge
+            archivo = "01_conceptos_basicos_masoterapia.pdf"
+            c1, c2 = st.columns([3, 1])
+            c1.write(f"📄 {archivo}")
+            
+            # URL Limpia para GitHub
+            url = f"{LINK_RAW}CICLO_01/MASOTERAPIA/{urllib.parse.quote(archivo)}"
+            
+            if c2.button("👁️ VER", key="ver_maso"):
+                st.markdown(f'<iframe src="{url}" width="100%" height="600px" style="border:2px solid #6e4f02;"></iframe>', unsafe_allow_html=True)
         
-        # Agregamos Masoterapia según tu captura
-        cursos = ["MASOTERAPIA", "ANATOMIA_FISIOLOGIA", "BIOFISICA"]
-        for curso in cursos:
-            if st.button(f"📘 {curso.replace('_', ' ')}"):
-                st.session_state.curso_sel = curso
-                st.session_state.paso = 'temas'
-                st.rerun()
+        st.expander("📘 ANATOMIA Y FISIOLOGIA").info("Contenido en carga...")
+        st.expander("📘 BIOFISICA").info("Contenido en carga...")
 
-    # PASO 3: TEMAS (PDFs)
-    elif st.session_state.paso == 'temas':
-        st.markdown(f"### 📄 {st.session_state.curso_sel} > Documentos:")
-        if st.button("⬅ VOLVER"): st.session_state.paso = 'cursos'; st.rerun()
-        
-        # AQUÍ ESTÁ TU ARCHIVO CONECTADO
-        archivos = ["01_conceptos_basicos_masoterapia.pdf"] 
-        
-        for arc in archivos:
-            with st.container(border=True):
-                c1, c2 = st.columns([4, 1])
-                c1.write(f"📄 {arc}")
-                # Construcción de URL limpia para GitHub
-                url = f"{LINK_RAW}{st.session_state.ciclo_sel}/{st.session_state.curso_sel}/{urllib.parse.quote(arc)}"
-                if c2.button("👁️ Ver", key=arc):
-                    st.markdown(f'<iframe src="{url}" width="100%" height="600px" style="border:2px solid #6e4f02; border-radius:10px;"></iframe>', unsafe_allow_html=True)
+    with t2: st.info("Ciclo 02 - Próximamente")
+    with t3: st.info("Ciclo 03 - Próximamente")
+    with t4: st.info("Ciclo 04 - Próximamente")
