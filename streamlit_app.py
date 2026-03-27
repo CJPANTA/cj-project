@@ -3,59 +3,94 @@ import os
 import urllib.parse
 from MODULOS.motor_huesos import cargar_imagen_raiz
 
-st.set_page_config(page_title="SISTEMA CJ", layout="wide")
+# --- CONFIGURACIÓN ---
+st.set_page_config(page_title="SISTEMA CJ - Biblioteca", layout="wide")
 
-# URL BASE DE TU GITHUB (ESTRICTO)
-LINK_RAW = "https://raw.githubusercontent.com/CJPANTA/cj-project/main/BASE_DATOS/01_CARRION/"
-
-# --- ESTILOS CJ ---
-st.markdown("""
+# --- CSS DEFINITIVO (COLORES SOLICITADOS) ---
+st.markdown(f"""
     <style>
-    .stApp { background-color: #06101c; color: #d1d5db; }
-    .titulo-cj { color: #6e4f02; font-family: serif; text-align: center; font-weight: bold; font-size: 50px; }
+    .stApp {{ background-color: #06101c !important; color: #FFFFFF; }}
     
-    /* Botones estilo píldora Verde Esmeralda */
-    div.stButton > button {
-        background-color: #008080 !important; color: white !important;
-        border-radius: 20px !important; border: 1px solid #6e4f02 !important;
-        width: 100%;
-    }
-    /* Contenedor de PDF */
-    .pdf-container { border: 2px solid #6e4f02; border-radius: 10px; padding: 10px; }
+    /* BARRA LATERAL */
+    [data-testid="stSidebar"] {{
+        background-color: #06101c !important;
+        border-right: 1px solid #6e4f02 !important;
+    }}
+
+    /* TARJETAS DE CICLO (Dorado y Esmeralda) */
+    .contenedor-tarjeta {{
+        height: 180px;
+        border: 2px solid #6e4f02;
+        background: rgba(0, 128, 128, 0.05); /* Toque verde esmeralda suave */
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        text-align: center; border-radius: 15px;
+        transition: 0.4s; margin-bottom: 20px;
+    }}
+    
+    .contenedor-tarjeta:hover {{
+        background: rgba(0, 128, 128, 0.2); /* Brillo verde esmeralda al pasar mouse */
+        border-color: #008080;
+        transform: scale(1.05);
+    }}
+
+    .card-num {{ color: #6e4f02; font-size: 30px; font-weight: bold; }}
+    .card-title {{ color: #d1d5db; font-size: 14px; font-weight: 600; text-transform: uppercase; }}
     </style>
     """, unsafe_allow_html=True)
 
-# --- SIDEBAR ESTABLE ---
-logo_cj = cargar_imagen_raiz("logo_cj.jpg")
+# --- SIDEBAR IDENTIDAD ---
+logo_cj = cargar_imagen_raiz("logo_cj.jpg") 
 with st.sidebar:
     if logo_cj:
-        st.markdown(f'<div style="text-align: center;"><img src="{logo_cj}" width="120"></div>', unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align: center; color: #6e4f02;'>PROYECTO CJ</h2>", unsafe_allow_html=True)
+        st.markdown(f'<div style="text-align: center;"><img src="{logo_cj}" width="180" style="border: 1px solid #6e4f02;"></div>', unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; color: #6e4f02;'>SISTEMA CJ</h3>", unsafe_allow_html=True)
     st.divider()
-    menu = st.radio("SECCIONES", ["🏠 INICIO", "📖 REPOSITORIO"])
+    menu = st.radio("NAVEGACIÓN", ["🏠 INICIO", "📖 REPOSITORIO"])
 
-# --- LÓGICA DE NAVEGACIÓN ---
-if menu == "🏠 INICIO":
-    st.markdown('<h1 class="titulo-cj">PROYECTO CJ</h1>', unsafe_allow_html=True)
-    st.image("https://images.unsplash.com/photo-1597452485669-2c7bb5fef90d?q=80&w=2000", use_container_width=True)
-    st.markdown("<h3 style='color: #6e4f02; text-align: center;'>Bienvenido, Jorge Luis</h3>", unsafe_allow_html=True)
+# --- LÓGICA DE REPOSITORIO ---
+if menu == "📖 REPOSITORIO":
+    if 'ciclo_activo' not in st.session_state:
+        st.markdown('<h1 style="color: #6e4f02; text-align: center;">REPOSITORIO ACADÉMICO</h1>', unsafe_allow_html=True)
+        
+        ciclos = [
+            {"id": "01", "name": "FUNDAMENTOS", "sub": "HISTORIA Y BASES"},
+            {"id": "02", "name": "ANATOMÍA", "sub": "ESTRUCTURA HUMANA"},
+            {"id": "03", "name": "AGENTES I", "sub": "TERAPIAS FÍSICAS"},
+            {"id": "04", "name": "CLÍNICA IV", "sub": "CASOS Y PROTOCOLOS"}
+        ]
 
-elif menu == "📖 REPOSITORIO":
-    st.markdown('<h1 style="color: #6e4f02; text-align: center;">BIBLIOTECA CARRIÓN</h1>', unsafe_allow_html=True)
-    
-    # Lista de ciclos (Aquí los agregas manualmente por ahora para evitar errores de lectura de GitHub)
-    ciclos = ["01_CICLO", "02_CICLO", "03_CICLO", "04_CICLO"]
-    
-    # Selector de Ciclos con Botones
-    cols = st.columns(len(ciclos))
-    for i, c in enumerate(ciclos):
-        if cols[i].button(c.replace("_", " ")):
-            st.session_state['ciclo_activo'] = c
+        c1, c2 = st.columns(2)
+        for i, c in enumerate(ciclos):
+            with (c1 if i % 2 == 0 else c2):
+                # La tarjeta visual
+                st.markdown(f"""
+                    <div class="contenedor-tarjeta">
+                        <div style="font-size: 10px; opacity: 0.6;">NIVEL CARRION</div>
+                        <div class="card-num">CICLO {c['id']}</div>
+                        <div class="card-title">{c['name']}</div>
+                    </div>
+                """, unsafe_allow_html=True)
+                # El botón real que hace el cambio
+                if st.button(f"ABRIR {c['name']}", key=f"btn_{c['id']}"):
+                    st.session_state['ciclo_activo'] = c['id']
+                    st.rerun()
+    else:
+        # VISTA DE ARCHIVOS (Conexión real a tus carpetas)
+        sel = st.session_state['ciclo_activo']
+        st.markdown(f'<h2 style="color: #6e4f02;">ARCHIVOS: CICLO {sel}</h2>', unsafe_allow_html=True)
+        
+        if st.button("⬅ VOLVER A CICLOS"):
+            del st.session_state['ciclo_activo']
+            st.rerun()
 
-    ciclo_sel = st.session_state.get('ciclo_activo', "01_CICLO")
-    st.markdown(f"### 📂 Viendo: {ciclo_sel.replace('_', ' ')}")
-    
-    # Como no puedo leer archivos de GitHub dinámicamente sin API, 
-    # por ahora dime si prefieres que use una lista fija de tus archivos o 
-    # si intentamos una conexión API para que sea automático.
-    st.info("⚠️ Para que los PDFs aparezcan aquí automáticamente, necesitamos la lista exacta de archivos de tu GitHub.")
+        # DICCIONARIO DE ARCHIVOS (Esto es lo que me faltaba "leer")
+        # Jorge, aquí pondremos la lista de tus PDFs. Ejemplo para Ciclo 01:
+        archivos_c01 = ["01-conceptos_basicos-1.pdf", "02-histologia.pdf", "03-conceptos_basicos-2.pdf"]
+        
+        for arc in archivos_c01:
+            with st.container(border=True):
+                col1, col2 = st.columns([4, 1])
+                col1.write(f"📄 {arc}")
+                # Link directo a tu GitHub Raw
+                url = f"https://raw.githubusercontent.com/CJPANTA/cj-project/main/BASE_DATOS/01_CARRION/CICLO_01/anatomia_y_fisiologia/{urllib.parse.quote(arc)}"
+                col2.link_button("VER", url)
