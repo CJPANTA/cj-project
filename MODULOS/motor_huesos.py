@@ -1,15 +1,13 @@
-import streamlit as st
+import st
 import os
-import base64
 
-# Ruta raíz
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# ... (mantener funciones anteriores de carga de imágenes)
 
-def cargar_imagen_raiz(nombre_archivo):
-    ruta = os.path.join(BASE_DIR, nombre_archivo)
-    if os.path.exists(ruta):
-        with open(ruta, "rb") as f:
-            data = f.read()
-        ext = nombre_archivo.split('.')[-1]
-        return f"data:image/{ext};base64,{base64.b64encode(data).decode()}"
-    return None
+def listar_ciclos_carrion():
+    """Busca las carpetas en 01_CARRION y las ordena correctamente"""
+    ruta_carrion = os.path.join(os.path.dirname(os.path.dirname(__file__)), "BASE_DATOS", "01_CARRION")
+    if os.path.exists(ruta_carrion):
+        # Filtramos solo carpetas y ordenamos
+        ciclos = sorted([d for d in os.listdir(ruta_carrion) if os.path.isdir(os.path.join(ruta_carrion, d))])
+        return ciclos, ruta_carrion
+    return [], None
