@@ -34,16 +34,16 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Cargar biblioteca.json
+# Cargar biblioteca.json con manejo de errores
 @st.cache_data
 def cargar_biblioteca():
     try:
         with open('biblioteca.json', 'r', encoding='utf-8') as f:
             return json.load(f)
     except FileNotFoundError:
-        return {"error": "biblioteca.json no encontrado. Crea el archivo con la estructura correcta."}
-    except json.JSONDecodeError:
-        return {"error": "biblioteca.json está mal formado. Revisa la sintaxis."}
+        return {"error": "❌ biblioteca.json no encontrado. Crea el archivo en la raíz del repositorio."}
+    except json.JSONDecodeError as e:
+        return {"error": f"❌ biblioteca.json está mal formado. Error: {str(e)}"}
 
 biblioteca = cargar_biblioteca()
 
@@ -51,7 +51,7 @@ if "error" in biblioteca:
     st.error(biblioteca["error"])
     st.stop()
 
-# Cargar CSVs
+# Cargar CSVs con manejo de errores
 @st.cache_data
 def cargar_csvs():
     try:
@@ -63,7 +63,7 @@ def cargar_csvs():
 
 diccionario, huesos = cargar_csvs()
 
-# Menú lateral
+# Menú lateral con manejo de errores
 try:
     st.sidebar.image('04_portada/logo_cj.jpg', width=100)
 except FileNotFoundError:
@@ -77,23 +77,29 @@ if menu == "Inicio":
     try:
         st.image('04_portada/imagen_fisioterapia.jpg', use_column_width=True)
     except FileNotFoundError:
-        st.markdown("<h2 style='text-align: center;'>IMAGEN NO ENCONTRADA</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align: center;'>🖼️ IMAGEN NO ENCONTRADA</h2>", unsafe_allow_html=True)
     st.markdown("<h2 style='text-align: center;'>LA CLAVE DEL ÉXITO ES EL ESTUDIO Y EL ESFUERZO PERSONAL</h2>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center;'>Aquí vamos José</p>", unsafe_allow_html=True)
 
 # Repositorio (Carrion)
 elif menu == "Repositorio (Carrion)":
     st.title("📚 Repositorio Carrion")
-    files = os.listdir('01_carrion/') if os.path.exists('01_carrion/') else []
-    for f in files:
-        st.markdown(f"- [{f}](01_carrion/{f})")
+    if os.path.exists('01_carrion/'):
+        files = os.listdir('01_carrion/')
+        for f in files:
+            st.markdown(f"- [{f}](01_carrion/{f})")
+    else:
+        st.warning("📁 Carpeta 01_carrion no encontrada. Crea la carpeta en la raíz del repositorio.")
 
 # Libros
 elif menu == "Libros":
     st.title("📖 Libros")
-    files = os.listdir('02_sistemas/') if os.path.exists('02_sistemas/') else []
-    for f in files:
-        st.markdown(f"- [{f}](02_sistemas/{f})")
+    if os.path.exists('02_sistemas/'):
+        files = os.listdir('02_sistemas/')
+        for f in files:
+            st.markdown(f"- [{f}](02_sistemas/{f})")
+    else:
+        st.warning("📁 Carpeta 02_sistemas no encontrada. Crea la carpeta en la raíz del repositorio.")
 
 # Diccionario
 elif menu == "Diccionario":
@@ -101,7 +107,7 @@ elif menu == "Diccionario":
     if not diccionario.empty:
         st.dataframe(diccionario)
     else:
-        st.warning("Diccionario no cargado. Revisa 03_config/diccionario_maestro.csv")
+        st.warning("📚 Diccionario no cargado. Revisa 03_config/diccionario_maestro.csv")
 
 # Administrador
 elif menu == "Administrador":
