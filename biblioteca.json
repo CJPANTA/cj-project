@@ -2,46 +2,16 @@
   "CICLO_01": {
     "anatomia_y_fisiologia": {
       "SESIONES": [
-        {"SESION": "SESION 01", "ARCHIVO": "01-conceptos_basicos-1.pdf"},
-        {"SESION": "SESION 02", "ARCHIVO": "02-histiologia.pdf"},
-        {"SESION": "SESION 03", "ARCHIVO": "03-conceptos_basicos-2.pdf"},
-        {"SESION": "SESION 05", "ARCHIVO": "05-esqueleto_axial.pdf"},
-        {"SESION": "SESION 06", "ARCHIVO": "06-esqueleto_apendicular_1.pdf"},
-        {"SESION": "SESION 07", "ARCHIVO": "07-esqueleto_apendicular_2.pdf"},
-        {"SESION": "SESION 08", "ARCHIVO": "08-articulaciones.pdf"},
-        {"SESION": "SESION 09", "ARCHIVO": "09_sistema-muscular.pdf"},
-        {"SESION": "SESION 11", "ARCHIVO": "11_musculos-de-la-cabeza_y_cara.pdf"},
-        {"SESION": "SESION 12", "ARCHIVO": "12_MUSCULOS_DE_LA_COLUMNA_VERTEBRAL_Y_TORAX.pdf"}
+        { "SESION": "Introducción a la célula", "ARCHIVO": "CICLO_01/anatomia_y_fisiologia/sesion1.pdf" },
+        { "SESION": "Tejidos", "ARCHIVO": "CICLO_01/anatomia_y_fisiologia/sesion2.pdf" }
       ],
       "LIBROS_VINCULADOS": [
-        {"TITULO": "Fijaciones, Acciones, y Palpaciones", "AUTOR": "Joseph E. Muscolino", "ED": "1ra"},
-        {"TITULO": "NETHER-FLASHCARD-DE-ANATOMIA", "AUTOR": "John T. Hansen", "ED": "4ta"},
-        {"TITULO": "Netter_anatomia_para_colorear", "AUTOR": "John T. Hansen", "ED": "2ta"}
-      ]
-    }
-  },
-  "CICLO_02": {},
-  "CICLO_03": {},
-  "CICLO_04": {
-    "PROCEDIMIENTO_DE_ORTOPEDIA": {
-      "SESIONES": [
-        {"SESION": "SESION 04", "ARCHIVO": "04_ALTERACIONES_DEL_MIEMBROS_INFERIORES.pdf"},
-        {"SESION": "SESION 05", "ARCHIVO": "05_ALTERACIONES_DEL_PIE.pdf"},
-        {"SESION": "SESION 06", "ARCHIVO": "06_EVALUACIONE_FISICO_POSTURAL.pdf"},
-        {"SESION": "SESION 07", "ARCHIVO": "07_Cervicobraquialgia_Lumbociatalgia_Compresion_radiculomedular.pdf"},
-        {"SESION": "SESION 08", "ARCHIVO": "08_Sindrome_de_hombro doloroso_y_Hombro_congelado.pdf"},
-        {"SESION": "SESION 09", "ARCHIVO": "09_Deformidades_de_Miembro_superior.pdf"},
-        {"SESION": "SESION 11", "ARCHIVO": "11_Espondilolisis_Espondilolistesis.pdf"},
-        {"SESION": "SESION 12", "ARCHIVO": "12_Luxacion_Congenita_de_cadera.pdf"},
-        {"SESION": "SESION 13", "ARCHIVO": "13_Espina_Bífida.pdf"},
-        {"SESION": "SESION 14", "ARCHIVO": "14_Tumores_oseos_benignos_y_malignos.pdf"}
-      ],
-      "LIBROS_VINCULADOS": [
-        {"TITULO": "Netter_Exploracion_Clinica_en_ortopedia", "AUTOR": "Joshua Cleland", "ED": "1ra"}
+        { "TITULO": "Anatomía Humana", "AUTOR": "Tortora", "ED": "15" },
+        { "TITULO": "Fisiología Médica", "AUTOR": "Guyton", "ED": "14" }
       ]
     }
   },
   "ESTANTERIA_GENERAL": [
-    {"TITULO": "Estiramientos_correctos_nocivos_contradictorios", "AUTOR": "Enric Mares", "ED": "1ra"}
+    { "TITULO": "Manual de Fisioterapia", "AUTOR": "Smith", "ED": "3" }
   ]
 }
