@@ -1,47 +1,84 @@
-/* DISEÑO BASE CJ */
+/* ESTILO PREMIUM PROYECTO CJ - FINURA Y SOBRIEDAD */
+
+/* 1. Fondo y Textos Base */
 .stApp {
     background-color: #06101c !important;
     color: #d1d5db !important;
+    font-family: 'serif' !important;
 }
 
-/* TÍTULO DORADO CON DEGRADADO */
+/* 2. Cabecera y Títulos con Degradado Dorado Metálico */
 .titulo-premium {
-    font-family: 'serif';
     background: linear-gradient(to bottom, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     text-align: center;
     font-weight: bold;
-    font-size: clamp(35px, 8vw, 65px);
-    margin-bottom: 20px;
+    font-size: clamp(35px, 8vw, 65px) !important;
+    margin-bottom: 25px !important;
 }
 
-/* PESTAÑAS (TABS) PERSONALIZADAS */
-.stTabs [data-baseweb="tab-list"] {
-    background-color: #06101c;
-    border-bottom: 2px solid #6e4f02;
+/* 3. Marcos Rectangulares Finos (Efecto Espejo) */
+.marco-fino-gold {
+    border: 1px solid #6e4f02;
+    border-radius: 4px; /* Bordes menos curvos, más rectangulares */
+    box-shadow: inset 0 0 10px rgba(110, 79, 2, 0.3); /* Sutil efecto espejo interior */
+    padding: 10px;
 }
 
-.stTabs [data-baseweb="tab"] {
-    color: #d1d5db !important;
-    font-weight: 600;
-}
-
-.stTabs [aria-selected="true"] {
-    color: #008080 !important;
-    border-bottom-color: #008080 !important;
-}
-
-/* BOTONES ESMERALDA CJ */
+/* 4. Botones Laterales y Acciones (Interacciones Premium) */
 div.stButton > button {
-    background-color: #008080 !important;
-    color: white !important;
+    background-color: #06101c !important;
+    color: #d1d5db !important;
     border: 1px solid #6e4f02 !important;
-    border-radius: 10px !important;
+    border-radius: 6px !important;
+    font-weight: 600;
     transition: 0.3s;
+    width: 100%; /* Ocupar todo el ancho del sidebar */
 }
 
+/* Interacción en PC (Hover - Brillo Metálico Sutil) */
 div.stButton > button:hover {
-    background-color: #6e4f02 !important;
-    color: white !important;
+    border: 2px solid #bf953f !important; /* Borde más nítido y brillante */
+    color: #bf953f !important; /* Texto dorado resalta */
+    background-color: #0d1e33 !important; /* Fondo aclara sutilmente */
+    transform: scale(1.03); /* Sutil crecimiento */
+}
+
+/* Interacción en Celular (Active - Pulso Esmeralda) */
+div.stButton > button:active {
+    box-shadow: 0 0 20px #008080 !important; /* Pulso esmeralda alrededor */
+    border-color: #008080 !important;
+    background-color: #008080 !important; /* Fondo esmeralda sutil momentáneo */
+    transform: scale(0.98); /* Botón se "hunde" */
+}
+
+/* 5. Imagen Central y Frase (Ajustes Responsive) */
+.home-img {
+    border: 1px solid #6e4f02;
+    border-radius: 4px;
+    box-shadow: inset 0 0 10px rgba(110, 79, 2, 0.3);
+    max-width: 100%;
+    height: auto;
+}
+
+/* 6. Barra Lateral y Secciones (Minimalismo) */
+section[data-testid="stSidebar"] {
+    background-color: #06101c !important;
+    border-right: 1px solid #6e4f02;
+}
+
+/* Sección Coautores Chiquita (Bottom Sidebar) */
+.coautores-section {
+    border-top: 1px solid #6e4f02;
+    padding-top: 10px;
+    margin-top: 20px;
+    text-align: center;
+}
+
+/* Ajuste Responsive Móvil: Esconder sidebar, mostrar línea delgada */
+@media screen and (max-width: 768px) {
+    div[data-testid="stSidebarUserContent"] {
+        display: none !important; /* Esconder contenido por defecto */
+    }
 }
