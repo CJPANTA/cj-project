@@ -1,72 +1,105 @@
 import streamlit as st
 import json
+import os
 
-st.set_page_config(page_title="Biblioteca CJ", layout="wide")
-
-# Estilos CSS Integrados para evitar fallos de carga
+# Estilo de lujo
 st.markdown("""
 <style>
-    .stApp { background-color: #040a12; color: #e0e0e0; }
-    .main-title { 
-        font-size: 3rem; font-weight: 800; text-align: center;
-        background: linear-gradient(135deg, #c5a059, #f7efad, #b38728);
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    body {
+        background-color: #040a12;
+        color: #e0e0e0;
+        font-family: 'Segoe UI', sans-serif;
     }
-    .custom-card { 
-        background-color: #0a141e; border: 1px solid #c5a059; 
-        padding: 20px; border-radius: 2px; margin-bottom: 20px;
+    .stButton>button {
+        background-color: #c5a059;
+        color: #040a12;
+        border: 1px solid #b38728;
+        border-radius: 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    .stTextInput>div>div>input {
+        background-color: #040a12;
+        color: #e0e0e0;
+        border: 1px solid #b38728;
+    }
+    h1, h2, h3 {
+        font-family: 'Georgia', serif;
+        color: #c5a059;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Carga de datos
-def load_data():
+# Cargar biblioteca.json
+@st.cache_data
+def cargar_biblioteca():
     try:
-        with open("biblioteca.json", "r", encoding="utf-8") as f:
+        with open('biblioteca.json', 'r', encoding='utf-8') as f:
             return json.load(f)
-    except:
-        return None
+    except FileNotFoundError:
+        return {"error": "biblioteca.json no encontrado. Crea el archivo con la estructura correcta."}
+    except json.JSONDecodeError:
+        return {"error": "biblioteca.json está mal formado. Revisa la sintaxis."}
 
-db = load_data()
+biblioteca = cargar_biblioteca()
 
-st.markdown("<h1 class='main-title'>REPOSITORIO ACADÉMICO CJ</h1>", unsafe_allow_html=True)
+if "error" in biblioteca:
+    st.error(biblioteca["error"])
+    st.stop()
 
-if not db:
-    st.error("❌ El archivo biblioteca.json no se encuentra o tiene un error de formato.")
-else:
-    # Filtro de Ciclos
-    ciclos_disp = [c for c in db.keys() if "CICLO" in c]
-    col1, col2 = st.columns([1, 2])
+# Modo Usuario
+st.title("📚 Proyecto CJ — Biblioteca Académica Digital")
+modo = st.radio("Modo", ["Usuario", "Administrador"], horizontal=True)
+
+if modo == "Usuario":
+    # Buscador global
+    query = st.text_input("🔍 Buscar tema, libro o sesión", "").lower()
     
-    with col1:
-        st.markdown("<div class='custom-card'>", unsafe_allow_html=True)
-        ciclo_sel = st.selectbox("Seleccione el Ciclo", ciclos_disp)
+    # Navegador por ciclos y cursos
+    ciclos = list(biblioteca.keys())
+    ciclo_seleccionado = st.selectbox("Ciclo", ciclos)
+    
+    if ciclo_seleccionado in biblioteca:
+        cursos = list(biblioteca[ciclo_seleccionado].keys())
+        curso_seleccionado = st.selectbox("Curso", cursos)
         
-        # Validar si el ciclo tiene cursos (objetos dict)
-        cursos = [k for k, v in db[ciclo_sel].items() if isinstance(v, dict)]
-        
-        if cursos:
-            curso_sel = st.selectbox("Seleccione el Curso", cursos)
-            st.markdown("### 📄 Sesiones")
-            for sesion in db[ciclo_sel][curso_sel].get("SESIONES", []):
-                st.write(f"• {sesion['SESION']}: {sesion['ARCHIVO']}")
-        else:
-            st.info("Este ciclo aún no tiene cursos registrados.")
-        st.markdown("</div>", unsafe_allow_html=True)
+        if curso_seleccionado in biblioteca[ciclo_seleccionado]:
+            sesiones = biblioteca[ciclo_seleccionado] [curso_seleccionado].get("SESIONES", [])
+            libros = biblioteca[ciclo_seleccionado] [curso_seleccionado].get("LIBROS_VINCULADOS", [])
+            
+            st.subheader(f"📌 Sesiones de {curso_seleccionado}")
+            for sesion in sesiones:
+                st.markdown(f"- **{sesion.get('SESION', 'Sin nombre')}** → [Descargar]({sesion.get('ARCHIVO', '#')})")
+            
+            st.subheader(f"📖 Libros vinculados")
+            for libro in libros:
+                st.markdown(f"- **{libro.get('TITULO', 'Sin título')}** por {libro.get('AUTOR', 'Desconocido')} (Ed. {libro.get('ED', 'N/A')})")
 
-    with col2:
-        st.markdown("<div class='custom-card'>", unsafe_allow_html=True)
-        if cursos:
-            st.markdown(f"### 📘 Material para {curso_sel.replace('_', ' ').title()}")
-            libros = db[ciclo_sel][curso_sel].get("LIBROS_VINCULADOS", [])
-            if libros:
-                for l in libros:
-                    st.success(f"**{l['TITULO']}**\n\nAutor: {l['AUTOR']}")
-            else:
-                st.write("No hay libros vinculados a este curso.")
-        
-        st.markdown("---")
-        st.subheader("📚 Estantería General")
-        for lib in db.get("ESTANTERIA_GENERAL", []):
-            st.write(f"📙 {lib['TITULO']}")
-        st.markdown("</div>", unsafe_allow_html=True)
+elif modo == "Administrador":
+    st.subheader("📊 Dashboard de Administrador")
+    
+    # KPIs
+    total_ciclos = len(biblioteca)
+    total_cursos = sum(len(biblioteca[c]) for c in biblioteca)
+    total_sesiones = sum(len(biblioteca[c] [cr].get("SESIONES", [])) for c in biblioteca for cr in biblioteca[c])
+    total_libros = sum(len(biblioteca[c] [cr].get("LIBROS_VINCULADOS", [])) for c in biblioteca for cr in biblioteca[c])
+    
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Ciclos", total_ciclos)
+    col2.metric("Cursos", total_cursos)
+    col3.metric("Sesiones", total_sesiones)
+    col4.metric("Libros", total_libros)
+    
+    # Alertas de integridad
+    st.subheader("⚠️ Alertas de Integridad")
+    for ciclo in biblioteca:
+        for curso in biblioteca[ciclo]:
+            if not biblioteca[ciclo] [curso].get("SESIONES"):
+                st.warning(f"⚠️ {curso} en {ciclo} no tiene sesiones.")
+            if not biblioteca[ciclo] [curso].get("LIBROS_VINCULADOS"):
+                st.warning(f"⚠️ {curso} en {ciclo} no tiene libros vinculados.")
+    
+    # Carga inteligente (Drag & Drop)
+    st.subheader("📤 Carga Inteligente")
+    uploaded_file = st.file_uploader("Arrastra o selecciona un archivo PDF", type=["pdf"])
+    if uploaded_file:
+        st.success(f"✅ {uploaded_file.name} cargado. Recuerda actualizar biblioteca.json.")
