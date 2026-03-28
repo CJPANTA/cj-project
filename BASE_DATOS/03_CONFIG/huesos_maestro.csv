@@ -1,21 +1,3 @@
-ID;Region;Nombre_Hueso;Cara;Accidentes_Oseos;Musculos_Relacionados;Funcion_Bio;Articulaciones_Clave;Agente_Fisico;Referencia_Netter;Referencia_Colorear;Link_PDF_Carrion;Puntos_Clave_Palpacion;Terminologia_Tecnica;Prioridad_BRI;Accion_Sugerida
-H001;Craneo;Frontal;Anterior;Glabela / Arcos superciliares;Corrugador superciliar;Proteccion anterior;Suturas craneales;Magnetoterapia;Lamina 4;Lamina 2-2;C04_Anatomia_Clase1.pdf;Borde supraorbitario;Sutura metopica;Verde;Evaluar senos frontales
-H002;Craneo;Parietal;Lateral;Lineas temporales;Temporal;Proteccion lateral;Sutura sagital;Ultrasonido;Lamina 6;Lamina 2-2;C04_Anatomia_Clase1.pdf;Eminencia parietal;Fontanela bregmatica;Verde;Palpacion de calota
-H003;Craneo;Temporal;Lateral;Apofisis mastoides;Esternocleidomastoideo;Audicion y Equilibrio;ATM;Laser;Lamina 8;Lamina 2-2;C04_Anatomia_Clase2.pdf;Conducto auditivo externo;Apofisis cigomatica;Rojo;Revisar ATM
-H004;Craneo;Occipital;Posterior;Protuberancia externa;Trapecio / Complexos;Insercion cervical;Atlas (C1);TENS;Lamina 10;Lamina 2-3;C04_Anatomia_Clase2.pdf;Inion (Protuberancia);Agujero magno;Rojo;Liberacion suboccipital
-H005;Cara;Maxilar;Anterior;Apofisis alveolar;Elevador del labio;Soporte dental;Sutura intermaxilar;Infrarrojo;Lamina 12;Lamina 2-2;C04_Anatomia_Clase3.pdf;Espina nasal anterior;Agujero infraorbitario;Blanco;Evaluar seno maxilar
-H006;Cara;Mandibula;Anterior;Condilo / Coronoides;Masetero / Pterigoideos;Masticacion;ATM;Masoterapia;Lamina 14;Lamina 2-4;C04_Anatomia_Clase3.pdf;Angulo de la mandibula;Sinfisis mentoniana;Rojo;Relajacion mandibular
-H007;Columna;Atlas (C1);Superior;Masas laterales;Recto posterior menor;Soporte craneal;Atlanto-occipital;Termoterapia;Lamina 18;Lamina 2-5;C04_Anatomia_Clase3.pdf;Apofisis transversas;Anillo del atlas;Rojo;Alineacion cervical alta
-H008;Columna;Axis (C2);Superior;Apofisis Odontoides;Oblicuo inferior;Rotacion cervical;Atlanto-axial;Microcorrientes;Lamina 19;Lamina 2-5;C04_Anatomia_Clase3.pdf;Apofisis espinosa bifida;Diente del axis;Rojo;Test de rotacion
-H009;Columna;Cervical C7;Posterior;Apofisis espinosa larga;Trapecio superior;Transicion cervicodorsal;C7-T1;Compresa Hum-Cal;Lamina 20;Lamina 2-5;C04_Morfofisio_C1.pdf;Prominencia nucal;Vertebra prominente;Blanco;Palpacion cervical
-H010;Torax;Clavicula;Anterior;Extremo acromial;Deltoides / Pectoral;Soporte escapular;Esternon y Acromion;Corrientes Galv.;Lamina 405;Lamina 2-9;C04_Morfofisio_C2.pdf;Tuberculo conoideo;Linea trapezoidea;Verde;Movilidad hombro
-H011;Torax;Escapula;Posterior;Acromion / Espina;Supraespinoso / Serrato;Estabilidad hombro;Glenohumeral;Ultrasonido;Lamina 407;Lamina 2-10;C04_Morfofisio_C2.pdf;Angulo inferior;Fosa infraespinosa;Blanco;Liberacion escapular
-H012;Torax;Esternon;Anterior;Manubrio / Cuerpo;Pectoral mayor;Proteccion cardiaca;Esternocostal;Magnetoterapia;Lamina 182;Lamina 2-8;C04_Morfofisio_C2.pdf;Angulo de Louis;Apofisis xifoides;Verde;Expansion costal
-H013;Brazo;Humero;Proximal;Troquiter / Troquin;Manguito rotador;Palanca de brazo;Hombro y Codo;Crioterapia;Lamina 410;Lamina 2-11;C04_Morfofisio_C3.pdf;Cuello quirurgico;Corredera bicipital;Rojo;Evaluar manguito rotador
-H014;Antebrazo;Radio;Lateral;Apofisis estiloides;Braquiorradial;Pronosupinacion;Radio-Carpiana;Parafina;Lamina 425;Lamina 2-12;C04_Morfofisio_C3.pdf;Tuberosidad del radio;Cuello del radio;Blanco;Evaluar tunel carpiano
-H015;Antebrazo;Cubito;Medial;Olecranon;Flexor comun;Palanca de codo;Humero-Cubital;Ondas de Choque;Lamina 426;Lamina 2-12;C04_Morfofisio_C3.pdf;Apofisis estiloides cubital;Escotadura troclear;Blanco;Revisar codo
-H016;Pelvis;Ilion;Lateral;Cresta iliaca;Gluteo medio;Soporte visceral;Sacroiliaca;Corrientes EMS;Lamina 472;Lamina 2-17;C04_Biomecanica_C1.pdf;Espina iliaca anterosuperior;Linea glutea;Rojo;Estabilidad de cadera
-H017;Pelvis;Sacro;Posterior;Agujeros sacros;Multifidos;Transferencia cargas;L5-S1;Laser;Lamina 155;Lamina 2-6;C04_Biomecanica_C1.pdf;Cresta sacra media;Hiato del sacro;Rojo;Sinfisis sacroiliaca
-H018;Muslo;Femur;Proximal;Trocante mayor;Gluteos / Cuadriceps;Soporte de carga;Cadera y Rodilla;Crioterapia;Lamina 476;Lamina 2-18;C04_Biomecanica_C1.pdf;Linea aspera;Cuello femoral;Rojo;Angulo Q (Valgo)
-H019;Rodilla;Rotula;Anterior;Base / Vertice;Cuadriceps;Polea mecanica;Femororrotuliana;Kinesiotaping;Lamina 495;Lamina 2-18;C04_Biomecanica_C2.pdf;Bordes laterales;Superficie articular;Verde;Desplazamiento patelar
-H020;Pierna;Tibia;Medial;Maleolo medial;Tibial anterior;Soporte de peso;Tibio-peronea;Magnetoterapia;Lamina 501;Lamina 2-19;C04_Biomecanica_C2.pdf;Tuberosidad tibial;Meseta tibial;Rojo;Pie plano / Soporte
+HUESO,UBICACION
+Fémur,Extremidad inferior
+Húmero,Extremidad superior
