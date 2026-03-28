@@ -14,14 +14,14 @@
         {"SESION": "SESION 12", "ARCHIVO": "12_MUSCULOS_DE_LA_COLUMNA_VERTEBRAL_Y_TORAX.pdf"}
       ],
       "LIBROS_VINCULADOS": [
-        {"TITULO": "Fijaciones, Acciones, y Palpaciones", "AUTOR": "Joseph E. Muscolino", "ED": "1ra", "CAT": "Anatomía"},
-        {"TITULO": "NETHER-FLASHCARD-DE-ANATOMIA", "AUTOR": "John T. Hansen", "ED": "4ta", "CAT": "Anatomía"},
-        {"TITULO": "Netter_anatomia_para_colorear", "AUTOR": "John T. Hansen", "ED": "2ta", "CAT": "Anatomía"}
+        {"TITULO": "Fijaciones, Acciones, y Palpaciones", "AUTOR": "Joseph E. Muscolino", "ED": "1ra"},
+        {"TITULO": "NETHER-FLASHCARD-DE-ANATOMIA", "AUTOR": "John T. Hansen", "ED": "4ta"},
+        {"TITULO": "Netter_anatomia_para_colorear", "AUTOR": "John T. Hansen", "ED": "2ta"}
       ]
     }
   },
-  "CICLO_02": {"MENSAJE": "Pendiente de carga de archivos en Excel"},
-  "CICLO_03": {"MENSAJE": "Pendiente de carga de archivos en Excel"},
+  "CICLO_02": {},
+  "CICLO_03": {},
   "CICLO_04": {
     "PROCEDIMIENTO_DE_ORTOPEDIA": {
       "SESIONES": [
@@ -37,11 +37,11 @@
         {"SESION": "SESION 14", "ARCHIVO": "14_Tumores_oseos_benignos_y_malignos.pdf"}
       ],
       "LIBROS_VINCULADOS": [
-        {"TITULO": "Netter_Exploracion_Clinica_en_ortopedia", "AUTOR": "Joshua Cleland", "ED": "1ra", "CAT": "Ortopedia"}
+        {"TITULO": "Netter_Exploracion_Clinica_en_ortopedia", "AUTOR": "Joshua Cleland", "ED": "1ra"}
       ]
     }
   },
   "ESTANTERIA_GENERAL": [
-    {"TITULO": "Estiramientos_correctos_nocivos_contradictorios", "AUTOR": "Enric Mares", "ED": "1ra", "CAT": "Anatomía"}
+    {"TITULO": "Estiramientos_correctos_nocivos_contradictorios", "AUTOR": "Enric Mares", "ED": "1ra"}
   ]
 }
