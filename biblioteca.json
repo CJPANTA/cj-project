@@ -1,1 +1,26 @@
-
+{
+  "BASE_DATOS": {
+    "01_CARRION": {
+      "CICLO_01": {
+        "anatomia_y_fisiologia": [
+          "01-conceptos_basicos-1.pdf", "02-histiologia.pdf", "03-conceptos_basicos-2.pdf", 
+          "05-esqueleto_axial.pdf", "06-esqueleto_apendicular_1.pdf", "07-esqueleto_apendicular_2.pdf",
+          "08-articulaciones.pdf", "09_sistema-muscular.pdf", "11_musculos-de-la-cabeza_y_cara.pdf",
+          "12_MUSCULOS_DE_LA_COLUMNA_VERTEBRAL_Y_TORAX.pdf"
+        ]
+      },
+      "CICLO_04": {
+        "PROCEDIMIENTO_DE_ORTOPEDIA": [
+          "06_EVALUACIONE_FISICO_POSTURAL.pdf",
+          "07_Cervicobraquialgia_Lumbociatalgia_Compresion_radiculomedular.pdf",
+          "08_Sindrome_de_hombro doloroso_y_Hombro_congelado.pdf",
+          "09_Deformidades_de_Miembro_superior.pdf",
+          "11_Espondilolisis_Espondilolistesis.pdf",
+          "12_Luxacion_Congenita_de_cadera.pdf",
+          "13_Espina_Bífida.pdf",
+          "14_Tumores_oseos_benignos_y_malignos.pdf"
+        ]
+      }
+    }
+  }
+}
