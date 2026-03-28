@@ -1,125 +1,84 @@
 import streamlit as st
-import pandas as pd
 import json
-import random
 
-# --- 1. CONFIGURACIÓN GENERAL ---
-st.set_page_config(
-    page_title="PROYECTO CJ - Tablero de Control",
-    page_icon="logo_cj.jpg", # Icono de la app
-    layout="wide", # Layout ancho para PC (se ajusta solo a móvil)
-    initial_sidebar_state="expanded" # Sidebar abierto por defecto
-)
+# Configuración de página
+st.set_page_config(page_title="CJ Control Tower", layout="wide")
 
-# --- 2. CEREBRO TÉCNICO: CARGAR CSS Y JSON ---
-# Leer biblioteca.json
-def cargar_biblioteca():
+# Cargar Estilos
+def load_css():
     try:
-        with open('biblioteca.json', 'r') as file:
-            return json.load(file)
+        with open("style.css", "r", encoding="utf-8") as f:
+            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
     except FileNotFoundError:
-        st.error("Error: No se encontró el archivo 'biblioteca.json'.")
-        return {}
+        pass
 
-# Cargar biblioteca al inicio
-biblioteca = cargar_biblioteca()
+load_css()
 
-# Leer style.css
-def local_css(file_name):
-    with open(file_name) as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+# Cargar Datos
+@st.cache_data
+def load_data():
+    with open("biblioteca.json", "r", encoding="utf-8") as f:
+        return json.load(f)
 
-# Cargar CSS
-local_css("style.css")
+data = load_data()
 
-# --- 3. BARRA LATERAL (MENÚ DE NAVEGACIÓN - TABLERO DE CONTROL) ---
+# Sidebar
 with st.sidebar:
-    # A. Título Central (Biblioteca - Repositorio Académico)
-    st.markdown("<h2 class='titulo-premium'>BIBLIOTECA - REPOSITORIO ACADÉMICO</h2>", unsafe_allow_html=True)
-    
-    # B. Sección de Logos (Rectangulares, Finos)
-    col_logos_top1, col_logos_top2 = st.columns([1, 1])
-    with col_logos_top1:
-        st.markdown("<div class='marco-fino-gold'>", unsafe_allow_html=True)
-        try:
-            st.image("logo_cj.jpg", use_column_width=True)
-        except:
-            st.warning("logo_cj.jpg no encontrado")
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-    with col_logos_top2:
-        st.markdown("<div class='marco-fino-gold'>", unsafe_allow_html=True)
-        try:
-            st.image("logo_carrion.png", use_column_width=True)
-        except:
-            st.warning("logo_carrion.png no encontrado")
-        st.markdown("</div>", unsafe_allow_html=True)
-    
-    st.markdown("---") # Línea divisora
-    
-    # C. Botones de Navegación (Interacciones Premium hover/active)
-    # Lista roja de tu dibujo: CARRION, LIBROS, DICCIONARIO.
-    st.write("📖 SECCIONES PRINCIPALES")
-    menu_opciones = ["HOME", "REPOSITORIO (CARRION)", "LIBROS", "DICCIONARIO"]
-    
-    # Simular navegación con botones y query params
-    selected_option = st.selectbox("Navegar a", menu_opciones) # Streamlit necesita selectbox o radio para navegar fácilmente
-    
-    st.markdown("---") # Línea divisora
-    
-    # D. Sección Coautores Chiquita (Bottom Sidebar)
-    # Línea horizontal ultrafina
-    st.markdown("<div class='coautores-section'>", unsafe_allow_html=True)
-    col_coautores1, col_coautores2 = st.columns([1, 1])
-    with col_coautores1:
-        st.markdown("<div class='marco-fino-gold'>", unsafe_allow_html=True)
-        try:
-            st.image("logo_cj.jpg", width=50) # Chiquito
-        except:
-            st.warning("logo_cj.jpg no encontrado")
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-    with col_coautores2:
-        st.markdown("<div class='marco-fino-gold'>", unsafe_allow_html=True)
-        try:
-            st.image("logo_carrion.png", width=50) # Chiquito (usando el mismo logo de estrella para representar a Gemini, chiquito)
-        except:
-            st.warning("logo_carrion.png no encontrado")
-        st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center;'>CJ PROJECTS</h2>", unsafe_allow_html=True)
+    perfil = st.radio("ACCESO", ["Usuario", "Administrador"])
 
-# --- 4. PANEL CENTRAL (ÁREA DE CONTENIDO - HOME) ---
-# Simular navegación mostrando contenido diferente según la opción seleccionada
-if selected_option == "HOME":
+# MODO ADMINISTRADOR
+if perfil == "Administrador":
+    st.markdown("<h1 class='titulo-premium'>CENTRO DE MANDO (ADMIN)</h1>", unsafe_allow_html=True)
     
-    # A. Título Central (Biblioteca - Repositorio Académico)
-    st.markdown("<h1 class='titulo-premium'>BIBLIOTECA - REPOSITORIO ACADÉMICO</h1>", unsafe_allow_html=True)
+    # KPIs
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Sesiones Cargadas", "20")
+    c2.metric("Libros Vinculados", "4")
+    c3.metric("Alertas Activas", "1")
     
-    # B. Imagen Central y Frase (Look & Feel)
-    col_img, col_frase = st.columns([3, 2]) # 3/5 imagen, 2/5 frase
-    
-    with col_img:
-        st.markdown("<div class='marco-fino-gold'>", unsafe_allow_html=True)
-        try:
-            st.image("logo_cj.jpg", use_column_width=True) # Usando el logo de CJ como placeholder, mañana la cambiamos
-        except:
-            st.warning("Imagen central no encontrada")
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-    with col_frase:
-        st.markdown("<div style='padding-left: 20px;'>", unsafe_allow_html=True)
-        st.markdown("<p style='color: #bf953f; font-weight: bold; font-size: 20px; font-style: italic;'>&quot;LA CLAVE DEL ÉXITO ES EL ESTUDIO Y EL ESFUERZO PERSONAL&quot;</p>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-    # C. Personalización (¡Hola, José!)
     st.markdown("---")
-    st.write(f"¡HOLA, JOSÉ! (Usuario)") # Simulación, mañana logramos el login real
     
-    # D. Frase de Coautores (Firma Corregida)
-    st.markdown("<p style='text-align: right; color: #d1d5db; font-size: 14px;'>Lic. Chiroque Panta, Jorge Luis (jejeje corregido 😊) - Gemini</p>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+    # Módulo de Subida
+    st.subheader("🚀 Subida Inteligente")
+    col_up, col_info = st.columns([2, 1])
+    with col_up:
+        u_file = st.file_uploader("Arrastra tu PDF aquí", type="pdf")
+    with col_info:
+        st.info("El sistema clasificará el archivo según los metadatos del JSON.")
+        
+    # Alertas
+    st.subheader("⚠️ Alertas de Integridad")
+    st.warning("Aviso: El libro 'Estiramientos...' se encuentra en Estantería General sin curso asignado.")
 
+# MODO USUARIO
 else:
-    # Placeholder para las otras secciones, mañana las planificamos
-    st.markdown(f"<h1 class='titulo-premium'>{selected_option}</h1>", unsafe_allow_html=True)
-    st.write("Estamos en construcción. Mañana planificamos los detalles visuales de esta sección.")
+    st.markdown("<h1 class='titulo-premium'>REPOSITORIO ACADÉMICO CJ</h1>", unsafe_allow_html=True)
+    
+    # Buscador
+    search = st.text_input("🔍 Buscar por tema o libro...", placeholder="Ej: Anatomía, Hombro, Netter...")
+    
+    col_ciclo, col_curso = st.columns(2)
+    with col_ciclo:
+        ciclo_key = st.selectbox("Seleccionar Ciclo", [k for k in data.keys() if "CICLO" in k])
+    with col_curso:
+        cursos_disponibles = [k for k in data[ciclo_key].keys() if k != "MENSAJE"]
+        if cursos_disponibles:
+            curso_key = st.selectbox("Seleccionar Curso", cursos_disponibles)
+        else:
+            st.write("No hay cursos cargados para este ciclo.")
+            curso_key = None
+
+    if curso_key:
+        st.markdown("---")
+        col_pdf, col_lib = st.columns(2)
+        
+        with col_pdf:
+            st.markdown("### 📄 Sesiones de Clase")
+            for sesion in data[ciclo_key][curso_key]["SESIONES"]:
+                st.write(f"🔹 {sesion['SESION']}: {sesion['ARCHIVO']}")
+        
+        with col_lib:
+            st.markdown("### 📖 Libros Sugeridos")
+            for libro in data[ciclo_key][curso_key]["LIBROS_VINCULADOS"]:
+                st.success(f"📘 **{libro['TITULO']}** - {libro['AUTOR']}")
