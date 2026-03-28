@@ -3,7 +3,7 @@ import json
 import pandas as pd
 import os
 
-# Estilo de lujo (negro profundo + dorado + texto grisáceo)
+# Estilo de lujo
 st.markdown("""
 <style>
     body {
@@ -30,9 +30,6 @@ st.markdown("""
     .sidebar .sidebar-content {
         background-color: #040a12;
         border-right: 2px solid #c5a059;
-    }
-    .sidebar .sidebar-content .block-container {
-        padding: 1rem;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -67,20 +64,26 @@ def cargar_csvs():
 diccionario, huesos = cargar_csvs()
 
 # Menú lateral
-st.sidebar.image('04_portada/logo_cj.jpg', width=100)
+try:
+    st.sidebar.image('04_portada/logo_cj.jpg', width=100)
+except FileNotFoundError:
+    st.sidebar.markdown("<h3 style='color: #c5a059;'>CJ</h3>", unsafe_allow_html=True)
+
 st.sidebar.title("PROYECTO CJ")
 menu = st.sidebar.radio("Navegación", ["Inicio", "Repositorio (Carrion)", "Libros", "Sugerencias", "Quiz", "Diccionario", "Administrador"])
 
 # Portada
 if menu == "Inicio":
-    st.image('04_portada/imagen_fisioterapia.jpg', use_column_width=True)
+    try:
+        st.image('04_portada/imagen_fisioterapia.jpg', use_column_width=True)
+    except FileNotFoundError:
+        st.markdown("<h2 style='text-align: center;'>IMAGEN NO ENCONTRADA</h2>", unsafe_allow_html=True)
     st.markdown("<h2 style='text-align: center;'>LA CLAVE DEL ÉXITO ES EL ESTUDIO Y EL ESFUERZO PERSONAL</h2>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center;'>Aquí vamos José</p>", unsafe_allow_html=True)
 
 # Repositorio (Carrion)
 elif menu == "Repositorio (Carrion)":
     st.title("📚 Repositorio Carrion")
-    # Aquí puedes listar los PDFs de 01_carrion/
     files = os.listdir('01_carrion/') if os.path.exists('01_carrion/') else []
     for f in files:
         st.markdown(f"- [{f}](01_carrion/{f})")
@@ -88,7 +91,6 @@ elif menu == "Repositorio (Carrion)":
 # Libros
 elif menu == "Libros":
     st.title("📖 Libros")
-    # Listar PDFs de 02_sistemas/
     files = os.listdir('02_sistemas/') if os.path.exists('02_sistemas/') else []
     for f in files:
         st.markdown(f"- [{f}](02_sistemas/{f})")
@@ -106,14 +108,12 @@ elif menu == "Administrador":
     st.title("📊 Dashboard Administrador")
     st.markdown("¡Hola, Jorge! (Administrador)")
     
-    # KPIs
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Temas Cargados", 4)
     col2.metric("Volúmenes Totales", 65)
     col3.metric("Libros Vinculados", 42)
     col4.metric("Última Actividad", "12:35 PM")
     
-    # Drag & Drop
     st.subheader("📤 Subida Inteligente")
     uploaded_file = st.file_uploader("Arrastra tu PDF aquí", type=["pdf"])
     if uploaded_file:
