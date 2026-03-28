@@ -1,84 +1,88 @@
 import streamlit as st
 import json
 
-# Configuración de página
-st.set_page_config(page_title="CJ Control Tower", layout="wide")
+# Configuración de Pantalla
+st.set_page_config(page_title="Biblioteca CJ Proyectos", layout="wide")
 
-# Cargar Estilos
+# Cargar CSS
 def load_css():
-    try:
-        with open("style.css", "r", encoding="utf-8") as f:
-            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-    except FileNotFoundError:
-        pass
+    with open("style.css", "r", encoding="utf-8") as f:
+        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
-load_css()
+try:
+    load_css()
+except:
+    pass
 
-# Cargar Datos
+# Cargar Datos con Validación Extrema
 @st.cache_data
-def load_data():
-    with open("biblioteca.json", "r", encoding="utf-8") as f:
-        return json.load(f)
+def get_data():
+    try:
+        with open("biblioteca.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        return {"ERROR": str(e)}
 
-data = load_data()
+db = get_data()
 
-# Sidebar
-with st.sidebar:
-    st.markdown("<h2 style='text-align: center;'>CJ PROJECTS</h2>", unsafe_allow_html=True)
-    perfil = st.radio("ACCESO", ["Usuario", "Administrador"])
+# --- INTERFAZ CJ ---
+st.markdown("<h1 class='main-title'>BIBLIOTECA ACADÉMICA CJ</h1>", unsafe_allow_html=True)
 
-# MODO ADMINISTRADOR
-if perfil == "Administrador":
-    st.markdown("<h1 class='titulo-premium'>CENTRO DE MANDO (ADMIN)</h1>", unsafe_allow_html=True)
-    
-    # KPIs
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Sesiones Cargadas", "20")
-    c2.metric("Libros Vinculados", "4")
-    c3.metric("Alertas Activas", "1")
-    
-    st.markdown("---")
-    
-    # Módulo de Subida
-    st.subheader("🚀 Subida Inteligente")
-    col_up, col_info = st.columns([2, 1])
-    with col_up:
-        u_file = st.file_uploader("Arrastra tu PDF aquí", type="pdf")
-    with col_info:
-        st.info("El sistema clasificará el archivo según los metadatos del JSON.")
-        
-    # Alertas
-    st.subheader("⚠️ Alertas de Integridad")
-    st.warning("Aviso: El libro 'Estiramientos...' se encuentra en Estantería General sin curso asignado.")
+# Buscador Principal (Diseño Centralizado)
+col_s1, col_s2, col_s3 = st.columns([1, 2, 1])
+with col_s2:
+    search_query = st.text_input("🔍 BUSCAR TEMA O LIBRO", placeholder="Ej: Esqueleto Axial, Netter, Ciclo 04...")
 
-# MODO USUARIO
+# Espaciado
+st.markdown("<br>", unsafe_allow_html=True)
+
+# Manejo de Error de Base de Datos
+if "ERROR" in db:
+    st.error(f"⚠️ Error en biblioteca.json: {db['ERROR']}. Revisa las comas y corchetes.")
 else:
-    st.markdown("<h1 class='titulo-premium'>REPOSITORIO ACADÉMICO CJ</h1>", unsafe_allow_html=True)
+    # Columnas de Navegación (Siguiendo tu boceto de PC)
+    c1, c2 = st.columns(2)
     
-    # Buscador
-    search = st.text_input("🔍 Buscar por tema o libro...", placeholder="Ej: Anatomía, Hombro, Netter...")
-    
-    col_ciclo, col_curso = st.columns(2)
-    with col_ciclo:
-        ciclo_key = st.selectbox("Seleccionar Ciclo", [k for k in data.keys() if "CICLO" in k])
-    with col_curso:
-        cursos_disponibles = [k for k in data[ciclo_key].keys() if k != "MENSAJE"]
-        if cursos_disponibles:
-            curso_key = st.selectbox("Seleccionar Curso", cursos_disponibles)
-        else:
-            st.write("No hay cursos cargados para este ciclo.")
-            curso_key = None
-
-    if curso_key:
-        st.markdown("---")
-        col_pdf, col_lib = st.columns(2)
+    with c1:
+        st.markdown("<div class='custom-card'>", unsafe_allow_html=True)
+        st.subheader("📁 NAVEGACIÓN POR CICLOS")
+        ciclo = st.selectbox("Seleccione Ciclo", list(db.keys()))
         
-        with col_pdf:
+        # Validar si el ciclo tiene cursos
+        if isinstance(db[ciclo], dict):
+            curso = st.selectbox("Seleccione Curso", list(db[ciclo].keys()))
+            
             st.markdown("### 📄 Sesiones de Clase")
-            for sesion in data[ciclo_key][curso_key]["SESIONES"]:
-                st.write(f"🔹 {sesion['SESION']}: {sesion['ARCHIVO']}")
+            sesiones = db[ciclo][curso].get("SESIONES", [])
+            if sesiones:
+                for s in sesiones:
+                    st.markdown(f"**{s['SESION']}:** {s['ARCHIVO']}")
+            else:
+                st.info("No hay sesiones registradas para este curso.")
+        else:
+            st.warning("Este ciclo aún no tiene cursos cargados.")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with c2:
+        st.markdown("<div class='custom-card'>", unsafe_allow_html=True)
+        st.subheader("📖 MATERIAL DE APOYO")
         
-        with col_lib:
-            st.markdown("### 📖 Libros Sugeridos")
-            for libro in data[ciclo_key][curso_key]["LIBROS_VINCULADOS"]:
-                st.success(f"📘 **{libro['TITULO']}** - {libro['AUTOR']}")
+        # Mostrar libros vinculados al curso seleccionado
+        if isinstance(db[ciclo], dict) and curso in db[ciclo]:
+            libros = db[ciclo][curso].get("LIBROS_VINCULADOS", [])
+            if libros:
+                for l in libros:
+                    st.success(f"📘 **{l['TITULO']}**\n\nAutor: {l['AUTOR']} | Ed: {l['ED']}")
+            else:
+                st.info("No hay libros vinculados específicamente a este curso.")
+        
+        st.markdown("---")
+        st.subheader("📚 Estantería General")
+        estanteria = db.get("ESTANTERIA_GENERAL", [])
+        if estanteria:
+            for lib_g in estanteria:
+                st.write(f"📙 {lib_g['TITULO']} ({lib_g['AUTOR']})")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+# Footer Profesional
+st.markdown("<p style='text-align: center; color: #c5a059; font-size: 0.8rem;'>CJ PROJECTS & GEMINI AI - 2026</p>", unsafe_allow_html=True)
