@@ -2,8 +2,8 @@
   "CICLO_01": {
     "anatomia_y_fisiologia": {
       "SESIONES": [
-        { "SESION": "Introducción a la célula", "ARCHIVO": "CICLO_01/anatomia_y_fisiologia/sesion1.pdf" },
-        { "SESION": "Tejidos", "ARCHIVO": "CICLO_01/anatomia_y_fisiologia/sesion2.pdf" }
+        { "SESION": "Introducción a la célula", "ARCHIVO": "01_carrion/sesion1.pdf" },
+        { "SESION": "Tejidos", "ARCHIVO": "01_carrion/sesion2.pdf" }
       ],
       "LIBROS_VINCULADOS": [
         { "TITULO": "Anatomía Humana", "AUTOR": "Tortora", "ED": "15" },
