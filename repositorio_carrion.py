@@ -7,7 +7,7 @@ def cargar_datos():
         with open('biblioteca.json', 'r', encoding='utf-8') as f:
             return json.load(f)
     except FileNotFoundError:
-        st.error("Archivo biblioteca.json no encontrado.")
+        st.error("Error: No se encontró 'biblioteca.json' en la raíz.")
         return None
 
 def buscador_inteligente(datos, termino):
@@ -29,15 +29,15 @@ def mostrar_pdfs_ciclo(datos, num_ciclo):
     cursos = datos.get("BASE_DATOS", {}).get("01_CARRION", {}).get(ciclo_key, {})
     
     if not cursos:
-        st.info(f"No hay contenido registrado para el {ciclo_key}")
+        st.info(f"Sin contenido registrado para {ciclo_key}")
         return
 
     for curso, pdfs in cursos.items():
-        with st.expander(f"📚 {curso.replace('_', ' ')}", expanded=False):
+        with st.expander(f"📚 {curso.upper().replace('_', ' ')}", expanded=False):
             for pdf in pdfs:
                 ruta = f"BASE_DATOS/01_CARRION/{ciclo_key}/{curso}/{pdf}"
                 if os.path.exists(ruta):
                     with open(ruta, "rb") as f:
-                        st.download_button(label=f"📄 {pdf}", data=f, file_name=pdf, key=ruta)
+                        st.download_button(label=f"📄 {pdf}", data=f, file_name=pdf, key=f"btn_{ruta}")
                 else:
-                    st.caption(f"⚠️ {pdf} (No detectado en servidor)")
+                    st.caption(f"⚠️ Archivo no encontrado en: {ruta}")
