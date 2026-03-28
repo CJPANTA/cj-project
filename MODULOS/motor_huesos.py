@@ -1,14 +1,19 @@
 import streamlit as st
-import os
-import base64
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-def cargar_imagen_raiz(nombre_archivo):
-    ruta = os.path.join(BASE_DIR, nombre_archivo)
-    if os.path.exists(ruta):
-        with open(ruta, "rb") as f:
-            data = f.read()
-        ext = nombre_archivo.split('.')[-1]
-        return f"data:image/{ext};base64,{base64.b64encode(data).decode()}"
-    return None
+def interfaz_estudio_oseo():
+    st.subheader("🦴 Consultor de Anatomía Clínica")
+    st.markdown("---")
+    region = st.selectbox("Seleccionar Región:", ["Columna Vertebral", "Miembro Superior", "Miembro Inferior"])
+    
+    if region == "Columna Vertebral":
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write("**Segmentos:**")
+            st.write("- Cervical (C1-C7)")
+            st.write("- Torácico (T1-T12)")
+        with col2:
+            st.write("**Puntos Clave:**")
+            st.write("- Atlas/Axis (Rotación)")
+            st.write("- Lordosis Lumbar")
+    
+    st.info("💡 Consejo de eficiencia: Relaciona cada hueso con el agente físico que aplicarás sobre él.")
