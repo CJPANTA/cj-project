@@ -1,34 +1,42 @@
-/* Fondos y Texto General */
+/* Configuración Base - Estética Luxury CJ */
 .stApp {
-    background-color: #06101c !important;
+    background-color: #040a12 !important;
     color: #e0e0e0 !important;
+    font-family: 'Segoe UI', sans-serif;
 }
 
-/* Título Premium CJ */
-.titulo-premium {
-    background: linear-gradient(to right, #bf953f, #fcf6ba, #b38728);
+/* Título con Estilo de Logotipo */
+.main-title {
+    font-size: 3.2rem !important;
+    font-weight: 800;
+    text-align: center;
+    background: linear-gradient(135deg, #c5a059 0%, #f7efad 50%, #b38728 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    text-align: center;
-    font-size: 3rem !important;
-    font-weight: 800;
-    margin-bottom: 2rem;
+    padding: 20px 0;
+    letter-spacing: 2px;
 }
 
-/* Métricas de Progreso (Emerald Slate) */
-[data-testid="stMetricValue"] {
-    color: #50c878 !important; /* Verde Esmeralda Suave */
+/* Contenedores Rectangulares Finos (Como tu boceto) */
+.custom-card {
+    background-color: #0a141e;
+    border: 1px solid #c5a059;
+    padding: 20px;
+    border-radius: 2px; /* Rectangulares, no redondos */
+    margin-bottom: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
 }
 
-/* Alertas de Datos (Slate/Rust) */
-.stAlert {
-    background-color: #1a2634 !important;
-    border-left: 5px solid #d84315 !important;
-    color: #ffab91 !important;
+/* Botones y Selectores Dorados */
+div[data-baseweb="select"] > div {
+    background-color: #0a141e !important;
+    border: 1px solid #c5a059 !important;
 }
 
-/* Sidebar Custom */
-section[data-testid="stSidebar"] {
-    background-color: #0b1622 !important;
-    border-right: 1px solid #bf953f;
+.stButton > button {
+    background: linear-gradient(to bottom, #c5a059, #b38728) !important;
+    color: #040a12 !important;
+    font-weight: bold !important;
+    border: none !important;
+    width: 100%;
 }
