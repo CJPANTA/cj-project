@@ -1,8 +1,9 @@
 import streamlit as st
 import json
+import pandas as pd
 import os
 
-# Estilo de lujo
+# Estilo de lujo (negro profundo + dorado + texto grisáceo)
 st.markdown("""
 <style>
     body {
@@ -26,6 +27,13 @@ st.markdown("""
         font-family: 'Georgia', serif;
         color: #c5a059;
     }
+    .sidebar .sidebar-content {
+        background-color: #040a12;
+        border-right: 2px solid #c5a059;
+    }
+    .sidebar .sidebar-content .block-container {
+        padding: 1rem;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -46,60 +54,67 @@ if "error" in biblioteca:
     st.error(biblioteca["error"])
     st.stop()
 
-# Modo Usuario
-st.title("📚 Proyecto CJ — Biblioteca Académica Digital")
-modo = st.radio("Modo", ["Usuario", "Administrador"], horizontal=True)
+# Cargar CSVs
+@st.cache_data
+def cargar_csvs():
+    try:
+        diccionario = pd.read_csv('03_config/diccionario_maestro.csv')
+        huesos = pd.read_csv('03_config/hueso_maestro.csv')
+        return diccionario, huesos
+    except FileNotFoundError:
+        return pd.DataFrame(), pd.DataFrame()
 
-if modo == "Usuario":
-    # Buscador global
-    query = st.text_input("🔍 Buscar tema, libro o sesión", "").lower()
-    
-    # Navegador por ciclos y cursos
-    ciclos = list(biblioteca.keys())
-    ciclo_seleccionado = st.selectbox("Ciclo", ciclos)
-    
-    if ciclo_seleccionado in biblioteca:
-        cursos = list(biblioteca[ciclo_seleccionado].keys())
-        curso_seleccionado = st.selectbox("Curso", cursos)
-        
-        if curso_seleccionado in biblioteca[ciclo_seleccionado]:
-            sesiones = biblioteca[ciclo_seleccionado] [curso_seleccionado].get("SESIONES", [])
-            libros = biblioteca[ciclo_seleccionado] [curso_seleccionado].get("LIBROS_VINCULADOS", [])
-            
-            st.subheader(f"📌 Sesiones de {curso_seleccionado}")
-            for sesion in sesiones:
-                st.markdown(f"- **{sesion.get('SESION', 'Sin nombre')}** → [Descargar]({sesion.get('ARCHIVO', '#')})")
-            
-            st.subheader(f"📖 Libros vinculados")
-            for libro in libros:
-                st.markdown(f"- **{libro.get('TITULO', 'Sin título')}** por {libro.get('AUTOR', 'Desconocido')} (Ed. {libro.get('ED', 'N/A')})")
+diccionario, huesos = cargar_csvs()
 
-elif modo == "Administrador":
-    st.subheader("📊 Dashboard de Administrador")
+# Menú lateral
+st.sidebar.image('04_portada/logo_cj.jpg', width=100)
+st.sidebar.title("PROYECTO CJ")
+menu = st.sidebar.radio("Navegación", ["Inicio", "Repositorio (Carrion)", "Libros", "Sugerencias", "Quiz", "Diccionario", "Administrador"])
+
+# Portada
+if menu == "Inicio":
+    st.image('04_portada/imagen_fisioterapia.jpg', use_column_width=True)
+    st.markdown("<h2 style='text-align: center;'>LA CLAVE DEL ÉXITO ES EL ESTUDIO Y EL ESFUERZO PERSONAL</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center;'>Aquí vamos José</p>", unsafe_allow_html=True)
+
+# Repositorio (Carrion)
+elif menu == "Repositorio (Carrion)":
+    st.title("📚 Repositorio Carrion")
+    # Aquí puedes listar los PDFs de 01_carrion/
+    files = os.listdir('01_carrion/') if os.path.exists('01_carrion/') else []
+    for f in files:
+        st.markdown(f"- [{f}](01_carrion/{f})")
+
+# Libros
+elif menu == "Libros":
+    st.title("📖 Libros")
+    # Listar PDFs de 02_sistemas/
+    files = os.listdir('02_sistemas/') if os.path.exists('02_sistemas/') else []
+    for f in files:
+        st.markdown(f"- [{f}](02_sistemas/{f})")
+
+# Diccionario
+elif menu == "Diccionario":
+    st.title("🔍 Diccionario Técnico")
+    if not diccionario.empty:
+        st.dataframe(diccionario)
+    else:
+        st.warning("Diccionario no cargado. Revisa 03_config/diccionario_maestro.csv")
+
+# Administrador
+elif menu == "Administrador":
+    st.title("📊 Dashboard Administrador")
+    st.markdown("¡Hola, Jorge! (Administrador)")
     
     # KPIs
-    total_ciclos = len(biblioteca)
-    total_cursos = sum(len(biblioteca[c]) for c in biblioteca)
-    total_sesiones = sum(len(biblioteca[c] [cr].get("SESIONES", [])) for c in biblioteca for cr in biblioteca[c])
-    total_libros = sum(len(biblioteca[c] [cr].get("LIBROS_VINCULADOS", [])) for c in biblioteca for cr in biblioteca[c])
-    
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Ciclos", total_ciclos)
-    col2.metric("Cursos", total_cursos)
-    col3.metric("Sesiones", total_sesiones)
-    col4.metric("Libros", total_libros)
+    col1.metric("Temas Cargados", 4)
+    col2.metric("Volúmenes Totales", 65)
+    col3.metric("Libros Vinculados", 42)
+    col4.metric("Última Actividad", "12:35 PM")
     
-    # Alertas de integridad
-    st.subheader("⚠️ Alertas de Integridad")
-    for ciclo in biblioteca:
-        for curso in biblioteca[ciclo]:
-            if not biblioteca[ciclo] [curso].get("SESIONES"):
-                st.warning(f"⚠️ {curso} en {ciclo} no tiene sesiones.")
-            if not biblioteca[ciclo] [curso].get("LIBROS_VINCULADOS"):
-                st.warning(f"⚠️ {curso} en {ciclo} no tiene libros vinculados.")
-    
-    # Carga inteligente (Drag & Drop)
-    st.subheader("📤 Carga Inteligente")
-    uploaded_file = st.file_uploader("Arrastra o selecciona un archivo PDF", type=["pdf"])
+    # Drag & Drop
+    st.subheader("📤 Subida Inteligente")
+    uploaded_file = st.file_uploader("Arrastra tu PDF aquí", type=["pdf"])
     if uploaded_file:
-        st.success(f"✅ {uploaded_file.name} cargado. Recuerda actualizar biblioteca.json.")
+        st.success(f"✅ {uploaded_file.name} cargado. Recuerda clasificarlo.")
