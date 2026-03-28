@@ -1,1 +1,47 @@
+/* DISEÑO BASE CJ */
+.stApp {
+    background-color: #06101c !important;
+    color: #d1d5db !important;
+}
 
+/* TÍTULO DORADO CON DEGRADADO */
+.titulo-premium {
+    font-family: 'serif';
+    background: linear-gradient(to bottom, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-align: center;
+    font-weight: bold;
+    font-size: clamp(35px, 8vw, 65px);
+    margin-bottom: 20px;
+}
+
+/* PESTAÑAS (TABS) PERSONALIZADAS */
+.stTabs [data-baseweb="tab-list"] {
+    background-color: #06101c;
+    border-bottom: 2px solid #6e4f02;
+}
+
+.stTabs [data-baseweb="tab"] {
+    color: #d1d5db !important;
+    font-weight: 600;
+}
+
+.stTabs [aria-selected="true"] {
+    color: #008080 !important;
+    border-bottom-color: #008080 !important;
+}
+
+/* BOTONES ESMERALDA CJ */
+div.stButton > button {
+    background-color: #008080 !important;
+    color: white !important;
+    border: 1px solid #6e4f02 !important;
+    border-radius: 10px !important;
+    transition: 0.3s;
+}
+
+div.stButton > button:hover {
+    background-color: #6e4f02 !important;
+    color: white !important;
+}
