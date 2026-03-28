@@ -1,21 +1,3 @@
-ID_Termino;Termino_Clave;Definicion_Tecnica;Importancia_Clinica;Relacion_Anatomica
-D001;Sutura metopica;Vestigio de la union de las dos mitades del hueso frontal en la linea media.;No confundir con una fractura en radiografias infantiles.;Hueso Frontal
-D002;Agujero magno;Gran apertura en la base del craneo para la conexion cerebro-medula.;Punto critico en patologias de compresion medular.;Hueso Occipital
-D003;Apofisis mastoides;Proyeccion osea redondeada detras del conducto auditivo externo.;Punto de anclaje del musculo Esternocleidomastoideo (ECM).;Hueso Temporal
-D004;Apofisis Odontoides;Eminencia osea vertical que nace del cuerpo del Axis (C2).;Actua como pivote para la rotacion de la cabeza (C1-C2).;Hueso Axis
-D005;Angulo de Louis;Union palpable entre el manubrio y el cuerpo del esternon.;Referencia para localizar el 2do espacio intercostal.;Hueso Esternon
-D006;Corredera bicipital;Surco situado entre el troquin y el troquiter del humero.;Sitio frecuente de tendinitis del tendon largo del biceps.;Hueso Humero
-D007;Sinfisis mentoniana;Linea de union fibrocartilaginosa en la mitad de la mandibula.;Punto de osificacion que da forma a la barbilla.;Hueso Mandibula
-D008;Apofisis xifoides;Porcion mas pequeña y distal del esternon.;Referencia vital para evitar lesiones durante la RCP.;Hueso Esternon
-D009;Vertebra prominente;Apofisis espinosa larga y no bifurcada de la cervical C7.;Punto de referencia para contar vertebras dorsales.;Hueso Cervical C7
-D010;Linea aspera;Cresta rugosa en la cara posterior del cuerpo del femur.;Zona de insercion para musculos aductores y vastos.;Hueso Femur
-D011;Tuberosidad tibial;Elevacion osea en la parte anterior y superior de la tibia.;Punto de insercion del ligamento rotuliano (Osgood-Schlatter).;Hueso Tibia
-D012;Escotadura troclear;Cavidad en forma de C que se articula con la troclea humeral.;Permite el movimiento de bisagra puro del codo.;Hueso Cubito
-D013;Bregma;Punto anatomico donde se unen las suturas sagital y coronal.;Zona de la fontanela anterior en lactantes.;Hueso Parietal / Frontal
-D014;Troquiter;Tuberosidad mayor del humero situada lateral al cuello.;Punto de insercion para musculos del manguito rotador.;Hueso Humero
-D015;Eminencia parietal;Zona de mayor convexidad en el centro del hueso parietal.;Punto de referencia para medir el diametro craneal.;Hueso Parietal
-D016;Glabela;Area lisa y ligeramente elevada entre los arcos superciliares.;Punto de referencia craneometrico clave.;Hueso Frontal
-D017;Apofisis estiloides;Proyeccion delgada en forma de punzon en diversos huesos.;Punto de anclaje para ligamentos y musculos pequeños.;Hueso Temporal / Radio / Cubito
-D018;Escotadura ciatica;Muesca en el hueso coxal para el paso de estructuras nerviosas.;Zona de paso vital para el nervio ciatico.;Hueso Ilion
-D019;Maleolo;Prominencia osea situada en los extremos de la tibia y perone.;Puntos de referencia para evaluar estabilidad del tobillo.;Hueso Tibia / Perone
-D020;Fontanelas;Espacios membranosos entre los huesos del craneo del neonato.;Permiten la compresion del craneo durante el parto.;Craneo (Varios)
+TERMINO,DEFINICION
+AnatomÃ­a,Estudio de la estructura del cuerpo humano.
+FisiologÃ­a,Estudio de las funciones del cuerpo humano.
