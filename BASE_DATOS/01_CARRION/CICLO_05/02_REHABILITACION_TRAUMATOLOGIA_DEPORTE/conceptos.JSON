@@ -1,0 +1,13 @@
+{
+  "curso": "Rehabilitación en Traumatología y Deporte",
+  "ciclo": "V",
+  "puntos_oro": [
+    "Ley de Wolff: El hueso se remodela según la carga.",
+    "Fases de curación: Inflamación (1-3 d), Proliferación (3-20 d), Remodelación (20+ d).",
+    "Protocolo POLICE: Protection, Optimal Loading, Ice, Compression, Elevation."
+  ],
+  "agentes_fisicos": {
+    "fase_aguda": "Crioterapia y Magnetoterapia (baja frecuencia).",
+    "fase_cronica": "Termoterapia profunda y Ondas de Choque."
+  }
+}
