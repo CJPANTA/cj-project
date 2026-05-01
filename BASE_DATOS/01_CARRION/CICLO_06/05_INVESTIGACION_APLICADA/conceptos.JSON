@@ -1,0 +1,10 @@
+{
+  "curso": "Investigación Aplicada",
+  "ciclo": "VI",
+  "puntos_oro": [
+    "Pregunta PICO: Paciente, Intervención, Comparación, Resultado.",
+    "Niveles de Evidencia: Metaanálisis y Ensayos Clínicos Aleatorios.",
+    "Normas Vancouver: Sistema de citado estándar en salud."
+  ],
+  "herramienta_app": "Buscador de evidencia integrado (RAG)."
+}
