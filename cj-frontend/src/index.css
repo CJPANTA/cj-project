@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cj-dark: #0a141d;
+  --color-cj-cyan: #22d3ee;
+  --color-cj-emerald: #10b981;
+  --color-cj-glass: rgba(255, 255, 255, 0.05);
+}
+
+/* ESTA ES LA MAGIA PARA ELIMINAR EL BLANCO */
+body {
+  background-color: var(--color-cj-dark);
+  color: white;
+  margin: 0;
+  padding: 0;
+}
