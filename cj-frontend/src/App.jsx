@@ -3,10 +3,9 @@ import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import Biblioteca from './pages/Biblioteca';
 import FichaClinica from './pages/FichaClinica';
-import VistaCiclo from './pages/VistaCiclo';
-// 👇 AQUÍ IMPORTAMOS TU NUEVA PANTALLA
 import Ciclo05 from './pages/Ciclo05';
 
+// Este componente ayuda a mostrar los módulos que aún estamos construyendo
 const ModuloEnConstruccion = ({ nombre, icono }) => (
   <main className="bg-cj-glass backdrop-blur-md border border-white/10 rounded-3xl p-8 relative h-full shadow-2xl flex flex-col items-center justify-center text-center">
     <div className="text-7xl mb-6 animate-pulse">{icono}</div>
@@ -20,30 +19,32 @@ const ModuloEnConstruccion = ({ nombre, icono }) => (
 function App() {
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-cj-dark text-white font-sans p-6">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-6 h-[85vh]">
+      <div className="min-h-screen bg-cj-dark text-white font-sans p-6 overflow-hidden">
+        {/* Estructura Principal: Sidebar a la izquierda, Contenido a la derecha */}
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-6 h-[90vh]">
           
           <div className="md:col-span-1">
             <Sidebar />
           </div>
 
-          <div className="md:col-span-3">
+          <div className="md:col-span-3 h-full overflow-hidden">
             <Routes>
+              {/* Pantalla de Inicio */}
               <Route path="/" element={<Dashboard />} />
+              
+              {/* Módulos de Gestión */}
               <Route path="/biblioteca" element={<Biblioteca />} />
               <Route path="/fichas" element={<FichaClinica />} />
               
-              {/* LAS RUTAS DE LOS CICLOS */}
-              <Route path="/ciclo-01" element={<VistaCiclo numero="01" />} />
-              <Route path="/ciclo-02" element={<VistaCiclo numero="02" />} />
-              <Route path="/ciclo-03" element={<VistaCiclo numero="03" />} />
-              <Route path="/ciclo-04" element={<VistaCiclo numero="04" />} />
+              {/* PLANTILLA MAESTRA DE CICLOS (Todos usan el diseño profesional) */}
+              <Route path="/ciclo-01" element={<Ciclo05 titulo="CICLO 01" />} />
+              <Route path="/ciclo-02" element={<Ciclo05 titulo="CICLO 02" />} />
+              <Route path="/ciclo-03" element={<Ciclo05 titulo="CICLO 03" />} />
+              <Route path="/ciclo-04" element={<Ciclo05 titulo="CICLO 04" />} />
+              <Route path="/ciclo-05" element={<Ciclo05 titulo="CICLO 05" />} />
+              <Route path="/ciclo-06" element={<Ciclo05 titulo="CICLO 06" />} />
               
-              {/* 👇 AQUÍ CONECTAMOS TU NUEVO DISEÑO AL CICLO 05 */}
-              <Route path="/ciclo-05" element={<Ciclo05 />} />
-              
-              <Route path="/ciclo-06" element={<VistaCiclo numero="06" />} />
-              
+              {/* Módulos Adicionales (Próximamente) */}
               <Route path="/diccionario" element={<ModuloEnConstruccion nombre="Diccionario Técnico" icono="📖" />} />
               <Route path="/multimedia" element={<ModuloEnConstruccion nombre="Multimedia y Redes" icono="🎬" />} />
               <Route path="/examen" element={<ModuloEnConstruccion nombre="Modo Examen" icono="🎯" />} />
@@ -52,6 +53,7 @@ function App() {
               <Route path="/expedientes" element={<ModuloEnConstruccion nombre="Expedientes" icono="🗂️" />} />
               <Route path="/admin" element={<ModuloEnConstruccion nombre="Gestión de Usuarios" icono="⚙️" />} />
               
+              {/* Captura de errores 404 */}
               <Route path="*" element={<ModuloEnConstruccion nombre="Ruta Desconocida" icono="❓" />} />
             </Routes>
           </div>
