@@ -36,13 +36,7 @@ function App() {
               <Route path="/biblioteca" element={<Biblioteca />} />
               <Route path="/fichas" element={<FichaClinica />} />
               
-              {/* PLANTILLA MAESTRA DE CICLOS (Todos usan el diseño profesional) */}
-              <Route path="/ciclo-01" element={<Ciclo05 titulo="CICLO 01" />} />
-              <Route path="/ciclo-02" element={<Ciclo05 titulo="CICLO 02" />} />
-              <Route path="/ciclo-03" element={<Ciclo05 titulo="CICLO 03" />} />
-              <Route path="/ciclo-04" element={<Ciclo05 titulo="CICLO 04" />} />
-              <Route path="/ciclo-05" element={<Ciclo05 titulo="CICLO 05" />} />
-              <Route path="/ciclo-06" element={<Ciclo05 titulo="CICLO 06" />} />
+              <Route path="/ciclo-:num" element={<Ciclo05 />} />
               
               {/* Módulos Adicionales (Próximamente) */}
               <Route path="/diccionario" element={<ModuloEnConstruccion nombre="Diccionario Técnico" icono="📖" />} />

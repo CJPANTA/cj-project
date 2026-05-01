@@ -3,47 +3,56 @@ import { Link } from 'react-router-dom';
 export default function Dashboard() {
   return (
     <main className="bg-cj-glass backdrop-blur-md border border-white/10 rounded-3xl p-8 relative overflow-y-auto h-full shadow-2xl animate-fade-in">
-      
       <div className="relative z-10">
-        {/* ENCABEZADO CORREGIDO: LOGO RECTANGULAR A LA IZQUIERDA */}
-        <header className="mb-10 border-b border-white/10 pb-6 flex flex-col md:flex-row items-center gap-6">
-          <div className="flex-shrink-0">
-            <img src="/logo_rectangular.png" alt="Logo CJ" className="h-16 w-auto object-contain" />
+        {/* ENCABEZADO SEGÚN BOCETO */}
+        <header className="mb-10 border-b border-white/10 pb-6 flex justify-between items-center">
+          <img src="/logo_rectangular.png" alt="Logo CJ" className="h-14 w-auto" />
+          <div className="text-right">
+             <h1 className="text-2xl font-black text-white leading-none">ECOSISTEMA <span className="text-cj-cyan">CJ</span></h1>
+             <p className="text-gray-500 text-[10px] uppercase tracking-widest">Oráculo Clínico</p>
           </div>
-          <div className="text-center md:text-left">
-            <h1 className="text-4xl font-black tracking-tighter text-white">ECOSISTEMA <span className="text-cj-cyan">CJ</span></h1>
-            <p className="text-gray-400 text-xs tracking-widest uppercase font-bold">Panel de Control Administrativo y Clínico</p>
-          </div>
+          <img src="/logos_cj_circular.png" alt="Sello CJ" className="h-16 w-auto" />
         </header>
 
-        {/* ESTADO DEL SISTEMA (Basado en tu lógica de Streamlit) */}
-        <section className="mb-10">
-          <h2 className="text-xs text-gray-500 uppercase font-bold tracking-widest mb-4">Estado de la Base de Datos</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-            <div className="bg-[#06101c]/60 border border-cj-cyan/20 p-6 rounded-2xl relative overflow-hidden group">
-               <img src="/logos_cj_circular.png" className="absolute top-2 right-2 w-8 h-8 opacity-10 group-hover:opacity-40 transition-opacity" alt="sello" />
-               <p className="text-gray-400 text-[10px] uppercase font-bold mb-1">Repositorio GitHub</p>
-               <p className="text-2xl font-bold text-white">Conectado ✅</p>
+        {/* CUERPO DEL DASHBOARD: 6 BLOQUES REALES */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* GRUPO 1: ANATOMÍA Y CLÍNICA */}
+          <section className="space-y-4">
+            <h2 className="text-cj-cyan text-xs font-bold uppercase tracking-widest px-2">Anatomía y Patología</h2>
+            <div className="grid grid-cols-1 gap-3">
+              <div className="bg-[#06101c]/80 border border-white/10 p-4 rounded-xl hover:border-cj-cyan/50 transition-all">
+                <p className="text-white font-bold">Bases Óseas</p>
+                <p className="text-gray-500 text-xs">Mapeo estructural completo.</p>
+              </div>
+              <div className="bg-[#06101c]/80 border border-white/10 p-4 rounded-xl hover:border-cj-emerald/50 transition-all">
+                <p className="text-white font-bold">Atlas Muscular</p>
+                <p className="text-gray-500 text-xs">Sistema muscular detallado.</p>
+              </div>
+              <div className="bg-[#06101c]/80 border border-white/10 p-4 rounded-xl hover:border-red-500/50 transition-all">
+                <p className="text-white font-bold">Patologías</p>
+                <p className="text-gray-400 text-xs">Base de conocimientos clínicos.</p>
+              </div>
             </div>
-            {/* Espacio reservado para el Oráculo que mencionas */}
-            <div className="bg-[#06101c]/60 border border-cj-emerald/20 p-6 rounded-2xl relative overflow-hidden group">
-               <img src="/logos_cj_circular.png" className="absolute top-2 right-2 w-8 h-8 opacity-10 group-hover:opacity-40 transition-opacity" alt="sello" />
-               <p className="text-gray-400 text-[10px] uppercase font-bold mb-1">Modo Aura / Oráculo</p>
-               <p className="text-2xl font-bold text-white">Stand-by 🤖</p>
-            </div>
-          </div>
-        </section>
+          </section>
 
-        {/* ACCESOS RÁPIDOS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-           <Link to="/ciclo-05" className="p-8 rounded-3xl bg-gradient-to-br from-cj-cyan/10 to-transparent border border-cj-cyan/30 hover:border-cj-cyan transition-all">
-              <h3 className="text-2xl font-bold text-white">Área de Estudio Activa</h3>
-              <p className="text-gray-400 text-sm">Ciclo 05 - Ingresar a materiales y apuntes de hoy.</p>
-           </Link>
-           <Link to="/biblioteca" className="p-8 rounded-3xl bg-gradient-to-br from-purple-500/10 to-transparent border border-purple-500/30 hover:border-purple-400 transition-all">
-              <h3 className="text-2xl font-bold text-white">Repositorio Carrión</h3>
-              <p className="text-gray-400 text-sm">Explora ciclos previos y documentos PDF.</p>
-           </Link>
+          {/* GRUPO 2: BIBLIOTECA Y CIENCIA */}
+          <section className="space-y-4">
+            <h2 className="text-purple-400 text-xs font-bold uppercase tracking-widest px-2">Investigación</h2>
+            <div className="grid grid-cols-1 gap-3">
+              <Link to="/biblioteca" className="bg-[#06101c]/80 border border-white/10 p-4 rounded-xl hover:border-purple-400 transition-all block">
+                <p className="text-white font-bold">Biblioteca</p>
+                <p className="text-gray-500 text-xs">Repositorio de archivos generales.</p>
+              </Link>
+              <div className="bg-[#06101c]/80 border border-white/10 p-4 rounded-xl hover:border-cj-cyan/50 transition-all">
+                <p className="text-white font-bold">Conceptos Técnicos</p>
+                <p className="text-gray-500 text-xs">Glosario y fundamentos.</p>
+              </div>
+              <div className="bg-[#06101c]/80 border border-white/10 p-4 rounded-xl hover:border-cj-emerald/50 transition-all">
+                <p className="text-white font-bold">Evidencia Científica</p>
+                <p className="text-gray-500 text-xs">Artículos y PubMed.</p>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </main>
