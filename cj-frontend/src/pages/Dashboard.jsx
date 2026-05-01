@@ -14,22 +14,34 @@ export default function Dashboard() {
 
       <div className="relative z-10">
         
-        {/* ENCABEZADO Y BIENVENIDA */}
-        <header className="mb-10 border-b border-white/10 pb-6">
-          <h1 className="text-4xl font-black tracking-tighter text-white mb-2">
-            ECOSISTEMA <span className="text-transparent bg-clip-text bg-gradient-to-r from-cj-cyan to-cj-emerald">CJ</span>
-          </h1>
-          <p className="text-gray-400 text-sm tracking-widest uppercase font-bold mb-4">
-            Panel de Control Administrativo
-          </p>
-          <div className="bg-[#06101c]/80 border border-cj-cyan/30 p-4 rounded-xl inline-block shadow-[0_0_15px_rgba(34,211,238,0.1)]">
-            <p className="text-cj-cyan text-sm">
-              👋 Bienvenido, <span className="font-bold text-white">Lic. Adm. Jorge Luis Chiroque Panta</span>. El sistema está 100% operativo.
+        {/* ENCABEZADO Y BIENVENIDA CON LOGO */}
+        <header className="mb-10 border-b border-white/10 pb-6 flex flex-col md:flex-row items-center md:items-start gap-6">
+          
+          {/* 👇 AQUÍ ESTÁ TU LOGO 👇 */}
+          <div className="flex-shrink-0">
+            <img 
+              src="/logos_cj_circular.png" 
+              alt="Logo Ecosistema CJ" 
+              className="w-28 h-28 object-contain drop-shadow-[0_0_15px_rgba(34,211,238,0.3)]"
+            />
+          </div>
+
+          <div>
+            <h1 className="text-4xl font-black tracking-tighter text-white mb-2 text-center md:text-left">
+              ECOSISTEMA <span className="text-transparent bg-clip-text bg-gradient-to-r from-cj-cyan to-cj-emerald">CJ</span>
+            </h1>
+            <p className="text-gray-400 text-sm tracking-widest uppercase font-bold mb-4 text-center md:text-left">
+              Panel de Control Administrativo
             </p>
+            <div className="bg-[#06101c]/80 border border-cj-cyan/30 p-4 rounded-xl inline-block shadow-[0_0_15px_rgba(34,211,238,0.1)]">
+              <p className="text-cj-cyan text-sm">
+                👋 Bienvenido, <span className="font-bold text-white">Lic. Adm. Jorge Luis Chiroque Panta</span>. El sistema está 100% operativo.
+              </p>
+            </div>
           </div>
         </header>
 
-        {/* TARJETAS DE ESTADÍSTICAS (Tus contadores clásicos) */}
+        {/* TARJETAS DE ESTADÍSTICAS */}
         <section className="mb-10">
           <h2 className="text-xs text-gray-500 uppercase font-bold tracking-widest mb-4">Métricas Globales</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -55,12 +67,11 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* ACCESOS DIRECTOS GIGANTES */}
+        {/* ACCESOS DIRECTOS */}
         <section>
           <h2 className="text-xs text-gray-500 uppercase font-bold tracking-widest mb-4">Accesos Rápidos</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             
-            {/* Acceso: Ciclo Actual */}
             <Link to="/ciclo-05" className="bg-gradient-to-br from-cj-cyan/20 to-transparent border border-cj-cyan/30 p-6 rounded-2xl hover:border-cj-cyan group transition-all flex flex-col justify-between h-48">
               <div>
                 <span className="text-3xl mb-3 block">🎯</span>
@@ -72,8 +83,7 @@ export default function Dashboard() {
               </div>
             </Link>
 
-            {/* Acceso: Ficha Clínica */}
-            <Link to="/ficha-clinica" className="bg-gradient-to-br from-cj-emerald/20 to-transparent border border-cj-emerald/30 p-6 rounded-2xl hover:border-cj-emerald group transition-all flex flex-col justify-between h-48">
+            <Link to="/fichas" className="bg-gradient-to-br from-cj-emerald/20 to-transparent border border-cj-emerald/30 p-6 rounded-2xl hover:border-cj-emerald group transition-all flex flex-col justify-between h-48">
               <div>
                 <span className="text-3xl mb-3 block">📋</span>
                 <h3 className="text-lg font-bold text-white group-hover:text-cj-emerald transition-colors">Ficha Clínica Inteligente</h3>
@@ -84,7 +94,6 @@ export default function Dashboard() {
               </div>
             </Link>
 
-            {/* Acceso: Repositorio Carrión */}
             <Link to="/ciclo-01" className="bg-gradient-to-br from-purple-500/20 to-transparent border border-purple-500/30 p-6 rounded-2xl hover:border-purple-400 group transition-all flex flex-col justify-between h-48">
               <div>
                 <span className="text-3xl mb-3 block">📚</span>
