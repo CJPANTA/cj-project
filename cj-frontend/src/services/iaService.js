@@ -1,21 +1,19 @@
 export const consultarAuraIA = async (pregunta) => {
-  // 1. Forzamos a que la llave pierda cualquier espacio en blanco invisible (.trim)
-  // Buscamos ambos nombres por si en Vercel se guardó de una u otra forma
   const API_KEY = (import.meta.env.VITE_GEMINI_KEY || import.meta.env.VITE_GEMINI_API_KEY || "").trim();
 
   if (!API_KEY) {
     return "Error Local: La API Key no se está leyendo desde Vercel.";
   }
 
-  // 2. URL LIMPIA: Completamente intacta para que jamás vuelva a dar 404
-  const URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`;
+  // EL NOMBRE EXACTO QUE GOOGLE TE ASIGNÓ EN TU ARCHIVO TXT
+  const MODELO = "gemini-flash-latest"; 
+  const URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODELO}:generateContent`;
 
   try {
     const response = await fetch(URL, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        // 3. LA SOLUCIÓN: Mandamos la llave por el Header, tal cual dice tu documento
         'x-goog-api-key': API_KEY 
       },
       body: JSON.stringify({
@@ -29,6 +27,7 @@ export const consultarAuraIA = async (pregunta) => {
 
     const data = await response.json();
 
+    // Si hay error, ahora imprimirá exactamente qué pasó
     if (!response.ok) {
       return `Error de Google (${response.status}): ${data.error?.message || 'Petición rechazada.'}`;
     }
