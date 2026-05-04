@@ -1,108 +1,138 @@
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { GlobalMusicPlayer } from './GlobalMusicPlayer';
 
-export default function Sidebar() {
-  // Memoria central para todos los acordeones
-  const [menus, setMenus] = useState({
-    carrion: false,
-    conocimiento: false,
-    practica: false,
-    sistema: false
-  });
+export default function Sidebar({ temaOscuro, alClickLink }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const path = location.pathname;
 
-  const toggleMenu = (menu) => {
-    setMenus({ ...menus, [menu]: !menus[menu] });
+  // Estados para el acordeón
+  const [openAcademia, setOpenAcademia] = useState(true);
+  const [openClinica, setOpenClinica] = useState(false);
+  const [openGimnasio, setOpenGimnasio] = useState(false);
+
+  const isActive = (route) => path === route || path.startsWith(route + '-');
+
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate('/login');
   };
 
-  // AQUÍ ESTÁ EL LOGO: Puse uno de prueba directamente de los servidores de GitHub.
-  // Solo tienes que borrar este link entre las comillas y pegar el tuyo (raw.github...).
-  const logoGitHubUrl = "https://raw.githubusercontent.com/github/explore/80688e429a7d4ef2fca1e82350fe8e3517d3494d/topics/react/react.png"; 
+  // Variables de Modo Día/Noche
+  const bgSidebar = temaOscuro ? 'bg-[#0a141d]' : 'bg-white';
+  const textoPrincipal = temaOscuro ? 'text-white' : 'text-[#0f172a]';
+  const textoSecundario = temaOscuro ? 'text-[#94a3b8]' : 'text-gray-600';
+  const bordeColor = temaOscuro ? 'border-gray-800' : 'border-gray-200';
+  const hoverBg = temaOscuro ? 'hover:bg-white/5' : 'hover:bg-gray-100';
 
   return (
-    <aside className="bg-cj-glass backdrop-blur-md border border-white/10 rounded-3xl p-6 flex flex-col h-full shadow-xl overflow-y-auto custom-scrollbar">
+    <aside className={`${bgSidebar} border ${bordeColor} rounded-3xl p-6 h-full flex flex-col shadow-2xl overflow-y-auto custom-scrollbar transition-colors duration-500`}>
       
-      {/* SECCIÓN 1: Identidad y Logo */}
-      <div className="mb-8 border-b border-white/10 pb-6 text-center">
-        {logoGitHubUrl ? (
-          <img src={logoGitHubUrl} alt="Logo Ecosistema" className="w-20 h-20 mx-auto mb-4 drop-shadow-[0_0_15px_rgba(34,211,238,0.4)] object-contain" />
-        ) : (
-          <div className="w-20 h-20 mx-auto bg-gradient-to-br from-cj-cyan/20 to-cj-dark rounded-full border-2 border-cj-cyan/50 flex items-center justify-center mb-4">
-            <span className="text-cj-cyan font-black text-3xl font-mono">CJ</span>
-          </div>
-        )}
-        <h2 className="text-xl font-bold text-white tracking-tight">Ecosistema Clínico</h2>
-        <p className="text-[10px] text-cj-emerald tracking-widest uppercase mt-1 font-bold">Admin: J. Chiroque</p>
+      {/* LOGO OFICIAL CJ */}
+      <div className="mb-8 flex items-center gap-3 shrink-0">
+        <img 
+          src="/logos_cj_circular.png" 
+          alt="Logo CJ" 
+          className="w-12 h-12 rounded-full border-2 border-[#22d3ee]/30 shadow-[0_0_15px_rgba(34,211,238,0.2)]"
+          onError={(e) => e.target.style.display='none'}
+        />
+        <div>
+          <h2 className={`${textoPrincipal} font-black text-lg tracking-widest leading-none`}>ECOSISTEMA</h2>
+          <span className="text-[#22d3ee] text-[9px] font-bold uppercase tracking-[0.3em]">Gimnasio & Academia</span>
+        </div>
       </div>
-      
-      <div className="space-y-4 flex-1">
+
+      <nav className="flex-1 space-y-4">
         
-        {/* Principal (Fijo) */}
-        <Link to="/" className="w-full text-left p-3 rounded-xl hover:bg-white/5 transition-all text-sm flex items-center gap-3 text-gray-300 hover:text-cj-cyan">
-          <span>🏠</span> INICIO (Dashboard)
+        {/* DASHBOARD */}
+        <Link to="/" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${path === '/' ? 'bg-[#22d3ee]/10 text-[#22d3ee] border border-[#22d3ee]/20' : `${textoSecundario} ${hoverBg}`}`}>
+          <span className="text-lg">📊</span>
+          <span className="text-xs font-bold uppercase tracking-wider">Centro de Mando</span>
         </Link>
 
-        {/* 1. Repositorio Carrión (Acordeón) */}
-        <div>
-          <button onClick={() => toggleMenu('carrion')} className="w-full text-left p-3 rounded-xl hover:bg-white/5 transition-all text-sm flex items-center justify-between text-gray-300 hover:text-cj-cyan">
-            <div className="flex items-center gap-3"><span>🎓</span> Repositorio Carrión</div>
-            <span className={`text-xs transition-transform duration-300 ${menus.carrion ? 'rotate-180' : ''}`}>▼</span>
+        {/* ACORDEÓN 1: ZONA ACADÉMICA */}
+        <div className="space-y-1">
+          <button 
+            onClick={() => setOpenAcademia(!openAcademia)}
+            className={`w-full flex items-center justify-between px-4 py-2 ${textoSecundario} hover:${textoPrincipal} transition-colors`}
+          >
+            <span className="text-[10px] font-black uppercase tracking-[0.2em]">📚 Zona Académica</span>
+            <span className={`text-[10px] transition-transform ${openAcademia ? 'rotate-180' : ''}`}>▼</span>
           </button>
-          {menus.carrion && (
-            <div className="grid grid-cols-2 gap-2 mt-2 px-2 animate-fade-in">
-              {[1, 2, 3, 4, 5, 6].map((c) => (
-                <Link key={c} to={`/ciclo-0${c}`} className="p-2 rounded-lg bg-white/5 hover:bg-cj-cyan/10 border border-white/5 hover:border-cj-cyan/30 text-xs text-gray-400 hover:text-cj-cyan text-center">
-                  Ciclo 0{c}
-                </Link>
-              ))}
-            </div>
+          
+          {openAcademia && (
+            <ul className="space-y-1 pl-2 animate-fade-in">
+              <li><Link to="/area-estudio" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${isActive('/area-estudio') ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}><span>🎓</span> Repositorio</Link></li>
+              <li><Link to="/biblioteca" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${isActive('/biblioteca') ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}><span>📖</span> Biblioteca</Link></li>
+              <li><Link to="/multimedia" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${isActive('/multimedia') ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}><span>🖼️</span> Multimedia</Link></li>
+              <li><Link to="/examen-ia" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${isActive('/examen-ia') ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}><span>🧠</span> Simulador IA</Link></li>
+            </ul>
           )}
         </div>
 
-        {/* 2. Conocimiento (Acordeón) */}
-        <div>
-          <button onClick={() => toggleMenu('conocimiento')} className="w-full text-left p-3 rounded-xl hover:bg-white/5 transition-all text-sm flex items-center justify-between text-gray-300 hover:text-cj-cyan">
-            <div className="flex items-center gap-3"><span>🧠</span> Base de Conocimiento</div>
-            <span className={`text-xs transition-transform duration-300 ${menus.conocimiento ? 'rotate-180' : ''}`}>▼</span>
+        {/* ACORDEÓN 2: PRÁCTICA CLÍNICA */}
+        <div className="space-y-1">
+          <button 
+            onClick={() => setOpenClinica(!openClinica)}
+            className={`w-full flex items-center justify-between px-4 py-2 ${textoSecundario} hover:${textoPrincipal} transition-colors`}
+          >
+            <span className="text-[10px] font-black uppercase tracking-[0.2em]">🩺 Práctica Clínica</span>
+            <span className={`text-[10px] transition-transform ${openClinica ? 'rotate-180' : ''}`}>▼</span>
           </button>
-          {menus.conocimiento && (
-            <div className="space-y-1 mt-2 px-2 animate-fade-in">
-              <Link to="/biblioteca" className="block w-full p-2 rounded-lg hover:bg-white/5 text-sm text-gray-400 hover:text-white">📚 Biblioteca</Link>
-              <Link to="/diccionario" className="block w-full p-2 rounded-lg hover:bg-white/5 text-sm text-gray-400 hover:text-white">📖 Diccionario</Link>
-              <Link to="/multimedia" className="block w-full p-2 rounded-lg hover:bg-white/5 text-sm text-gray-400 hover:text-white">🎬 Multimedia</Link>
-              <Link to="/examen" className="block w-full p-2 rounded-lg hover:bg-cj-cyan/10 text-sm text-cj-cyan font-bold">🎯 Modo Examen</Link>
-            </div>
+          
+          {openClinica && (
+            <ul className="space-y-1 pl-2 animate-fade-in">
+              <li><Link to="/base-conocimiento" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${isActive('/base-conocimiento') ? 'bg-[#facc15]/10 text-[#facc15]' : `${textoSecundario} ${hoverBg}`}`}><span>🔮</span> Oráculo Médico</Link></li>
+              <li><Link to="/patologias" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${isActive('/patologias') ? 'bg-purple-500/10 text-purple-500' : `${textoSecundario} ${hoverBg}`}`}><span>🚑</span> Patologías</Link></li>
+              <li><Link to="/masoterapia" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${isActive('/masoterapia') ? 'bg-orange-500/10 text-orange-500' : `${textoSecundario} ${hoverBg}`}`}><span>💆‍♂️</span> Masoterapia</Link></li>
+            </ul>
           )}
         </div>
 
-        {/* 3. Práctica Clínica (Acordeón) */}
-        <div>
-          <button onClick={() => toggleMenu('practica')} className="w-full text-left p-3 rounded-xl hover:bg-white/5 transition-all text-sm flex items-center justify-between text-gray-300 hover:text-cj-cyan">
-            <div className="flex items-center gap-3"><span>⚕️</span> Práctica Clínica</div>
-            <span className={`text-xs transition-transform duration-300 ${menus.practica ? 'rotate-180' : ''}`}>▼</span>
+        {/* ACORDEÓN 3: GIMNASIO TERAPÉUTICO */}
+        <div className="space-y-1">
+          <button 
+            onClick={() => setOpenGimnasio(!openGimnasio)}
+            className={`w-full flex items-center justify-between px-4 py-2 text-[#10b981] hover:${textoPrincipal} transition-colors`}
+          >
+            <span className="text-[10px] font-black uppercase tracking-[0.2em]">🏋️ Gimnasio Terapéutico</span>
+            <span className={`text-[10px] transition-transform ${openGimnasio ? 'rotate-180' : ''}`}>▼</span>
           </button>
-          {menus.practica && (
-            <div className="space-y-1 mt-2 px-2 animate-fade-in">
-              <Link to="/patologias" className="block w-full p-2 rounded-lg hover:bg-white/5 text-sm text-gray-400 hover:text-white">🦠 Patologías</Link>
-              <Link to="/masoterapia" className="block w-full p-2 rounded-lg hover:bg-white/5 text-sm text-gray-400 hover:text-white">🤲 Masoterapia</Link>
-              <Link to="/fichas" className="block w-full p-2 rounded-lg hover:bg-white/5 text-sm text-gray-400 hover:text-white">📋 Ficha Clínica</Link>
-              <Link to="/expedientes" className="block w-full p-2 rounded-lg hover:bg-white/5 text-sm text-gray-400 hover:text-white">🗂️ Expedientes</Link>
-            </div>
+          
+          {openGimnasio && (
+            <ul className="space-y-1 pl-2 animate-fade-in">
+              <li><Link to="/fichas" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${isActive('/fichas') ? 'bg-[#10b981]/10 text-[#10b981]' : `${textoSecundario} ${hoverBg}`}`}><span>📝</span> Fichas de Ingreso</Link></li>
+              <li><Link to="/expedientes" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${isActive('/expedientes') ? 'bg-[#10b981]/10 text-[#10b981]' : `${textoSecundario} ${hoverBg}`}`}><span>📁</span> Expedientes</Link></li>
+            </ul>
           )}
         </div>
 
-        {/* 4. Sistema (Acordeón) */}
-        <div>
-          <button onClick={() => toggleMenu('sistema')} className="w-full text-left p-3 rounded-xl hover:bg-red-500/10 transition-all text-sm flex items-center justify-between text-red-400 hover:text-red-300">
-            <div className="flex items-center gap-3"><span>⚙️</span> Sistema</div>
-            <span className={`text-xs transition-transform duration-300 ${menus.sistema ? 'rotate-180' : ''}`}>▼</span>
-          </button>
-          {menus.sistema && (
-            <div className="space-y-1 mt-2 px-2 animate-fade-in">
-              <Link to="/admin" className="block w-full p-2 rounded-lg hover:bg-red-500/10 text-sm text-red-400">Gestión de Usuarios</Link>
-            </div>
-          )}
+        {/* CONFIG AURA AI */}
+        <div className={`mt-4 pt-4 border-t ${bordeColor}`}>
+          <Link to="/configuracion-ia" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive('/configuracion-ia') ? 'bg-blue-500/10 text-blue-400' : `${textoSecundario} ${hoverBg}`}`}>
+            <span className="text-lg">⚙️</span>
+            <span className="text-xs font-bold uppercase tracking-wider">Aura AI Config</span>
+          </Link>
         </div>
+      </nav>
 
+      {/* FOOTER PERSONALIZADO CON MÚSICA Y SALIDA */}
+      <div className={`mt-6 pt-4 border-t ${bordeColor} flex flex-col gap-4`}>
+        <GlobalMusicPlayer temaOscuro={temaOscuro} />
+        
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#22d3ee] to-[#10b981] flex items-center justify-center font-black text-[10px] text-[#020813]">JL</div>
+            <div>
+              <p className={`text-[11px] font-bold ${textoPrincipal} uppercase`}>Jorge Luis</p>
+              <p className="text-[9px] text-[#10b981] font-black uppercase tracking-widest">Director</p>
+            </div>
+          </div>
+          <button onClick={handleLogout} className="text-red-500 hover:text-red-400 transition-colors p-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+          </button>
+        </div>
       </div>
     </aside>
   );
