@@ -1,7 +1,8 @@
-// src/services/iaService.js
 export const consultarAuraIA = async (pregunta) => {
-  const API_KEY = import.meta.env.VITE_GEMINI_KEY;
-  const MODELO = "gemini-1.5-flash";
+  // Aseguramos que el nombre coincide EXACTAMENTE con lo que pusiste en Vercel
+  const API_KEY = import.meta.env.VITE_GEMINI_KEY; 
+  // Nombre correcto del modelo de Google
+  const MODELO = "gemini-1.5-flash"; 
   const URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODELO}:generateContent?key=${API_KEY}`;
 
   try {
@@ -31,6 +32,6 @@ export const consultarAuraIA = async (pregunta) => {
     }
   } catch (error) {
     console.error("Error en servicio IA:", error);
-    return "Aura: Error de conexión.";
+    return "Aura: Error de red o conexión.";
   }
 };
