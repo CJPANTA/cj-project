@@ -1,0 +1,13 @@
+{
+  "curso": "Rehabilitación en Neurología",
+  "ciclo": "V",
+  "puntos_oro": [
+    "Neuroplasticidad: Capacidad del SNC para recuperarse.",
+    "FNP: Facilitación Neuromuscular Propioceptiva (Diagonales de Kabat).",
+    "Escala de Ashworth: Mide el grado de espasticidad."
+  ],
+  "agentes_fisicos": {
+    "recomendado": "EMS / FES para fortalecimiento en parálisis.",
+    "precaucion": "Evitar fatiga excesiva en pacientes con Esclerosis."
+  }
+}
