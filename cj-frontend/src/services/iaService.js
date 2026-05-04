@@ -1,21 +1,17 @@
 // src/services/iaService.js
 export const consultarAuraIA = async (pregunta) => {
-  const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-  
-  // URL EXACTA según el documento curl que me pasaste
-  // Nota que no lleva el "1.5", es "gemini-flash-latest"
-  const URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${API_KEY}`;
+  const API_KEY = import.meta.env.VITE_GEMINI_KEY;
+  const MODELO = "gemini-1.5-flash";
+  const URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODELO}:generateContent?key=${API_KEY}`;
 
   try {
     const response = await fetch(URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{
           parts: [{
-            text: `Actúa como Aura, IA experta en fisioterapia. Responde a Jorge Luis: ${pregunta}`
+            text: `Actúa como Aura, IA experta en fisioterapia. Responde a Jorge Luis de forma profesional y eficiente: ${pregunta}`
           }]
         }]
       })
@@ -24,18 +20,17 @@ export const consultarAuraIA = async (pregunta) => {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("Error detectado:", data);
-      return `Error (${response.status}): Revisa si el modelo 'gemini-flash-latest' está activo en tu AI Studio.`;
+      console.error("Error API Gemini:", data);
+      return `Error (${response.status}): Revisa la conexión con Gemini.`;
     }
 
     if (data.candidates && data.candidates[0].content) {
       return data.candidates[0].content.parts[0].text;
     } else {
-      return "Aura: Respuesta vacía del servidor.";
+      return "Aura: No pude procesar la respuesta.";
     }
-
   } catch (error) {
-    console.error("Fallo de red:", error);
-    return "Aura: Sin conexión a internet.";
+    console.error("Error en servicio IA:", error);
+    return "Aura: Error de conexión.";
   }
 };

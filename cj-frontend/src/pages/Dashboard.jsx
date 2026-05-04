@@ -1,19 +1,25 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { consultarAuraIA } from '../services/iaService';
 import { NotebookCJ } from '../components/NotebookCJ';
 
 export default function Dashboard({ temaOscuro }) {
   const [saludo, setSaludo] = useState('');
-  const [modo, setModo] = useState('academico');
   const [busqueda, setBusqueda] = useState('');
   const [respuestaIA, setRespuestaIA] = useState('');
   const [cargandoIA, setCargandoIA] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
+    // Protección de ruta simple: si no hay "user" en el localstorage, manda al login
+    const usuarioLogueado = localStorage.getItem('usuario_cj');
+    if (!usuarioLogueado) {
+      navigate('/login');
+    }
+
     const hora = new Date().getHours();
     setSaludo(hora < 12 ? 'Buenos días' : hora < 18 ? 'Buenas tardes' : 'Buenas noches');
-  }, []);
+  }, [navigate]);
 
   const ejecutarConsultaIA = async () => {
     if (!busqueda.trim()) return;
@@ -28,76 +34,67 @@ export default function Dashboard({ temaOscuro }) {
   const textoColor = temaOscuro ? 'text-white' : 'text-[#0f172a]';
 
   return (
-    <main className="flex flex-col gap-6 animate-fade-in relative transition-colors duration-500">
-      {/* HEADER PERSONALIZADO */}
-      <header className={`flex flex-col md:flex-row justify-between items-center p-6 rounded-3xl border ${bgTarjeta}`}>
-        <div className="flex items-center gap-4">
-          <img src="/logos_cj_circular.png" className={`w-16 h-16 rounded-full border-2 border-[#22d3ee]/20 ${temaOscuro ? 'invert opacity-80' : ''}`} alt="Logo CJ" />
-          <div>
-            <h1 className={`text-2xl font-black uppercase ${textoColor}`}>{saludo}, Jorge Luis</h1>
-            <p className="text-[#94a3b8] text-[10px] font-bold uppercase tracking-[0.2em] mt-1">
-              {modo === 'academico' ? '🎯 Modo: Aprendizaje Activo' : '🏥 Modo: Gestión Clínica'}
-            </p>
-          </div>
-        </div>
-        
-        {/* BOTONES DE MODO LIMPIOS (Sin el reproductor falso) */}
-        <div className="flex bg-black/10 p-1 rounded-xl mt-4 md:mt-0 gap-2">
-          <button onClick={() => setModo('academico')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase ${modo === 'academico' ? 'bg-[#22d3ee]/20 text-[#22d3ee]' : 'text-gray-500 hover:text-white transition-colors'}`}>Estudiante</button>
-          <button onClick={() => setModo('clinico')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase ${modo === 'clinico' ? 'bg-[#10b981]/20 text-[#10b981]' : 'text-gray-500 hover:text-white transition-colors'}`}>Licenciado</button>
-        </div>
+    <main className="flex flex-col gap-8 p-4 md:p-8 max-w-7xl mx-auto w-full">
+      <header className="flex flex-col gap-2">
+        <h1 className={`text-4xl font-black tracking-tighter ${textoColor}`}>
+          {saludo}, <span className="text-[#22d3ee]">Jorge Luis</span>
+        </h1>
+        <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Ecosistema CJ 2.0 • Ciclo 05</p>
       </header>
 
-      {/* EL ORÁCULO IA */}
-      <section className={`p-6 rounded-3xl border ${bgTarjeta} relative shadow-lg`}>
-        <div className="flex items-center gap-4">
-          <span className="text-2xl">{cargandoIA ? '🌀' : '🔮'}</span>
+      {/* AURA INTELIGENTE RE-DISEÑADA */}
+      <section className={`${bgTarjeta} p-6 rounded-3xl border transition-all`}>
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-10 h-10 rounded-full bg-[#22d3ee] flex items-center justify-center animate-pulse">
+            <span className="text-white text-xl">✨</span>
+          </div>
+          <div>
+            <h2 className={`text-sm font-black uppercase tracking-tighter ${textoColor}`}>Oráculo Aura IA</h2>
+            <p className="text-[10px] text-gray-500 font-bold">CONSULTA CLÍNICA INSTANTÁNEA</p>
+          </div>
+        </div>
+
+        <div className="relative group">
           <input 
-            type="text" 
-            value={busqueda} 
+            type="text"
+            value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && ejecutarConsultaIA()}
-            placeholder="Pregúntale a Aura IA sobre anatomía o protocolos..." 
-            className={`w-full bg-transparent outline-none font-bold ${textoColor}`} 
+            onKeyPress={(e) => e.key === 'Enter' && ejecutarConsultaIA()}
+            placeholder="¿Qué patología o protocolo revisamos hoy?"
+            className={`w-full bg-black/5 dark:bg-white/5 border border-white/10 p-4 pr-16 rounded-2xl outline-none focus:border-[#22d3ee] transition-all text-sm ${textoColor}`}
           />
           <button 
             onClick={ejecutarConsultaIA}
             disabled={cargandoIA}
-            className={`px-6 py-2 rounded-xl font-black text-[10px] uppercase transition-all ${cargandoIA ? 'bg-gray-500 text-white' : 'bg-[#22d3ee] text-black hover:scale-105'}`}
+            className="absolute right-2 top-2 bottom-2 px-4 bg-[#22d3ee] text-black font-black rounded-xl text-[10px] uppercase hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
           >
-            {cargandoIA ? 'Pensando...' : 'Consultar'}
+            {cargandoIA ? '...' : 'Consultar'}
           </button>
         </div>
 
         {respuestaIA && (
-          <div className={`mt-6 p-6 rounded-2xl border animate-in fade-in zoom-in duration-300 ${temaOscuro ? 'bg-black/40 border-[#22d3ee]/30' : 'bg-blue-50 border-blue-200'}`}>
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="text-[#22d3ee] font-black uppercase text-[10px] tracking-widest">Respuesta del Oráculo Aura</h4>
-              <button onClick={() => setRespuestaIA('')} className="text-gray-500 hover:text-red-500 text-[10px] font-bold uppercase">Limpiar</button>
-            </div>
-            <div className={`text-xs leading-relaxed whitespace-pre-wrap ${textoColor}`}>
+          <div className="mt-6 p-5 rounded-2xl bg-[#22d3ee]/5 border border-[#22d3ee]/20 backdrop-blur-sm">
+            <div className={`text-[13px] leading-relaxed whitespace-pre-wrap font-medium ${textoColor}`}>
               {respuestaIA}
             </div>
           </div>
         )}
       </section>
 
-      {/* NOTEBOOK CJ (Solo en el Dashboard principal) */}
       <NotebookCJ />
 
-      {/* ACCESOS RÁPIDOS ACADÉMICOS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Link to="/area-estudio" className={`p-8 rounded-3xl border ${bgTarjeta} flex flex-col items-center group hover:border-[#22d3ee] transition-all shadow-md`}>
+        <Link to="/area-estudio" className={`p-8 rounded-3xl border ${bgTarjeta} flex flex-col items-center group hover:border-[#22d3ee] transition-all`}>
           <span className="text-5xl mb-4 group-hover:scale-110 transition-transform">🎓</span>
-          <span className="text-[#22d3ee] text-[11px] font-black uppercase tracking-widest">Repositorio</span>
+          <span className="text-[#22d3ee] text-[11px] font-black uppercase">Repositorio</span>
         </Link>
-        <Link to="/biblioteca" className={`p-8 rounded-3xl border ${bgTarjeta} flex flex-col items-center group hover:border-[#22d3ee] transition-all shadow-md`}>
+        <Link to="/biblioteca" className={`p-8 rounded-3xl border ${bgTarjeta} flex flex-col items-center group hover:border-[#22d3ee] transition-all`}>
           <span className="text-5xl mb-4 group-hover:scale-110 transition-transform">📚</span>
-          <span className="text-[#22d3ee] text-[11px] font-black uppercase tracking-widest">Biblioteca</span>
+          <span className="text-[#22d3ee] text-[11px] font-black uppercase">Biblioteca</span>
         </Link>
-        <Link to="/multimedia" className={`p-8 rounded-3xl border ${bgTarjeta} flex flex-col items-center group hover:border-[#22d3ee] transition-all shadow-md`}>
-          <span className="text-5xl mb-4 group-hover:scale-110 transition-transform">🖼️</span>
-          <span className="text-[#22d3ee] text-[11px] font-black uppercase tracking-widest">Multimedia</span>
+        <Link to="/multimedia" className={`p-8 rounded-3xl border ${bgTarjeta} flex flex-col items-center group hover:border-[#22d3ee] transition-all`}>
+          <span className="text-5xl mb-4 group-hover:scale-110 transition-transform">📽️</span>
+          <span className="text-[#22d3ee] text-[11px] font-black uppercase">Multimedia</span>
         </Link>
       </div>
     </main>
