@@ -1,7 +1,6 @@
 export const consultarAuraIA = async (pregunta) => {
-  // Aseguramos que el nombre coincide EXACTAMENTE con lo que pusiste en Vercel
   const API_KEY = import.meta.env.VITE_GEMINI_KEY; 
-  // Nombre correcto del modelo de Google
+  // EL MODELO EXACTO Y ACTIVO (1.5, no 2.5)
   const MODELO = "gemini-1.5-flash"; 
   const URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODELO}:generateContent?key=${API_KEY}`;
 
@@ -22,7 +21,7 @@ export const consultarAuraIA = async (pregunta) => {
 
     if (!response.ok) {
       console.error("Error API Gemini:", data);
-      return `Error (${response.status}): Revisa la conexión con Gemini.`;
+      return `Error (${response.status}): ${data.error?.message || 'Revisa la conexión con Gemini.'}`;
     }
 
     if (data.candidates && data.candidates[0].content) {
