@@ -1,0 +1,13 @@
+{
+  "curso": "Rehabilitación en Reumatología",
+  "ciclo": "V",
+  "puntos_oro": [
+    "Artrosis: Desgaste mecánico (Mejora con reposo).",
+    "Artritis: Proceso inflamatorio (Rigidez matutina >30 min).",
+    "Fibromialgia: Dolor crónico generalizado (Enfoque aeróbico)."
+  ],
+  "agentes_fisicos": {
+    "indicacion": "Magnetoterapia para regeneración y Laserterapia para inflamación.",
+    "contraindicacion": "Calor profundo en fases de brote inflamatorio agudo."
+  }
+}
