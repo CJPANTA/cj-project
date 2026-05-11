@@ -1,13 +1,13 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useCallback } from 'react';
 
 const AuraContext = createContext();
 
 export function AuraProvider({ children }) {
-  const [contexto, setContexto] = useState({ ciclo: '', curso: '', archivo: '' });
+  const [contexto, setContexto] = useState({ ciclo: '', materia: '', archivo: '' });
 
-  const actualizarContexto = (nuevoContexto) => {
+  const actualizarContexto = useCallback((nuevoContexto) => {
     setContexto((prev) => ({ ...prev, ...nuevoContexto }));
-  };
+  }, []); // Estable, no cambia entre renders
 
   return (
     <AuraContext.Provider value={{ contexto, actualizarContexto }}>
