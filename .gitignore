@@ -1,0 +1,12 @@
+node_modules/
+frontend-ecosistema/
+package-lock.json
+package.json
+dist/
+dist-ssr/
+*.local
+.env
+.env.local
+.vscode/
+.idea/
+.DS_Store
