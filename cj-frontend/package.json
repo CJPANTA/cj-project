@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "escanear": "node escaner.js",
-    "build": "npx vite build",
+    "build": "node ./node_modules/vite/bin/vite.js build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
