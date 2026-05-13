@@ -182,7 +182,7 @@ export default function Login() {
           <img src="/logos_cj_circular.png" alt="Logo CJ" className="w-full h-full object-cover" />
         </div>
         <h1 className="text-4xl font-black text-white uppercase tracking-tighter text-center">
-          Ecosistema <span className="text-[#22d3ee]">CJ 2.0</span>
+          Proyecto <span className="text-[#22d3ee]">CJ Fisioterapia</span>
         </h1>
 
         <div className={bgCard}>
