@@ -1,0 +1,30 @@
+{
+  "name": "Proyecto CJ Fisioterapia",
+  "short_name": "CJ Fisio",
+  "description": "Plataforma educativa y clínica de fisioterapia",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#0a141d",
+  "background_color": "#0a141d",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logos_cj_circular.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo_rectangular.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
