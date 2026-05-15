@@ -2,5 +2,5 @@
   "buildCommand": "cd cj-frontend && npm run build",
   "installCommand": "cd cj-frontend && npm install",
   "outputDirectory": "cj-frontend/dist",
-  "rootDirectory": "cj-frontend"
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
