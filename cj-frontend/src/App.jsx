@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import AreaDeEstudio from './pages/AreaDeEstudio';
@@ -14,6 +14,7 @@ import { GlobalMusicPlayer } from './components/GlobalMusicPlayer';
 import { NotebookCJ } from './components/NotebookCJ';
 import { AuraProvider } from './context/AuraContext';
 import ConfiguracionAura from './pages/ConfiguracionAura';
+
 
 const RutaProtegida = ({ children }) => {
   const estaLogueado = localStorage.getItem('usuario_cj');
@@ -72,6 +73,17 @@ function LayoutConSidebar({ children, temaOscuro, setTemaOscuro }) {
 
 function App() {
   const [temaOscuro, setTemaOscuro] = useState(true);
+    // Forzar actualización del Service Worker y recargar si hay nueva versión
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(registration => {
+        registration.update();
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          window.location.reload();
+        });
+      });
+    }
+  }, []);
   return (
     <AuraProvider>
       <BrowserRouter>
