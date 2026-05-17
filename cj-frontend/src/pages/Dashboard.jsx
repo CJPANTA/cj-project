@@ -73,13 +73,12 @@ export default function Dashboard({ temaOscuro }) {
     if (!error) setProximosRecordatorios(data || []);
   };
 
-  // ⭐ MODIFICACIÓN IMPORTANTE: incluir el último PDF en el contexto
+  // ⭐ MODIFICACIÓN: incluir el último PDF en el contexto
   const ejecutarConsultaIA = async () => {
     if (!busqueda.trim()) return;
     setCargandoIA(true);
     setRespuestaIA('');
 
-    // Obtener el último PDF visto (si existe)
     const ultimoPDFAlmacenado = localStorage.getItem('ultimo_pdf_visto');
     let contextoCompleto = { ...contexto };
     if (ultimoPDFAlmacenado) {
@@ -97,8 +96,6 @@ export default function Dashboard({ temaOscuro }) {
   const bgInput = temaOscuro ? 'bg-black/20 border-white/10' : 'bg-gray-100 border-gray-300';
   const bgContexto = temaOscuro ? 'bg-[#22d3ee]/10 border-[#22d3ee]/30 text-[#22d3ee]' : 'bg-blue-50 border-blue-200 text-blue-700';
   const porcentaje = progresoExamenes.promedio;
-  const angulo = (porcentaje / 100) * 360;
-  const estiloCirculo = { background: `conic-gradient(#22d3ee 0deg ${angulo}deg, #2d3748 ${angulo}deg 360deg)` };
 
   return (
     <main className="flex flex-col gap-8 p-4 md:p-8 max-w-7xl mx-auto w-full">
@@ -117,10 +114,14 @@ export default function Dashboard({ temaOscuro }) {
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Progreso exámenes */}
+        {/* ⭐ Versión con SVG (más rápida y compatible) */}
         <div className={`${bgTarjeta} p-4 rounded-2xl border flex items-center gap-4`}>
-          <div className="w-16 h-16 rounded-full flex items-center justify-center text-white font-black text-sm" style={estiloCirculo}>
-            <span className="bg-black/50 rounded-full w-12 h-12 flex items-center justify-center">{progresoExamenes.promedio || 0}%</span>
+          <div className="w-16 h-16 relative">
+            <svg className="w-full h-full" viewBox="0 0 36 36">
+              <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#2d3748" strokeWidth="3" />
+              <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#22d3ee" strokeWidth="3" strokeDasharray={`${porcentaje}, 100`} />
+              <text x="18" y="22" textAnchor="middle" fill={temaOscuro ? "white" : "black"} fontSize="8" fontWeight="bold">{porcentaje || 0}%</text>
+            </svg>
           </div>
           <div>
             <h3 className={`text-xs font-bold ${textoColor}`}>Promedio exámenes</h3>
