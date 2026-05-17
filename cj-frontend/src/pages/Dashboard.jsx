@@ -73,11 +73,20 @@ export default function Dashboard({ temaOscuro }) {
     if (!error) setProximosRecordatorios(data || []);
   };
 
+  // ⭐ MODIFICACIÓN IMPORTANTE: incluir el último PDF en el contexto
   const ejecutarConsultaIA = async () => {
     if (!busqueda.trim()) return;
     setCargandoIA(true);
     setRespuestaIA('');
-    let respuestaRaw = await consultarAuraIA(busqueda, contexto);
+
+    // Obtener el último PDF visto (si existe)
+    const ultimoPDFAlmacenado = localStorage.getItem('ultimo_pdf_visto');
+    let contextoCompleto = { ...contexto };
+    if (ultimoPDFAlmacenado) {
+      contextoCompleto.ultimoPDF = JSON.parse(ultimoPDFAlmacenado);
+    }
+
+    let respuestaRaw = await consultarAuraIA(busqueda, contextoCompleto);
     respuestaRaw = respuestaRaw.replace(/[\*\-=]{3,}/g, '');
     setRespuestaIA(respuestaRaw);
     setCargandoIA(false);
@@ -133,7 +142,7 @@ export default function Dashboard({ temaOscuro }) {
           )}
         </div>
 
-        {/* Próximos recordatorios (calendario simplificado) */}
+        {/* Próximos recordatorios */}
         <div className={`${bgTarjeta} p-4 rounded-2xl border`}>
           <h3 className={`text-xs font-bold mb-2 ${textoColor}`}>📅 Próximos recordatorios</h3>
           {proximosRecordatorios.length === 0 ? (
