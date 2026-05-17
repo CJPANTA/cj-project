@@ -9,50 +9,7 @@ import HistorialWidget from '../components/HistorialWidget';
 import RecordatoriosWidget from '../components/RecordatoriosWidget';
 import { supabase } from '../lib/supabaseClient';
 
-// 🧹 Función para normalizar tablas Markdown (convierte formato Groq a estándar)
-function normalizarTablasMarkdown(texto) {
-  const lineas = texto.split('\n');
-  const resultado = [];
-  let enTabla = false;
-  let tablaBuffer = [];
-
-  for (let i = 0; i < lineas.length; i++) {
-    const linea = lineas[i].trim();
-    // Detectar posible inicio de tabla: línea con | y no es un separador
-    if (linea.includes('|') && !/^\|[\s\-:|]+\|$/.test(linea)) {
-      if (!enTabla) {
-        enTabla = true;
-        tablaBuffer = [];
-      }
-      // Limpiar la línea: eliminar espacios alrededor de pipes
-      let limpia = linea.replace(/\s*\|\s*/g, '|');
-      // Asegurar que empieza y termina con pipe
-      if (!limpia.startsWith('|')) limpia = '|' + limpia;
-      if (!limpia.endsWith('|')) limpia = limpia + '|';
-      tablaBuffer.push(limpia);
-    } else {
-      if (enTabla) {
-        // Procesar la tabla acumulada
-        if (tablaBuffer.length >= 2) {
-          // Si la segunda línea no es un separador, lo añadimos automáticamente
-          if (!/^\|[\s\-:|]+\|$/.test(tablaBuffer[1])) {
-            const numCols = tablaBuffer[0].split('|').length - 2;
-            const separador = '|' + ' --- |'.repeat(numCols);
-            tablaBuffer.splice(1, 0, separador);
-          }
-          resultado.push(...tablaBuffer);
-        }
-        enTabla = false;
-        tablaBuffer = [];
-      }
-      resultado.push(linea);
-    }
-  }
-  if (enTabla && tablaBuffer.length) resultado.push(...tablaBuffer);
-  return resultado.join('\n');
-}
-
-// Componentes personalizados para tablas (con estilos)
+// Componentes personalizados para tablas
 function Table({ children }) {
   return (
     <div className="overflow-x-auto my-4">
@@ -72,7 +29,7 @@ function TableBody({ children }) {
 }
 
 function TableRow({ children }) {
-  return <tr className="border-b border-gray-200 dark:border-gray-700">{children}</td>;
+  return <tr className="border-b border-gray-200 dark:border-gray-700">{children}</tr>;
 }
 
 function TableCell({ isHeader, children }) {
@@ -176,8 +133,7 @@ export default function Dashboard({ temaOscuro }) {
       contextoCompleto.ultimoPDF = JSON.parse(ultimoPDFAlmacenado);
     }
 
-    let respuestaRaw = await consultarAuraIA(busqueda, contextoCompleto);
-    respuestaRaw = normalizarTablasMarkdown(respuestaRaw);
+    const respuestaRaw = await consultarAuraIA(busqueda, contextoCompleto);
     setRespuestaIA(respuestaRaw);
     setCargandoIA(false);
   };
