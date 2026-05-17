@@ -1,11 +1,60 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { consultarAuraIA } from '../services/iaService';
 import { NotebookCJ } from '../components/NotebookCJ';
 import { useAura } from '../context/AuraContext';
 import HistorialWidget from '../components/HistorialWidget';
 import RecordatoriosWidget from '../components/RecordatoriosWidget';
 import { supabase } from '../lib/supabaseClient';
+
+// Componentes personalizados para tablas (con estilos)
+function Table({ children }) {
+  return (
+    <div className="overflow-x-auto my-4">
+      <table className="min-w-full border-collapse border border-gray-300 dark:border-gray-600 text-sm">
+        {children}
+      </table>
+    </div>
+  );
+}
+
+function TableHead({ children }) {
+  return <thead className="bg-gray-100 dark:bg-gray-800">{children}</thead>;
+}
+
+function TableBody({ children }) {
+  return <tbody>{children}</tbody>;
+}
+
+function TableRow({ children }) {
+  return <tr className="border-b border-gray-200 dark:border-gray-700">{children}</tr>;
+}
+
+function TableCell({ isHeader, children }) {
+  if (isHeader) {
+    return (
+      <th className="px-4 py-2 text-left font-semibold border-r border-gray-200 dark:border-gray-600 last:border-r-0">
+        {children}
+      </th>
+    );
+  }
+  return (
+    <td className="px-4 py-2 border-r border-gray-200 dark:border-gray-600 last:border-r-0">
+      {children}
+    </td>
+  );
+}
+
+const markdownComponents = {
+  table: Table,
+  thead: TableHead,
+  tbody: TableBody,
+  tr: TableRow,
+  th: ({ children }) => <TableCell isHeader={true}>{children}</TableCell>,
+  td: ({ children }) => <TableCell>{children}</TableCell>,
+};
 
 export default function Dashboard({ temaOscuro }) {
   const [saludo, setSaludo] = useState('');
@@ -73,7 +122,6 @@ export default function Dashboard({ temaOscuro }) {
     if (!error) setProximosRecordatorios(data || []);
   };
 
-  // ⭐ MODIFICACIÓN: incluir el último PDF en el contexto
   const ejecutarConsultaIA = async () => {
     if (!busqueda.trim()) return;
     setCargandoIA(true);
@@ -85,8 +133,7 @@ export default function Dashboard({ temaOscuro }) {
       contextoCompleto.ultimoPDF = JSON.parse(ultimoPDFAlmacenado);
     }
 
-    let respuestaRaw = await consultarAuraIA(busqueda, contextoCompleto);
-    respuestaRaw = respuestaRaw.replace(/[\*\-=]{3,}/g, '');
+    const respuestaRaw = await consultarAuraIA(busqueda, contextoCompleto);
     setRespuestaIA(respuestaRaw);
     setCargandoIA(false);
   };
@@ -114,7 +161,7 @@ export default function Dashboard({ temaOscuro }) {
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* ⭐ Versión con SVG (más rápida y compatible) */}
+        {/* Promedio exámenes con SVG (rápido y compatible) */}
         <div className={`${bgTarjeta} p-4 rounded-2xl border flex items-center gap-4`}>
           <div className="w-16 h-16 relative">
             <svg className="w-full h-full" viewBox="0 0 36 36">
@@ -202,7 +249,11 @@ export default function Dashboard({ temaOscuro }) {
 
         {respuestaIA && (
           <div className="mt-6 p-5 rounded-2xl bg-[#22d3ee]/5 border border-[#22d3ee]/20 backdrop-blur-sm overflow-x-auto">
-            <div className="whitespace-pre-wrap">{respuestaIA}</div>
+            <div className={`prose prose-sm max-w-none ${temaOscuro ? 'prose-invert' : ''}`}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                {respuestaIA}
+              </ReactMarkdown>
+            </div>
           </div>
         )}
       </section>
