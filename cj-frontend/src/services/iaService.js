@@ -1,11 +1,14 @@
-// src/services/iaService.js - VERSIÓN DEFINITIVA CON GROQ
+// src/services/iaService.js - VERSIÓN CON VARIABLE DE ENTORNO
 export const consultarAuraIA = async (pregunta, contexto = {}) => {
-  // Usar la API Key de Groq (la que me diste)
-  const API_KEY = "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";
-  
-  const MODELO = "llama-3.3-70b-versatile"; // rápido, gratuito y potente
-  const URL = "https://api.groq.com/openai/v1/chat/completions";
+  // Leer la clave desde las variables de entorno de Vercel
+  const API_KEY = (import.meta.env.VITE_GROQ_API_KEY || "").trim();
+  if (!API_KEY) {
+    return "❌ Error: No se encuentra la API Key de Groq en las variables de entorno de Vercel.";
+  }
 
+  const MODELO = "llama-3.3-70b-versatile";
+  const URL = "https://api.groq.com/openai/v1/chat/completions";
+  
   // Detectar si el usuario pide resumen del último PDF
   const esResumenPDF = /resum(e|en|ir).*(último|ultimo).*pdf/i.test(pregunta) ||
     /puntos clave.*último pdf/i.test(pregunta) ||
