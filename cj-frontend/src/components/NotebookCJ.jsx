@@ -14,6 +14,12 @@ export const NotebookCJ = ({ temaOscuro, cerrarPanel }) => {
   const audioChunksRef = useRef([]);
   const wakeLockRef = useRef(null);
   const [audioFile, setAudioFile] = useState(null);
+  
+  // Estados para el material de estudio generado
+  const [generandoPreguntas, setGenerandoPreguntas] = useState(false);
+  const [generandoFlashcards, setGenerandoFlashcards] = useState(false);
+  const [materialGenerado, setMaterialGenerado] = useState(null);
+  const [mostrarMaterial, setMostrarMaterial] = useState(false);
 
   // Colores según tema
   const bgPanel = temaOscuro ? 'bg-[#0a141d]' : 'bg-white';
@@ -23,7 +29,7 @@ export const NotebookCJ = ({ temaOscuro, cerrarPanel }) => {
   const bgInput = temaOscuro ? 'bg-black/40 border-gray-700' : 'bg-gray-100 border-gray-300';
   const bgMensaje = temaOscuro ? 'bg-[#22d3ee]/5 border-[#22d3ee]/20' : 'bg-blue-50 border-blue-200';
 
-  // Web Speech API: reconocimiento de voz en tiempo real
+  // Funciones de dictado y grabación (existentes)
   const iniciarDictado = () => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       setEstado("❌ Tu navegador no soporta reconocimiento de voz.");
@@ -32,13 +38,12 @@ export const NotebookCJ = ({ temaOscuro, cerrarPanel }) => {
     const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
     const recognition = new SpeechRecognition();
     recognition.lang = 'es-ES';
-    recognition.continuous = true;  // Graba continuamente hasta que se detenga
-    recognition.interimResults = true;  // Resultados provisionales
+    recognition.continuous = true;
+    recognition.interimResults = true;
 
     recognition.onstart = () => {
       setIsRecording(true);
       setEstado("🎙️ Grabando clase... (habla claro)");
-      // Activar Wake Lock (mantener pantalla activa)
       if ('wakeLock' in navigator) {
         navigator.wakeLock.request('screen').then(lock => {
           wakeLockRef.current = lock;
@@ -73,7 +78,6 @@ export const NotebookCJ = ({ temaOscuro, cerrarPanel }) => {
     }
   };
 
-  // Subir archivo de audio (grabado con app nativa)
   const manejarSubirAudio = (event) => {
     const file = event.target.files[0];
     if (file && file.type.startsWith('audio/')) {
@@ -84,7 +88,6 @@ export const NotebookCJ = ({ temaOscuro, cerrarPanel }) => {
     }
   };
 
-  // Función para enviar audio a Gemini y obtener transcripción + resumen
   const generarResumenDesdeAudio = async () => {
     if (!audioFile) {
       setEstado("No hay audio cargado. Sube un archivo primero.");
@@ -92,12 +95,9 @@ export const NotebookCJ = ({ temaOscuro, cerrarPanel }) => {
     }
     setIsTranscribing(true);
     setEstado("🔄 Enviando audio a IA... (puede tardar varios segundos)");
-
-    // Convertir archivo a Base64 para enviar a Gemini (requiere API con soporte multimodal)
     const reader = new FileReader();
     reader.onloadend = async () => {
       const base64Audio = reader.result.split(',')[1];
-      // Gemini 1.5 Flash soporta audio en base64 (limitado a 10 MB aproximadamente)
       const prompt = `Transcribe este audio de una clase de fisioterapia y luego genera un resumen claro y estructurado de los puntos principales. Si hay términos médicos, asegúrate de escribirlos correctamente. Audio: data:audio/mp3;base64,${base64Audio}`;
       const respuesta = await consultarAuraIA(prompt, { ...contexto, archivo: audioFile.name });
       setNota(respuesta);
@@ -149,6 +149,87 @@ export const NotebookCJ = ({ temaOscuro, cerrarPanel }) => {
     });
   };
 
+  // Funciones de generación de preguntas y flashcards
+  const generarPreguntas = async () => {
+    if (!nota.trim()) {
+      setEstado("No hay texto en la nota. Escribe o dicta algo primero.");
+      return;
+    }
+    setGenerandoPreguntas(true);
+    setEstado("Generando preguntas...");
+    const prompt = `Actúa como un profesor de fisioterapia. Basándote en el siguiente texto, genera 3 preguntas tipo test (opción múltiple) con 4 opciones cada una, indicando la opción correcta y una breve retroalimentación. Devuelve SOLO un objeto JSON con este formato:
+{
+  "preguntas": [
+    {
+      "texto": "¿Cuál es la función del ...?",
+      "opciones": ["Opción A", "Opción B", "Opción C", "Opción D"],
+      "respuesta_correcta": "Opción A",
+      "feedback": "Explicación breve"
+    }
+  ]
+}
+Texto: ${nota}`;
+    const respuesta = await consultarAuraIA(prompt, { ...contexto });
+    try {
+      const json = JSON.parse(respuesta);
+      setMaterialGenerado({ tipo: 'preguntas', contenido: json });
+      setMostrarMaterial(true);
+      setEstado("Preguntas generadas correctamente.");
+    } catch (e) {
+      console.error("Error parseando JSON de preguntas:", respuesta);
+      setEstado("Error al generar preguntas. Reintenta.");
+    }
+    setGenerandoPreguntas(false);
+  };
+
+  const generarFlashcards = async () => {
+    if (!nota.trim()) {
+      setEstado("No hay texto en la nota. Escribe o dicta algo primero.");
+      return;
+    }
+    setGenerandoFlashcards(true);
+    setEstado("Generando flashcards...");
+    const prompt = `Actúa como un profesor de fisioterapia. Basándote en el siguiente texto, extrae los 5 conceptos más importantes y genera para cada uno una tarjeta de estudio (flashcard) con anverso (pregunta o concepto clave) y reverso (definición o explicación). Devuelve SOLO un objeto JSON con este formato:
+{
+  "flashcards": [
+    {
+      "anverso": "¿Qué es la propiocepción?",
+      "reverso": "Capacidad del cuerpo para percibir su posición y movimiento."
+    }
+  ]
+}
+Texto: ${nota}`;
+    const respuesta = await consultarAuraIA(prompt, { ...contexto });
+    try {
+      const json = JSON.parse(respuesta);
+      setMaterialGenerado({ tipo: 'flashcards', contenido: json });
+      setMostrarMaterial(true);
+      setEstado("Flashcards generadas correctamente.");
+    } catch (e) {
+      console.error("Error parseando JSON de flashcards:", respuesta);
+      setEstado("Error al generar flashcards. Reintenta.");
+    }
+    setGenerandoFlashcards(false);
+  };
+
+  // Guardar material generado en Supabase (opcional)
+  const guardarMaterialGenerado = async () => {
+    if (!materialGenerado) return;
+    const { error } = await supabase.from('material_estudio').insert([{
+      user_id: localStorage.getItem('cj_user_id'),
+      nota_id: null, // podríamos vincular a una nota específica, pero por ahora no
+      titulo: `Material de repaso - ${new Date().toLocaleDateString()}`,
+      tipo: materialGenerado.tipo,
+      contenido: materialGenerado.contenido
+    }]);
+    if (!error) {
+      setEstado("Material guardado en tu historial de estudio.");
+    } else {
+      console.error(error);
+      setEstado("Error al guardar material.");
+    }
+  };
+
   return (
     <div className={`flex flex-col h-full p-6 ${bgPanel} border-l ${bordeColor} transition-colors duration-300 overflow-y-auto`}>
       <div className="flex justify-between items-center mb-4">
@@ -166,9 +247,9 @@ export const NotebookCJ = ({ temaOscuro, cerrarPanel }) => {
           {contexto.ciclo ? (
             <> estás en <span className="font-bold">{contexto.ciclo}</span>
               {contexto.materia && <> / <span className="text-[#10b981]">{contexto.materia.replace(/_/g, ' ')}</span></>}.
-              Puedes grabar esta clase o subir un audio para obtener un resumen inteligente.</>
+              Puedes grabar esta clase o subir un audio para obtener un resumen inteligente, o generar preguntas y flashcards a partir de tus notas.</>
           ) : (
-            " puedes grabar tus clases o subir un archivo de audio para generar resúmenes."
+            " puedes generar preguntas y flashcards a partir de tus notas para estudiar de forma activa."
           )}
         </p>
       </div>
@@ -204,6 +285,47 @@ export const NotebookCJ = ({ temaOscuro, cerrarPanel }) => {
         <button onClick={guardarNota} className="flex-1 py-2 bg-[#22d3ee] text-black rounded-xl font-black text-[10px] uppercase hover:bg-[#1bc1da]">Guardar nota</button>
         <button onClick={exportarPDF} className="flex-1 py-2 bg-gray-600 text-white rounded-xl font-black text-[10px] uppercase hover:bg-gray-700">Exportar PDF</button>
       </div>
+
+      <div className="mt-4 flex gap-2">
+        <button onClick={generarPreguntas} disabled={generandoPreguntas} className="flex-1 py-2 border rounded-xl font-black text-[10px] uppercase bg-green-500/20 text-green-400 border-green-500/40">
+          {generandoPreguntas ? 'Generando...' : '📝 Generar preguntas'}
+        </button>
+        <button onClick={generarFlashcards} disabled={generandoFlashcards} className="flex-1 py-2 border rounded-xl font-black text-[10px] uppercase bg-yellow-500/20 text-yellow-400 border-yellow-500/40">
+          {generandoFlashcards ? 'Generando...' : '🧠 Crear flashcards'}
+        </button>
+      </div>
+
+      {mostrarMaterial && materialGenerado && (
+        <div className="mt-4 p-3 rounded-xl bg-black/20 border border-[#22d3ee]/30">
+          <div className="flex justify-between items-center mb-2">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#22d3ee]">
+              {materialGenerado.tipo === 'preguntas' ? '📋 Preguntas generadas' : '🃏 Flashcards generadas'}
+            </h4>
+            <button onClick={() => setMostrarMaterial(false)} className="text-gray-400 text-xs hover:text-white">✕</button>
+          </div>
+          <div className="max-h-60 overflow-y-auto text-xs space-y-2">
+            {materialGenerado.tipo === 'preguntas' && materialGenerado.contenido.preguntas?.map((p, idx) => (
+              <div key={idx} className="border-b border-gray-700 pb-2">
+                <p className="font-bold">{idx+1}. {p.texto}</p>
+                <ul className="ml-4 list-disc">
+                  {p.opciones.map((opt, i) => <li key={i}>{opt}</li>)}
+                </ul>
+                <p className="text-green-400 text-[10px] mt-1">✅ Respuesta correcta: {p.respuesta_correcta}</p>
+                <p className="text-gray-400 text-[10px]">{p.feedback}</p>
+              </div>
+            ))}
+            {materialGenerado.tipo === 'flashcards' && materialGenerado.contenido.flashcards?.map((f, idx) => (
+              <div key={idx} className="border-b border-gray-700 pb-2">
+                <p className="font-bold">🔹 {f.anverso}</p>
+                <p className="text-gray-300">🔸 {f.reverso}</p>
+              </div>
+            ))}
+          </div>
+          <button onClick={guardarMaterialGenerado} className="mt-3 w-full py-1 bg-[#22d3ee]/20 text-[#22d3ee] rounded-lg text-[10px] font-black uppercase hover:bg-[#22d3ee]/30">
+            💾 Guardar en mi historial
+          </button>
+        </div>
+      )}
 
       <p className={`text-[9px] mt-3 text-center font-bold uppercase ${textoSecundario}`}>{estado}</p>
     </div>

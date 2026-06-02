@@ -15,7 +15,7 @@ export function useGitHubScanner() {
     const cacheKey = `github_scanner_${GITHUB_USER}_${GITHUB_REPO}`;
     const cacheTimeKey = `${cacheKey}_time`;
     const ahora = Date.now();
-    const unaHora = 60 * 60 * 1000;
+    const unaHora = 5 * 60 * 1000;
 
     if (!forzar) {
       const cache = localStorage.getItem(cacheKey);

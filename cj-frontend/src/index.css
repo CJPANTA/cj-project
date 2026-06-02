@@ -19,8 +19,73 @@ body {
   transition: background-color 0.3s, color 0.3s;
 }
 
-/* Modo claro (se activa con la clase .light en el body o con un atributo, pero tu toggle actual usa temaOscuro booleano, por lo que estos estilos se aplican dinámicamente desde los componentes. Dejamos las variables listas. */
-/* Estilos para tablas en el Oráculo Aura */
+/* Estilos globales para tablas en modo claro y oscuro */
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5em 0;
+  font-size: 0.875rem;
+  overflow-x: auto;
+  display: block;
+  white-space: nowrap;
+}
+
+.prose th,
+.prose td {
+  border: 1px solid #cbd5e1;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.prose th {
+  background-color: #f1f5f9;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.prose td {
+  background-color: transparent;
+  color: #334155;
+}
+
+/* Modo oscuro (cuando la clase .dark está en el body o en un contenedor) */
+.dark .prose th,
+.dark .prose td {
+  border-color: #334155;
+}
+
+.dark .prose th {
+  background-color: #1e293b;
+  color: #e2e8f0;
+}
+
+.dark .prose td {
+  color: #cbd5e1;
+}
+
+.prose table code {
+  background: transparent;
+  padding: 0;
+}
+
+/* Para pantallas pequeñas, permitir scroll horizontal */
+@media (max-width: 640px) {
+  .prose table {
+    white-space: normal;
+  }
+}
+/* Forzar texto oscuro en tablas en modo claro */
+:root:not(.dark) .prose th,
+:root:not(.dark) .prose td {
+  color: #1f2937 !important;
+}
+
+/* Para el contenedor de la respuesta IA */
+.text-gray-800.dark\:text-gray-200 {
+  transition: color 0.2s;
+}
+/* Estilos para tablas markdown en modo claro/oscuro */
 .prose table {
   width: 100%;
   border-collapse: collapse;
@@ -47,6 +112,7 @@ body {
 .prose th {
   background-color: #f1f5f9;
   font-weight: 700;
+  color: #1e293b;
 }
 
 .dark .prose th {
@@ -56,14 +122,13 @@ body {
 
 .prose td {
   background-color: transparent;
+  color: #334155;
 }
 
-.prose table code {
-  background: transparent;
-  padding: 0;
+.dark .prose td {
+  color: #cbd5e1;
 }
 
-/* Para pantallas pequeñas, permitir scroll horizontal */
 @media (max-width: 640px) {
   .prose table {
     white-space: normal;
