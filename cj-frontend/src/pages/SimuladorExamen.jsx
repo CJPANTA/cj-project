@@ -20,13 +20,22 @@ export default function SimuladorExamen({ temaOscuro }) {
   const [resultado, setResultado] = useState(null);
   const [error, setError] = useState('');
 
-  // Estados para el repaso rápido (interactivo)
-  const [repasoRapido, setRepasoRapido] = useState(null);
+  // Estados para repaso rápido interactivo
+  const [repasoPreguntas, setRepasoPreguntas] = useState([]);
+  const [repasoActual, setRepasoActual] = useState(0);
+  const [repasoRespuestas, setRepasoRespuestas] = useState({});
+  const [repasoFeedback, setRepasoFeedback] = useState({});
   const [mostrarRepaso, setMostrarRepaso] = useState(false);
   const [generandoRepaso, setGenerandoRepaso] = useState(false);
-  const [respuestasRepaso, setRespuestasRepaso] = useState({});
-  const [feedbacksRepaso, setFeedbacksRepaso] = useState({});
-  const [verificandoRepaso, setVerificandoRepaso] = useState(false);
+  const [repasoTerminado, setRepasoTerminado] = useState(false);
+  const [repasoAciertos, setRepasoAciertos] = useState(0);
+
+  // Flashcards (interactivas)
+  const [flashcards, setFlashcards] = useState([]);
+  const [mostrarFlashcards, setMostrarFlashcards] = useState(false);
+  const [generandoFlashcards, setGenerandoFlashcards] = useState(false);
+  const [guardandoMaterial, setGuardandoMaterial] = useState(false);
+  const [tarjetaActiva, setTarjetaActiva] = useState(null);
 
   useEffect(() => {
     if (cicloSeleccionado && estructura && estructura[cicloSeleccionado]) {
@@ -39,7 +48,7 @@ export default function SimuladorExamen({ temaOscuro }) {
     }
   }, [cicloSeleccionado, estructura]);
 
-  // Generar examen completo (sin cambios)
+  // Generar examen completo
   const generarExamen = async () => {
     if (!cicloSeleccionado || !materiaSeleccionada) {
       setError('Selecciona ciclo y materia');
@@ -47,64 +56,35 @@ export default function SimuladorExamen({ temaOscuro }) {
     }
     setCargando(true);
     setError('');
-    const prompt = `Actúa como un profesor de fisioterapia. Genera un examen de ${numPreguntas} preguntas tipo test (opción múltiple) sobre la materia "${materiaSeleccionada.replace(/_/g, ' ')}" del ciclo ${cicloSeleccionado}. Nivel de dificultad: ${nivel}. 
-    Devuelve SOLO un objeto JSON con esta estructura exacta:
-    {
-      "preguntas": [
-        {
-          "texto": "¿Cuál es la función del ...?",
-          "opciones": ["Opción A", "Opción B", "Opción C", "Opción D"],
-          "respuesta_correcta": "Opción A",
-          "feedback": "Explicación breve de por qué esa es la respuesta correcta."
-        }
-      ]
-    }
-    No incluyas texto adicional, solo el JSON.`;
-
+    const prompt = `Actúa como un profesor de fisioterapia. Genera un examen de ${numPreguntas} preguntas tipo test sobre "${materiaSeleccionada.replace(/_/g, ' ')}" del ciclo ${cicloSeleccionado}. Nivel: ${nivel}. 
+    Devuelve SOLO un JSON: {"preguntas":[{"texto":"pregunta","opciones":["A","B","C","D"],"respuesta_correcta":"A","feedback":"explicación"}]}`;
     let respuesta = await consultarAuraIA(prompt, { ciclo: `Ciclo ${cicloSeleccionado}`, materia: materiaSeleccionada });
     respuesta = respuesta.replace(/```json/g, '').replace(/```/g, '').trim();
     try {
       const data = JSON.parse(respuesta);
-      if (data.preguntas && data.preguntas.length > 0) {
+      if (data.preguntas && data.preguntas.length) {
         setPreguntas(data.preguntas);
         setExamenGenerado(true);
         setRespuestasUsuario({});
         setResultado(null);
-      } else {
-        throw new Error('No se generaron preguntas');
-      }
+      } else throw new Error();
     } catch (e) {
-      console.error('Error parsing examen:', respuesta);
       setError('Error al generar el examen. Reintenta.');
     }
     setCargando(false);
   };
 
-  // Corregir examen (sin cambios)
   const corregirExamen = async () => {
     const todasRespondidas = preguntas.every((_, idx) => respuestasUsuario[idx] !== undefined);
-    if (!todasRespondidas) {
-      setError('Responde todas las preguntas antes de corregir.');
-      return;
-    }
+    if (!todasRespondidas) { setError('Responde todas las preguntas.'); return; }
     setCargando(true);
-    setError('');
     const examenData = preguntas.map((p, idx) => ({
       pregunta: p.texto,
       respuesta_usuario: respuestasUsuario[idx],
       respuesta_correcta: p.respuesta_correcta,
       opciones: p.opciones
     }));
-    const promptCorrecion = `Corrige el siguiente examen. Calcula el porcentaje de respuestas correctas (sobre 100). Devuelve SOLO un objeto JSON con esta estructura exacta:
-{
-  "puntuacion": número (0-100),
-  "feedback": "comentario general",
-  "detalle": [
-    {"pregunta": "texto de la pregunta", "correcta": true/false, "explicacion": "texto explicativo"}
-  ]
-}
-Examen: ${JSON.stringify(examenData)}`;
-
+    const promptCorrecion = `Corrige el siguiente examen. Calcula el porcentaje de respuestas correctas. Devuelve JSON: {"puntuacion": número (0-100), "feedback": "comentario", "detalle": [{"pregunta": "texto", "correcta": true/false, "explicacion": "texto"}]}. Examen: ${JSON.stringify(examenData)}`;
     let correccion = await consultarAuraIA(promptCorrecion);
     correccion = correccion.replace(/```json/g, '').replace(/```/g, '').trim();
     try {
@@ -126,13 +106,13 @@ Examen: ${JSON.stringify(examenData)}`;
         });
       }
     } catch (e) {
-      console.error('Error parsing corrección:', correccion);
+      console.error(e);
       setError('Error al corregir. Reintenta.');
     }
     setCargando(false);
   };
 
-  // Generar repaso rápido (preguntas y flashcards sin respuestas)
+  // Generar repaso rápido interactivo (píldoras)
   const generarRepasoRapido = async () => {
     if (!cicloSeleccionado || !materiaSeleccionada) {
       setError('Selecciona ciclo y materia para generar repaso.');
@@ -140,57 +120,101 @@ Examen: ${JSON.stringify(examenData)}`;
     }
     setGenerandoRepaso(true);
     setError('');
-    const prompt = `Actúa como un tutor de fisioterapia. Basándote en la materia "${materiaSeleccionada.replace(/_/g, ' ')}" del ciclo ${cicloSeleccionado}, genera:
-    1) 3 preguntas tipo test. Para cada pregunta, devuelve: {"texto": "pregunta", "opciones": ["A","B","C","D"]}.
-    **No incluyas la respuesta correcta ni el feedback todavía.**
-    2) 3 flashcards. Para cada flashcard, devuelve: {"anverso": "¿Qué es...?", "reverso": "Definición de..."}.
-    Devuelve SOLO un objeto JSON válido con esta estructura:
+    const prompt = `Actúa como un tutor de fisioterapia. Basándote en la materia "${materiaSeleccionada.replace(/_/g, ' ')}" del ciclo ${cicloSeleccionado}, genera 5 preguntas tipo test (cada una con 4 opciones, respuesta correcta y feedback). Devuelve SOLO un objeto JSON con esta estructura:
     {
       "preguntas": [
-        {"texto": "pregunta", "opciones": ["A","B","C","D"]}
-      ],
-      "flashcards": [
-        {"anverso": "...", "reverso": "..."}
+        {"texto": "pregunta", "opciones": ["A","B","C","D"], "respuesta_correcta": "A", "feedback": "explicación"}
       ]
-    }
-    No incluyas texto adicional, solo el JSON.`;
-
+    }`;
     let respuesta = await consultarAuraIA(prompt, { ciclo: `Ciclo ${cicloSeleccionado}`, materia: materiaSeleccionada });
     respuesta = respuesta.replace(/```json/g, '').replace(/```/g, '').trim();
     try {
       const data = JSON.parse(respuesta);
-      if (data.preguntas && data.flashcards && data.preguntas.length === 3 && data.flashcards.length === 3) {
-        setRepasoRapido(data);
+      if (data.preguntas && data.preguntas.length > 0) {
+        setRepasoPreguntas(data.preguntas);
+        setRepasoActual(0);
+        setRepasoRespuestas({});
+        setRepasoFeedback({});
+        setRepasoTerminado(false);
+        setRepasoAciertos(0);
         setMostrarRepaso(true);
-        setRespuestasRepaso({});
-        setFeedbacksRepaso({});
-      } else {
-        throw new Error('Formato incorrecto');
-      }
+      } else throw new Error();
     } catch (e) {
-      console.error('Error parsing repaso:', respuesta);
       setError('Error al generar repaso. Reintenta.');
     }
     setGenerandoRepaso(false);
   };
 
-  // Verificar una pregunta del repaso rápido (obtener respuesta correcta y feedback)
-  const verificarPreguntaRepaso = async (idx, respuestaSeleccionada) => {
-    if (!respuestaSeleccionada) return;
-    setVerificandoRepaso(true);
-    const preguntaTexto = repasoRapido.preguntas[idx].texto;
-    const opciones = repasoRapido.preguntas[idx].opciones;
-    const prompt = `Actúa como un tutor. La siguiente pregunta es: "${preguntaTexto}" con opciones: ${JSON.stringify(opciones)}. El usuario ha respondido: "${respuestaSeleccionada}". Indica cuál es la respuesta correcta y proporciona una breve retroalimentación. Devuelve SOLO un objeto JSON con: {"correcta": "opción correcta", "feedback": "explicación"}`;
+  const responderRepaso = (preguntaIdx, opcionSeleccionada) => {
+    const pregunta = repasoPreguntas[preguntaIdx];
+    const esCorrecta = opcionSeleccionada === pregunta.respuesta_correcta;
+    setRepasoRespuestas(prev => ({ ...prev, [preguntaIdx]: opcionSeleccionada }));
+    setRepasoFeedback(prev => ({ ...prev, [preguntaIdx]: { correcta: esCorrecta, feedback: pregunta.feedback, respuestaCorrecta: pregunta.respuesta_correcta } }));
+    if (esCorrecta) {
+      setRepasoAciertos(prev => prev + 1);
+    }
+  };
+
+  const siguienteRepaso = () => {
+    if (repasoActual + 1 < repasoPreguntas.length) {
+      setRepasoActual(repasoActual + 1);
+    } else {
+      setRepasoTerminado(true);
+    }
+  };
+
+  const reiniciarRepaso = () => {
+    setMostrarRepaso(false);
+    setRepasoPreguntas([]);
+    setRepasoRespuestas({});
+    setRepasoFeedback({});
+    setRepasoTerminado(false);
+    setRepasoAciertos(0);
+  };
+
+  // Generar flashcards
+  const generarFlashcards = async () => {
+    if (!cicloSeleccionado || !materiaSeleccionada) {
+      setError('Selecciona ciclo y materia para generar flashcards.');
+      return;
+    }
+    setGenerandoFlashcards(true);
+    setError('');
+    const prompt = `Actúa como un tutor de fisioterapia. Basándote en la materia "${materiaSeleccionada.replace(/_/g, ' ')}" del ciclo ${cicloSeleccionado}, genera 5 flashcards (tarjetas de estudio). Cada flashcard debe tener un anverso (pregunta o concepto clave) y un reverso (definición o respuesta). Devuelve SOLO un objeto JSON con esta estructura:
+    {
+      "flashcards": [
+        {"anverso": "¿Qué es...?", "reverso": "Definición..."}
+      ]
+    }`;
     let respuesta = await consultarAuraIA(prompt, { ciclo: `Ciclo ${cicloSeleccionado}`, materia: materiaSeleccionada });
     respuesta = respuesta.replace(/```json/g, '').replace(/```/g, '').trim();
     try {
       const data = JSON.parse(respuesta);
-      setFeedbacksRepaso(prev => ({ ...prev, [idx]: { respuestaSeleccionada, correcta: data.correcta, feedback: data.feedback } }));
+      if (data.flashcards && data.flashcards.length > 0) {
+        setFlashcards(data.flashcards);
+        setMostrarFlashcards(true);
+        setTarjetaActiva(null);
+      } else throw new Error();
     } catch (e) {
-      console.error(e);
-      setFeedbacksRepaso(prev => ({ ...prev, [idx]: { respuestaSeleccionada, correcta: "Error", feedback: "No se pudo verificar la respuesta." } }));
+      setError('Error al generar flashcards. Reintenta.');
     }
-    setVerificandoRepaso(false);
+    setGenerandoFlashcards(false);
+  };
+
+  const guardarMaterial = async (tipo, contenido) => {
+    setGuardandoMaterial(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from('material_estudio').insert({
+        user_id: user.id,
+        titulo: `${tipo === 'preguntas' ? 'Repaso rápido' : 'Flashcards'}: ${materiaSeleccionada.replace(/_/g, ' ')} (Ciclo ${cicloSeleccionado})`,
+        tipo: tipo,
+        contenido: contenido
+      });
+      setError(`✅ Material guardado en tu historial.`);
+      setTimeout(() => setError(''), 3000);
+    }
+    setGuardandoMaterial(false);
   };
 
   const reiniciar = () => {
@@ -199,15 +223,19 @@ Examen: ${JSON.stringify(examenData)}`;
     setResultado(null);
     setRespuestasUsuario({});
     setMostrarRepaso(false);
-    setRepasoRapido(null);
-    setRespuestasRepaso({});
-    setFeedbacksRepaso({});
+    setMostrarFlashcards(false);
+    setRepasoPreguntas([]);
+    setFlashcards([]);
     setError('');
   };
 
   const bgCard = temaOscuro ? 'bg-[#0a141d] border-gray-800' : 'bg-white border-gray-200 shadow-sm';
   const textoColor = temaOscuro ? 'text-white' : 'text-[#0f172a]';
   const inputBg = temaOscuro ? 'bg-[#020813] border-gray-800' : 'bg-gray-100 border-gray-300';
+
+  const toggleTarjeta = (idx) => {
+    setTarjetaActiva(tarjetaActiva === idx ? null : idx);
+  };
 
   return (
     <main className="p-4 md:p-8 max-w-5xl mx-auto w-full">
@@ -249,73 +277,101 @@ Examen: ${JSON.stringify(examenData)}`;
               </select>
             </div>
           </div>
-          <div className="flex gap-3 mt-2">
+          <div className="flex gap-3 mt-2 flex-wrap">
             <button onClick={generarExamen} disabled={cargando} className="flex-1 bg-[#22d3ee] text-black font-bold py-3 rounded-xl hover:bg-[#1bc1da] transition-all">
               {cargando ? 'Generando...' : 'Generar Examen'}
             </button>
             <button onClick={generarRepasoRapido} disabled={generandoRepaso} className="flex-1 bg-green-600 text-white font-bold py-3 rounded-xl hover:bg-green-700 transition-all">
-              {generandoRepaso ? 'Generando...' : '📚 Repaso rápido'}
+              {generandoRepaso ? 'Generando...' : '📝 Repaso rápido'}
+            </button>
+            <button onClick={generarFlashcards} disabled={generandoFlashcards} className="flex-1 bg-purple-600 text-white font-bold py-3 rounded-xl hover:bg-purple-700 transition-all">
+              {generandoFlashcards ? 'Generando...' : '🃏 Flashcards'}
             </button>
           </div>
           {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
         </div>
       </div>
 
-      {/* Repaso rápido interactivo */}
-      {mostrarRepaso && repasoRapido && (
+      {/* Repaso rápido interactivo (píldoras) */}
+      {mostrarRepaso && !repasoTerminado && repasoPreguntas.length > 0 && (
         <div className={`${bgCard} p-5 rounded-2xl border mb-8`}>
           <div className="flex justify-between items-center mb-3">
-            <h3 className={`text-lg font-bold ${textoColor}`}>📖 Repaso rápido (interactivo)</h3>
-            <button onClick={() => setMostrarRepaso(false)} className="text-gray-400 hover:text-red-400">✕</button>
+            <h3 className={`text-lg font-bold ${textoColor}`}>📝 Repaso interactivo</h3>
+            <button onClick={reiniciarRepaso} className="text-gray-400 hover:text-red-400 text-xs">✕ Cerrar</button>
           </div>
-          <div className="space-y-6">
-            {/* Preguntas interactivas */}
-            <div>
-              <h4 className={`text-sm font-bold text-[#22d3ee] mb-3`}>🎯 Preguntas tipo test</h4>
-              <div className="space-y-5">
-                {repasoRapido.preguntas.map((p, idx) => (
-                  <div key={idx} className="p-4 bg-black/5 rounded-lg">
-                    <p className={`font-bold mb-3 ${textoColor}`}>{idx+1}. {p.texto}</p>
-                    <div className="space-y-2 mb-3">
-                      {p.opciones.map((opt, optIdx) => (
-                        <label key={optIdx} className="flex items-center gap-3 cursor-pointer">
-                          <input type="radio" name={`repaso_${idx}`} value={opt} onChange={(e) => setRespuestasRepaso({...respuestasRepaso, [idx]: e.target.value})} className="w-4 h-4" />
-                          <span className={`text-sm ${textoColor}`}>{opt}</span>
-                        </label>
-                      ))}
-                    </div>
-                    <button onClick={() => verificarPreguntaRepaso(idx, respuestasRepaso[idx])} disabled={verificandoRepaso} className="text-xs bg-[#22d3ee]/20 text-[#22d3ee] px-3 py-1 rounded-full hover:bg-[#22d3ee]/30">
-                      {verificandoRepaso ? 'Verificando...' : 'Verificar respuesta'}
-                    </button>
-                    {feedbacksRepaso[idx] && (
-                      <div className="mt-3 p-2 bg-black/20 rounded-md">
-                        <p className={`text-xs font-bold ${feedbacksRepaso[idx].correcta !== "Error" ? 'text-green-400' : 'text-red-400'}`}>
-                          Respuesta correcta: {feedbacksRepaso[idx].correcta}
-                        </p>
-                        <p className="text-xs text-gray-300 mt-1">{feedbacksRepaso[idx].feedback}</p>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-            {/* Flashcards (sin cambios) */}
-            <div>
-              <h4 className={`text-sm font-bold text-[#22d3ee] mb-3`}>🃏 Flashcards</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {repasoRapido.flashcards.map((f, idx) => (
-                  <div key={idx} className="p-4 bg-black/5 rounded-lg border-l-4 border-[#22d3ee]">
-                    <p className="font-bold text-sm">{f.anverso}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">{f.reverso}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
+          <div className="space-y-4">
+            <div className="p-4 bg-black/5 rounded-lg">
+  <p className={`font-bold mb-2 ${textoColor}`}>{repasoActual+1}. {repasoPreguntas[repasoActual].texto}</p>
+  <div className="space-y-2">
+    {repasoPreguntas[repasoActual].opciones.map((opt, idx) => (
+      <label key={idx} className="flex items-center gap-3 cursor-pointer">
+        <input
+          type="radio"
+          name={`repaso_${repasoActual}`}  // nombre único por pregunta
+          value={opt}
+          checked={repasoRespuestas[repasoActual] === opt}
+          onChange={() => responderRepaso(repasoActual, opt)}
+          disabled={repasoFeedback[repasoActual] !== undefined}
+          className="w-4 h-4"
+        />
+        <span className={`text-sm ${textoColor}`}>{opt}</span>
+      </label>
+    ))}
+  </div>
+  {repasoFeedback[repasoActual] && (
+    <div className={`mt-3 p-2 rounded ${repasoFeedback[repasoActual].correcta ? 'bg-green-500/20 text-green-600' : 'bg-red-500/20 text-red-600'}`}>
+      <p className="text-sm font-bold">{repasoFeedback[repasoActual].correcta ? '✔ Correcto' : '✗ Incorrecto'}</p>
+      <p className="text-xs">{repasoFeedback[repasoActual].feedback}</p>
+      {!repasoFeedback[repasoActual].correcta && <p className="text-xs mt-1">Respuesta correcta: {repasoFeedback[repasoActual].respuestaCorrecta}</p>}
+    </div>
+  )}
+  {repasoFeedback[repasoActual] && (
+    <button onClick={siguienteRepaso} className="mt-3 px-4 py-1 bg-[#22d3ee] text-black rounded-lg text-xs font-black uppercase">
+      {repasoActual + 1 === repasoPreguntas.length ? 'Finalizar repaso' : 'Siguiente pregunta →'}
+    </button>
+  )}
+</div>
           </div>
         </div>
       )}
 
-      {/* Examen generado (sin cambios) */}
+      {repasoTerminado && (
+        <div className={`${bgCard} p-5 rounded-2xl border mb-8`}>
+          <h3 className={`text-lg font-bold mb-2 ${textoColor}`}>📊 Resultado del repaso</h3>
+          <p className="text-sm">Acertaste {repasoAciertos} de {repasoPreguntas.length} preguntas.</p>
+          <button onClick={reiniciarRepaso} className="mt-3 px-4 py-1 bg-[#22d3ee] text-black rounded-lg text-xs font-black uppercase">Cerrar</button>
+          <button onClick={() => guardarMaterial('preguntas', repasoPreguntas)} disabled={guardandoMaterial} className="ml-2 mt-3 px-4 py-1 bg-green-600 text-white rounded-lg text-xs font-black uppercase">💾 Guardar repaso</button>
+        </div>
+      )}
+
+      {/* Flashcards (igual que antes) */}
+      {mostrarFlashcards && flashcards.length > 0 && (
+        <div className={`${bgCard} p-5 rounded-2xl border mb-8`}>
+          <div className="flex justify-between items-center mb-3">
+            <h3 className={`text-lg font-bold ${textoColor}`}>🃏 Flashcards - Haz clic para voltear</h3>
+            <button onClick={() => setMostrarFlashcards(false)} className="text-gray-400 hover:text-red-400">✕</button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {flashcards.map((card, idx) => (
+              <div key={idx} onClick={() => toggleTarjeta(idx)} className="relative cursor-pointer h-48 perspective-1000">
+                <div className={`relative w-full h-full transition-transform duration-500 transform-style-3d ${tarjetaActiva === idx ? 'rotate-y-180' : ''}`}>
+                  <div className="absolute inset-0 backface-hidden bg-gradient-to-br from-[#22d3ee]/20 to-[#10b981]/20 rounded-xl p-4 flex items-center justify-center shadow-lg border border-[#22d3ee]/30">
+                    <p className="text-center font-bold text-sm">{card.anverso}</p>
+                  </div>
+                  <div className="absolute inset-0 backface-hidden rotate-y-180 bg-gradient-to-br from-[#0a141d] to-[#1e293b] rounded-xl p-4 flex items-center justify-center shadow-lg border border-white/20">
+                    <p className="text-center text-gray-200 text-sm">{card.reverso}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button onClick={() => guardarMaterial('flashcards', flashcards)} disabled={guardandoMaterial} className="mt-6 w-full py-2 bg-[#22d3ee]/20 text-[#22d3ee] rounded-lg text-xs font-black uppercase hover:bg-[#22d3ee]/30">
+            {guardandoMaterial ? 'Guardando...' : '💾 Guardar estas flashcards'}
+          </button>
+        </div>
+      )}
+
+      {/* Examen completo (sin cambios) */}
       {examenGenerado && (
         <div>
           <div className="flex justify-between items-center mb-4">
@@ -340,7 +396,6 @@ Examen: ${JSON.stringify(examenData)}`;
               <button onClick={corregirExamen} disabled={cargando} className="w-full bg-green-600 text-white font-bold py-3 rounded-xl hover:bg-green-700 transition-all">
                 {cargando ? 'Corrigiendo...' : 'Corregir Examen'}
               </button>
-              {error && <p className="text-red-500 text-sm mt-2 text-center">{error}</p>}
             </div>
           ) : (
             <div className={`${bgCard} p-6 rounded-2xl border`}>
@@ -363,6 +418,14 @@ Examen: ${JSON.stringify(examenData)}`;
           )}
         </div>
       )}
+
+      {/* Estilos CSS para el volteo 3D */}
+      <style jsx>{`
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+      `}</style>
     </main>
   );
 }
