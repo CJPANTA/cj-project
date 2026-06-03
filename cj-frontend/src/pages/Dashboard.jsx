@@ -8,6 +8,7 @@ import TutorChat from '../components/TutorChat';
 import { useAura } from '../context/AuraContext';
 import HistorialWidget from '../components/HistorialWidget';
 import RecordatoriosWidget from '../components/RecordatoriosWidget';
+import CalendarioWidget from '../components/CalendarioWidget';
 import { supabase } from '../lib/supabaseClient';
 
 export default function Dashboard({ temaOscuro }) {
@@ -29,14 +30,12 @@ export default function Dashboard({ temaOscuro }) {
   const [panelNotasAbierto, setPanelNotasAbierto] = useState(false);
   const [panelTutorAbierto, setPanelTutorAbierto] = useState(false);
 
-  const frasesEstaticas = [
-    "💪 El éxito es la suma de pequeños esfuerzos repetidos día tras día.",
-    "🧠 La fisioterapia no es solo tratar, es educar y prevenir.",
-    "📚 Cada PDF leído es un paso más hacia tu especialización.",
-    "🎯 La constancia vence al talento cuando el talento no es constante.",
-    "🩺 Un buen fisioterapeuta nunca deja de aprender.",
-    "🌟 Hoy es un buen día para repasar tu ciclo actual."
-  ];
+  // Cargar frase motivacional desde IA al iniciar
+  const cargarFraseInicial = async () => {
+    const prompt = "Actúa como un motivador experto en fisioterapia. Genera una frase corta, original y poderosa para inspirar a un estudiante de fisioterapia a seguir estudiando. Responde solo con la frase, sin comillas ni texto adicional.";
+    const respuesta = await consultarAuraIA(prompt, {});
+    setFraseMotivacional(respuesta || "🌟 Hoy es un excelente día para aprender algo nuevo.");
+  };
 
   useEffect(() => {
     const usuarioLogueado = localStorage.getItem('usuario_cj');
@@ -44,8 +43,7 @@ export default function Dashboard({ temaOscuro }) {
     const hora = new Date().getHours();
     setSaludo(hora < 12 ? 'Buenos días' : hora < 18 ? 'Buenas tardes' : 'Buenas noches');
 
-    const randomIndex = Math.floor(Math.random() * frasesEstaticas.length);
-    setFraseMotivacional(frasesEstaticas[randomIndex]);
+    cargarFraseInicial();
 
     const pdf = localStorage.getItem('ultimo_pdf_visto');
     if (pdf) setUltimoPDF(JSON.parse(pdf));
@@ -257,6 +255,8 @@ export default function Dashboard({ temaOscuro }) {
 
       <RecordatoriosWidget temaOscuro={temaOscuro} />
       <HistorialWidget temaOscuro={temaOscuro} />
+      <CalendarioWidget temaOscuro={temaOscuro} />
+      <NotebookCJ temaOscuro={temaOscuro} />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Link to="/area-estudio" className={`p-8 rounded-3xl border ${bgTarjeta} flex flex-col items-center group hover:border-[#22d3ee] transition-all`}>
@@ -273,8 +273,7 @@ export default function Dashboard({ temaOscuro }) {
         </Link>
       </div>
 
-      {/* Paneles laterales flotantes */}
-      {/* Panel de notas */}
+      {/* Paneles laterales */}
       {panelNotasAbierto && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setPanelNotasAbierto(false)} />
@@ -284,17 +283,16 @@ export default function Dashboard({ temaOscuro }) {
         </div>
       )}
 
-      {/* Panel del tutor - AHORA CON EL COMPONENTE TutorChat */}
       {panelTutorAbierto && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setPanelTutorAbierto(false)} />
-          <div className="relative w-full max-w-md h-full bg-white dark:bg-[#0a141d] shadow-2xl animate-slide-in-right">
+          <div className="relative w-full max-w-[90%] sm:max-w-md h-full bg-white dark:bg-[#0a141d] shadow-2xl animate-slide-in-right overflow-y-auto">
             <TutorChat temaOscuro={temaOscuro} onCerrar={() => setPanelTutorAbierto(false)} />
           </div>
         </div>
       )}
 
-      {/* Botones flotantes para abrir paneles (solo visibles en móvil o siempre) */}
+      {/* Botones flotantes */}
       <div className="fixed bottom-6 right-6 flex gap-3 z-40">
         <button
           onClick={() => setPanelNotasAbierto(true)}

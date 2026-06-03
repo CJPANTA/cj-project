@@ -19,11 +19,8 @@ export default function TutorChat({ temaOscuro, onCerrar }) {
     return pdf ? JSON.parse(pdf) : null;
   };
 
-  // Precargar voces (sin necesidad de useEffect adicional complejo)
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      window.speechSynthesis.getVoices();
-    }
+    window.speechSynthesis.getVoices();
   }, []);
 
   useEffect(() => {
@@ -97,7 +94,6 @@ export default function TutorChat({ temaOscuro, onCerrar }) {
       .replace(/[#\-*_>|]/g, '')
       .replace(/\s+/g, ' ')
       .trim();
-    
     const utterance = new SpeechSynthesisUtterance(textoLimpio);
     utterance.lang = 'es-ES';
     utterance.rate = 0.9;
@@ -123,8 +119,9 @@ export default function TutorChat({ temaOscuro, onCerrar }) {
   const bordeColor = temaOscuro ? 'border-gray-800' : 'border-gray-200';
 
   return (
-    <div className={`flex flex-col h-full ${bgFondo} border-l ${bordeColor} transition-colors duration-300`}>
-      <div className="flex justify-between items-center p-4 border-b border-gray-700">
+    <div className={`flex flex-col h-full ${bgFondo} border-l ${bordeColor} transition-colors duration-300 w-full`}>
+      {/* Cabecera */}
+      <div className="flex justify-between items-center p-4 border-b border-gray-700 shrink-0">
         <div>
           <h3 className={`text-sm font-black uppercase tracking-wider ${textoColor}`}>🎓 Tutor Aura</h3>
           <p className={`text-[9px] ${textoSecundario}`}>
@@ -138,6 +135,7 @@ export default function TutorChat({ temaOscuro, onCerrar }) {
         </div>
       </div>
 
+      {/* Mensajes */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {mensajes.length === 0 ? (
           <div className="text-center text-gray-500 mt-10">
@@ -178,21 +176,48 @@ export default function TutorChat({ temaOscuro, onCerrar }) {
         <div ref={mensajesEndRef} />
       </div>
 
-      <div className="p-4 border-t border-gray-700">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && enviarMensaje()}
-            placeholder="Escribe tu pregunta..."
-            className={`flex-1 bg-black/20 border ${bordeColor} rounded-xl px-4 py-3 text-sm outline-none focus:border-[#22d3ee] ${textoColor}`}
-          />
-          <button onClick={() => enviarMensaje()} disabled={cargando} className="px-4 bg-[#22d3ee] text-black font-black rounded-xl text-xs uppercase hover:scale-105 transition-all disabled:opacity-50">Enviar</button>
-          <button onClick={iniciarDictado} disabled={cargando} className={`px-3 rounded-xl text-white font-black text-xs uppercase transition-all ${escuchando ? 'bg-red-500 animate-pulse' : 'bg-purple-600 hover:bg-purple-700'}`} title="Dictar por voz">🎙️</button>
-          <button onClick={leerRespuesta} disabled={cargando || mensajes.filter(m => m.role === 'assistant').length === 0} className="px-3 rounded-xl bg-green-600 text-white font-black text-xs uppercase hover:bg-green-700 transition-all disabled:opacity-50" title="Leer última respuesta">🔊</button>
+      {/* Input + Botones - Ajustado para móvil: flex-wrap y tamaño reducido */}
+      <div className="p-4 border-t border-gray-700 shrink-0">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex gap-2 flex-1">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && enviarMensaje()}
+              placeholder="Escribe tu pregunta..."
+              className={`flex-1 bg-black/20 border ${bordeColor} rounded-xl px-4 py-3 text-sm outline-none focus:border-[#22d3ee] ${textoColor} min-w-0`}
+            />
+            <button
+              onClick={() => enviarMensaje()}
+              disabled={cargando}
+              className="px-4 bg-[#22d3ee] text-black font-black rounded-xl text-xs uppercase hover:scale-105 transition-all disabled:opacity-50 whitespace-nowrap"
+            >
+              Enviar
+            </button>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={iniciarDictado}
+              disabled={cargando}
+              className={`px-3 py-2 rounded-xl text-white font-black text-xs uppercase transition-all ${escuchando ? 'bg-red-500 animate-pulse' : 'bg-purple-600 hover:bg-purple-700'}`}
+              title="Dictar por voz"
+            >
+              🎙️
+            </button>
+            <button
+              onClick={leerRespuesta}
+              disabled={cargando || mensajes.filter(m => m.role === 'assistant').length === 0}
+              className="px-3 py-2 rounded-xl bg-green-600 text-white font-black text-xs uppercase hover:bg-green-700 transition-all disabled:opacity-50"
+              title="Leer última respuesta"
+            >
+              🔊
+            </button>
+          </div>
         </div>
-        <p className={`text-[9px] mt-2 text-center ${textoSecundario}`}>El tutor recuerda la conversación. Usa el micrófono 🎙️ para hablar o 🔊 para escuchar la respuesta.</p>
+        <p className={`text-[9px] mt-2 text-center ${textoSecundario}`}>
+          El tutor recuerda la conversación. Usa el micrófono 🎙️ para hablar o 🔊 para escuchar la respuesta.
+        </p>
       </div>
     </div>
   );
