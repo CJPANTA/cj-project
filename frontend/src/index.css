@@ -1,0 +1,112 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cj-dark: #0a141d;
+  --color-cj-cyan: #22d3ee;
+  --color-cj-emerald: #10b981;
+  --color-cj-glass: rgba(255, 255, 255, 0.05);
+  --color-cj-light-bg: #f1f5f9;
+  --color-cj-light-surface: #ffffff;
+  --color-cj-light-text: #0f172a;
+  --color-cj-light-border: #e2e8f0;
+}
+
+body {
+  background-color: var(--color-cj-dark);
+  color: white;
+  margin: 0;
+  padding: 0;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* Estilos base para el contenido de la IA */
+.prose {
+  color: #1e293b !important;
+}
+.prose-invert {
+  color: #e2e8f0 !important;
+}
+
+.prose p,
+.prose li,
+.prose td,
+.prose th {
+  color: inherit;
+}
+
+/* Tablas en modo claro */
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5em 0;
+  font-size: 0.875rem;
+  overflow-x: auto;
+  display: block;
+  white-space: nowrap;
+}
+
+.prose th,
+.prose td {
+  border: 1px solid #cbd5e1;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.prose th {
+  background-color: #f1f5f9;
+  font-weight: 700;
+  color: #1e293b !important;
+}
+
+.prose td {
+  background-color: #ffffff !important;  /* Fondo blanco para legibilidad */
+  color: #1f2937 !important;
+}
+
+/* Tablas en modo oscuro (cuando .prose-invert está presente) */
+.prose-invert table {
+  border-color: #4a5568;
+}
+
+.prose-invert th,
+.prose-invert td {
+  border-color: #4a5568 !important;
+}
+
+.prose-invert th {
+  background-color: #1e293b !important;
+  color: #f1f5f9 !important;
+}
+
+.prose-invert td {
+  background-color: transparent !important;
+  color: #e2e8f0 !important;
+}
+
+/* Para pantallas pequeñas, permitir scroll horizontal */
+@media (max-width: 640px) {
+  .prose table,
+  .prose-invert table {
+    white-space: normal;
+  }
+}
+
+/* Estilos adicionales para el contenido de las respuestas (pre) */
+.prose pre,
+.prose-invert pre {
+  background-color: transparent;
+  padding: 0;
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.prose pre {
+  color: #1e293b;
+}
+.prose-invert pre {
+  color: #e2e8f0;
+}
