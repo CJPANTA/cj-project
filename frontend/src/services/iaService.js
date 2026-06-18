@@ -8,7 +8,7 @@ export const consultarAuraIA = async (pregunta, contexto = {}, historial = [], s
   const MODELO = "llama-3.3-70b-versatile";
   const URL = "https://api.groq.com/openai/v1/chat/completions";
 
-  // System prompt mejorado para forzar formato de tabla con pipes (sin markdown)
+  // System prompt por defecto (solo si no se pasa override)
   let systemPrompt = systemPromptOverride || `Eres Aura, experta en fisioterapia y rehabilitación.
 **Instrucciones estrictas para tablas comparativas:**
 Cuando necesites mostrar una tabla, usa EXACTAMENTE este formato de texto plano con pipes (|) como separadores, sin usar markdown (no uses ---, ***, etc.):
@@ -29,11 +29,15 @@ Reglas:
 
 Para el resto de respuestas, usa texto claro, listas con guiones, y negritas con ** **.`;
 
-  if (contexto.ciclo) systemPrompt += `\nEl usuario está en ${contexto.ciclo}.`;
-  if (contexto.materia) systemPrompt += `\nEstudiando: ${contexto.materia}.`;
-  if (contexto.archivo) systemPrompt += `\nArchivo abierto: ${contexto.archivo}.`;
-  if (contexto.ultimoPDF) {
-    systemPrompt += `\nHa leído recientemente el PDF: "${contexto.ultimoPDF.nombre}" (${contexto.ultimoPDF.ciclo} - ${contexto.ultimoPDF.materia}).`;
+  // Si se proporciona un systemPromptOverride, NO añadimos el contexto adicional
+  // para no mezclar instrucciones contradictorias.
+  if (!systemPromptOverride) {
+    if (contexto.ciclo) systemPrompt += `\nEl usuario está en ${contexto.ciclo}.`;
+    if (contexto.materia) systemPrompt += `\nEstudiando: ${contexto.materia}.`;
+    if (contexto.archivo) systemPrompt += `\nArchivo abierto: ${contexto.archivo}.`;
+    if (contexto.ultimoPDF) {
+      systemPrompt += `\nHa leído recientemente el PDF: "${contexto.ultimoPDF.nombre}" (${contexto.ultimoPDF.ciclo} - ${contexto.ultimoPDF.materia}).`;
+    }
   }
 
   const messages = [
