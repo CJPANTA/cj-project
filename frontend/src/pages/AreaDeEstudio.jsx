@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useGitHubScanner } from '../hooks/useGitHubScanner';
 import { useAura } from '../context/AuraContext';
 
+// Clave para localStorage (favoritos)
+const STORAGE_KEY = 'cj_favoritos';
+
 export default function AreaDeEstudio({ temaOscuro }) {
   const navigate = useNavigate();
   const { estructura, cargando, error, recargar } = useGitHubScanner();
@@ -13,6 +16,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
   const [cursoActivo, setCursoActivo] = useState('');
   const [archivosCurso, setArchivosCurso] = useState([]);
   const [archivoSeleccionado, setArchivoSeleccionado] = useState(null);
+  const [favoritos, setFavoritos] = useState([]);
 
   const GITHUB_USER = "CJPANTA";
   const GITHUB_REPO = "cj-project";
@@ -20,6 +24,35 @@ export default function AreaDeEstudio({ temaOscuro }) {
 
   const LOGO_CARRION = "https://raw.githubusercontent.com/CJPANTA/cj-project/main/logo_carrion.png";
   const LOGO_CJ_CIRCULAR = "https://raw.githubusercontent.com/CJPANTA/cj-project/main/logos_cj_circular.png";
+
+  // Cargar favoritos desde localStorage al montar
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      try {
+        setFavoritos(JSON.parse(stored));
+      } catch (e) {
+        setFavoritos([]);
+      }
+    }
+  }, []);
+
+  // Guardar favoritos en localStorage cada vez que cambien
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(favoritos));
+  }, [favoritos]);
+
+  const toggleFavorito = (nombrePDF) => {
+    setFavoritos(prev => {
+      if (prev.includes(nombrePDF)) {
+        return prev.filter(f => f !== nombrePDF);
+      } else {
+        return [...prev, nombrePDF];
+      }
+    });
+  };
+
+  const esFavorito = (nombrePDF) => favoritos.includes(nombrePDF);
 
   useEffect(() => {
     if (cicloSeleccionado && estructura && estructura[cicloSeleccionado]) {
@@ -43,10 +76,10 @@ export default function AreaDeEstudio({ temaOscuro }) {
     const rawUrl = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/main/BASE_DATOS/01_CARRION/CICLO_${cicloSeleccionado}/${encodeURIComponent(cursoActivo)}/${encodeURIComponent(nombreArchivo)}`;
     const antiCache = new Date().getTime();
     localStorage.setItem('ultimo_pdf_visto', JSON.stringify({
-  nombre: nombreArchivo,
-  ciclo: `Ciclo ${cicloSeleccionado}`,
-  materia: cursoActivo
-}));
+      nombre: nombreArchivo,
+      ciclo: `Ciclo ${cicloSeleccionado}`,
+      materia: cursoActivo
+    }));
     setArchivoSeleccionado({
       nombre: nombreArchivo,
       viewer: `https://docs.google.com/viewer?url=${encodeURIComponent(rawUrl)}&embedded=true&ignore=${antiCache}`,
@@ -157,7 +190,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
     );
   }
 
-  // Vista 3: Navegador del ciclo (materias y archivos)
+  // Vista 3: Navegador del ciclo (materias y archivos) con botón de favorito
   return (
     <main className="p-4 md:p-8 max-w-full overflow-hidden">
       <style>{`
@@ -216,9 +249,25 @@ export default function AreaDeEstudio({ temaOscuro }) {
                       {f.replace('.pdf', '').replace(/_/g, ' ')}
                     </p>
                   </div>
-                  <button onClick={() => prepararLector(f)} className="bg-[#22d3ee] text-black px-6 py-3.5 rounded-xl text-[10px] font-black">
-                    Ver
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => toggleFavorito(f)}
+                      className={`px-2 py-2 rounded-xl text-sm transition-all ${
+                        esFavorito(f)
+                          ? 'text-yellow-400 hover:text-yellow-300'
+                          : 'text-gray-400 hover:text-yellow-300'
+                      }`}
+                      title={esFavorito(f) ? 'Quitar de favoritos' : 'Añadir a favoritos'}
+                    >
+                      {esFavorito(f) ? '⭐' : '☆'}
+                    </button>
+                    <button 
+                      onClick={() => prepararLector(f)} 
+                      className="bg-[#22d3ee] text-black px-6 py-3.5 rounded-xl text-[10px] font-black"
+                    >
+                      Ver
+                    </button>
+                  </div>
                 </div>
               )) : (
                 <div className="py-24 text-center text-gray-500">Sin documentos en esta materia</div>

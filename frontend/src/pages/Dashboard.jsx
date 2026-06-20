@@ -8,6 +8,7 @@ import HistorialWidget from '../components/HistorialWidget';
 import RecordatoriosWidget from '../components/RecordatoriosWidget';
 import CalendarioWidget from '../components/CalendarioWidget';
 import { supabase } from '../lib/supabaseClient';
+import FavoritosWidget from '../components/FavoritosWidget';
 
 export default function Dashboard({ temaOscuro }) {
   const [saludo, setSaludo] = useState('');
@@ -341,6 +342,7 @@ export default function Dashboard({ temaOscuro }) {
       <RecordatoriosWidget temaOscuro={temaOscuro} />
       <HistorialWidget temaOscuro={temaOscuro} />
       <CalendarioWidget temaOscuro={temaOscuro} />
+      <FavoritosWidget temaOscuro={temaOscuro} />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Link to="/area-estudio" className={`p-8 rounded-3xl border ${bgTarjeta} flex flex-col items-center group hover:border-[#22d3ee] transition-all`}><span className="text-5xl mb-4 group-hover:scale-110 transition-transform">🎓</span><span className="text-[#22d3ee] text-[11px] font-black uppercase">Repositorio</span></Link>

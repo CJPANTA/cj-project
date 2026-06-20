@@ -85,15 +85,7 @@ export default function SimuladorExamen({ temaOscuro }) {
       opciones: p.opciones
     }));
     const promptCorrecion = `Corrige el siguiente examen. Calcula el porcentaje de respuestas correctas. Devuelve JSON: {"puntuacion": número (0-100), "feedback": "comentario", "detalle": [{"pregunta": "texto", "correcta": true/false, "explicacion": "texto"}]}. Examen: ${JSON.stringify(examenData)}`;
-    
-    // PASAMOS UN SYSTEM PROMPT ESPECÍFICO PARA CORRECCIÓN (sin tablas)
-    let correccion = await consultarAuraIA(
-      promptCorrecion,
-      {}, // contexto vacío para corrección
-      [], // historial vacío
-      "Eres un asistente experto en fisioterapia. Tu respuesta DEBE ser únicamente un objeto JSON válido, sin texto adicional, sin comillas triples, sin markdown, sin tablas. La respuesta debe ser parseable con JSON.parse()."
-    );
-    
+    let correccion = await consultarAuraIA(promptCorrecion);
     correccion = correccion.replace(/```json/g, '').replace(/```/g, '').trim();
     try {
       const jsonCorr = JSON.parse(correccion);
@@ -315,7 +307,7 @@ export default function SimuladorExamen({ temaOscuro }) {
       <label key={idx} className="flex items-center gap-3 cursor-pointer">
         <input
           type="radio"
-          name={`repaso_${repasoActual}`}
+          name={`repaso_${repasoActual}`}  // nombre único por pregunta
           value={opt}
           checked={repasoRespuestas[repasoActual] === opt}
           onChange={() => responderRepaso(repasoActual, opt)}

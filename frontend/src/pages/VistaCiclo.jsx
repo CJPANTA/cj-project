@@ -1,20 +1,36 @@
 import { useState, useEffect } from 'react';
-
-// Importamos el mapa real generado por el script 'escaner.js'
 import mapaCarrion from '../data/mapa_carrion.json';
 
+// Clave para localStorage
+const STORAGE_KEY = 'cj_favoritos';
+
 export default function VistaCiclo({ numero }) {
-  
-  // Obtenemos los datos del ciclo específico desde el JSON
   const carpetasDelCiclo = mapaCarrion[numero] || {};
   const nombresMaterias = Object.keys(carpetasDelCiclo);
 
-  // Estados para controlar la selección y el visor
   const [materiaSel, setMateriaSel] = useState("");
   const [urlVisor, setUrlVisor] = useState(null);
   const [nombreArchivoViendo, setNombreArchivoViendo] = useState("");
+  const [favoritos, setFavoritos] = useState([]);
 
-  // Efecto para resetear la vista cada vez que cambias de ciclo en el menú
+  // Cargar favoritos desde localStorage al montar
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      try {
+        setFavoritos(JSON.parse(stored));
+      } catch (e) {
+        setFavoritos([]);
+      }
+    }
+  }, []);
+
+  // Guardar favoritos en localStorage cada vez que cambien
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(favoritos));
+  }, [favoritos]);
+
+  // Resetear visor al cambiar de ciclo
   useEffect(() => {
     if (nombresMaterias.length > 0) {
       setMateriaSel(nombresMaterias[0]);
@@ -25,15 +41,35 @@ export default function VistaCiclo({ numero }) {
     setNombreArchivoViendo("");
   }, [numero]);
 
-  // Función para activar el visor de Google Docs
+  // Guardar objeto completo en favoritos
+  const toggleFavorito = (nombrePDF) => {
+    const objetoFavorito = {
+      nombre: nombrePDF,
+  // La carpeta en GitHub usa minúsculas y guiones bajos.
+  // Convertimos el nombre de la materia a ese formato.
+      ciclo: `CICLO_${numero}`,
+      materia: materiaSel.toLowerCase().replace(/ /g, '_'),
+    };
+    setFavoritos(prev => {
+      const existe = prev.some(f => f.nombre === nombrePDF);
+      if (existe) {
+        return prev.filter(f => f.nombre !== nombrePDF);
+      } else {
+        return [...prev, objetoFavorito];
+      }
+    });
+  };
+
+  // Verificar si un PDF está en favoritos (por nombre)
+  const esFavorito = (nombrePDF) => {
+    return favoritos.some(f => f.nombre === nombrePDF);
+  };
+
   const abrirPDF = (nombrePDF) => {
     const c_seguro = `CICLO_${numero}`;
     const m_segura = materiaSel.replace(/ /g, "%20");
     const a_seguro = nombrePDF.replace(/ /g, "%20");
-
-    // Construcción de la URL Raw para el visor
     const urlCruda = `https://raw.githubusercontent.com/CJPANTA/cj-project/main/BASE_DATOS/01_CARRION/${c_seguro}/${m_segura}/${a_seguro}`;
-    
     setNombreArchivoViendo(nombrePDF);
     setUrlVisor(urlCruda);
   };
@@ -41,7 +77,6 @@ export default function VistaCiclo({ numero }) {
   return (
     <main className="bg-cj-glass backdrop-blur-md border border-white/10 rounded-3xl p-8 relative overflow-y-auto h-full shadow-2xl custom-scrollbar">
       
-      {/* ENCABEZADO DINÁMICO */}
       <header className="mb-8 border-b border-white/10 pb-4">
         <h1 className="text-3xl font-black tracking-tighter text-white">
           CICLO {numero} <span className="text-cj-cyan font-light">| CARRIÓN</span>
@@ -51,7 +86,6 @@ export default function VistaCiclo({ numero }) {
         </p>
       </header>
 
-      {/* ÁREA DEL LECTOR (Solo se activa al pulsar "LEER") */}
       {urlVisor && (
         <div className="mb-8 animate-fade-in">
           <div className="flex justify-between items-center mb-4 bg-cj-dark/50 p-4 rounded-2xl border border-cj-cyan/20">
@@ -71,18 +105,18 @@ export default function VistaCiclo({ numero }) {
               width="100%" 
               height="650px" 
               style={{ border: 'none' }}
-            ></iframe>
+              title="Visor de PDF"
+            />
           </div>
         </div>
       )}
 
-      {/* EXPLORADOR DE ARCHIVOS (Grid de carpetas y documentos) */}
       {!urlVisor && (
         <div>
           {nombresMaterias.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               
-              {/* PANEL IZQUIERDO: Materias (Directorios) */}
+              {/* Panel izquierdo: Materias */}
               <div className="md:col-span-1 bg-white/5 border border-white/10 rounded-2xl p-4 h-fit sticky top-0">
                 <h3 className="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-4 px-2">Asignaturas</h3>
                 <div className="space-y-1.5">
@@ -102,7 +136,7 @@ export default function VistaCiclo({ numero }) {
                 </div>
               </div>
 
-              {/* PANEL DERECHO: Archivos PDF */}
+              {/* Panel derecho: Archivos PDF con botón de favorito */}
               <div className="md:col-span-3">
                 <div className="flex items-center justify-between mb-4 px-2">
                   <h3 className="text-xs text-cj-emerald uppercase font-bold tracking-widest">
@@ -123,15 +157,23 @@ export default function VistaCiclo({ numero }) {
                         </div>
                         
                         <div className="flex gap-2">
-                          {/* BOTÓN LEER (Acción Interna) */}
                           <button 
                             onClick={() => abrirPDF(pdf)}
                             className="flex-1 bg-cj-cyan/10 text-cj-cyan px-3 py-2 rounded-xl text-[10px] font-black border border-cj-cyan/20 hover:bg-cj-cyan/30 transition-all flex items-center justify-center gap-1.5"
                           >
                             👁️ LEER
                           </button>
-                          
-                          {/* BOTÓN DESCARGAR (Acción Externa Directa) */}
+                          <button
+                            onClick={() => toggleFavorito(pdf)}
+                            className={`px-3 py-2 rounded-xl text-[10px] font-black border transition-all flex items-center justify-center gap-1.5 ${
+                              esFavorito(pdf)
+                                ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/40'
+                                : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10'
+                            }`}
+                            title={esFavorito(pdf) ? 'Quitar de favoritos' : 'Añadir a favoritos'}
+                          >
+                            {esFavorito(pdf) ? '⭐' : '☆'}
+                          </button>
                           <a 
                             href={`https://raw.githubusercontent.com/CJPANTA/cj-project/main/BASE_DATOS/01_CARRION/CICLO_${numero}/${materiaSel.replace(/ /g, "%20")}/${pdf.replace(/ /g, "%20")}`} 
                             target="_blank" 
