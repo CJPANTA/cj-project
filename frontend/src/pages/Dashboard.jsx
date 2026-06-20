@@ -40,15 +40,12 @@ export default function Dashboard({ temaOscuro }) {
 
     while (i < lineas.length) {
       const linea = lineas[i];
-      // Detectar línea que comienza y termina con pipe (tabla)
       if (linea.trim().startsWith('|') && linea.trim().endsWith('|')) {
         const filasTabla = [];
-        // Recolectar todas las líneas consecutivas que sean filas de tabla
         while (i < lineas.length && lineas[i].trim().startsWith('|') && lineas[i].trim().endsWith('|')) {
           filasTabla.push(lineas[i].trim());
           i++;
         }
-        // Procesar filas
         const celdasPorFila = filasTabla.map(fila =>
           fila.split('|').slice(1, -1).map(celda => celda.trim())
         );
@@ -84,7 +81,6 @@ export default function Dashboard({ temaOscuro }) {
           continue;
         }
       } else {
-        // Texto normal: puede estar en párrafos o separado
         if (linea.trim() === '') {
           resultado.push(<br key={`br-${i}`} />);
         } else {
@@ -109,7 +105,6 @@ export default function Dashboard({ temaOscuro }) {
       utterance.onend = () => setReproduciendoAudio(false);
       utterance.onerror = () => setReproduciendoAudio(false);
       window.speechSynthesis.speak(utterance);
-      // Mantener audio activo en segundo plano (workaround)
       if (!window.audioContextKeepAlive) {
         window.audioContextKeepAlive = new (window.AudioContext || window.webkitAudioContext)();
         const silent = window.audioContextKeepAlive.createOscillator();
@@ -122,6 +117,13 @@ export default function Dashboard({ temaOscuro }) {
     } else {
       alert("Tu navegador no soporta síntesis de voz.");
     }
+  };
+
+  // LIMPIEZA DE NEGRITAS Y SEPARADORES
+  const limpiarRespuesta = (texto) => {
+    let limpio = texto.replace(/\*\*/g, '').replace(/\*/g, '');
+    limpio = limpio.replace(/[\*\-=]{3,}/g, '');
+    return limpio.trim();
   };
 
   const cargarFraseInicial = async () => {
@@ -234,7 +236,8 @@ export default function Dashboard({ temaOscuro }) {
     if (ultimoPDFAlmacenado) contextoCompleto.ultimoPDF = JSON.parse(ultimoPDFAlmacenado);
     const historialLimitado = historialConversacion.slice(-4);
     let respuestaRaw = await consultarAuraIA(consulta, contextoCompleto, historialLimitado);
-    respuestaRaw = respuestaRaw.replace(/[\*\-=]{3,}/g, '').trim();
+    // LIMPIEZA: eliminar ** y * (negritas y cursivas) y separadores
+    respuestaRaw = limpiarRespuesta(respuestaRaw);
     setHistorialConversacion(prev => [...prev.slice(-4), { role: 'user', content: consulta }, { role: 'assistant', content: respuestaRaw }]);
     setRespuestaIA(respuestaRaw);
     setBusqueda('');
