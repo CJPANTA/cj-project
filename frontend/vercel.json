@@ -4,4 +4,8 @@
   "outputDirectory": "frontend/dist",
   "framework": "vite",
   "devCommand": "cd frontend && vite"
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 79faeff443a7e1018617bcd703fa0facd59ba79d
