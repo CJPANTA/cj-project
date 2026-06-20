@@ -9,6 +9,7 @@ import RecordatoriosWidget from '../components/RecordatoriosWidget';
 import CalendarioWidget from '../components/CalendarioWidget';
 import { supabase } from '../lib/supabaseClient';
 import FavoritosWidget from '../components/FavoritosWidget';
+import NotificacionesActivador from '../components/NotificacionesActivador';
 
 export default function Dashboard({ temaOscuro }) {
   const [saludo, setSaludo] = useState('');
@@ -342,6 +343,7 @@ export default function Dashboard({ temaOscuro }) {
       <RecordatoriosWidget temaOscuro={temaOscuro} />
       <HistorialWidget temaOscuro={temaOscuro} />
       <CalendarioWidget temaOscuro={temaOscuro} />
+      <NotificacionesActivador temaOscuro={temaOscuro} />
       <FavoritosWidget temaOscuro={temaOscuro} />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
