@@ -88,10 +88,24 @@ export default function AreaDeEstudio({ temaOscuro }) {
     actualizarContexto({ archivo: nombreArchivo });
   };
 
+  const abrirOtroFormato = (nombreArchivo) => {
+    const rawUrl = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/main/BASE_DATOS/01_CARRION/CICLO_${cicloSeleccionado}/${encodeURIComponent(cursoActivo)}/${encodeURIComponent(nombreArchivo)}`;
+    const viewerUrl = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(rawUrl)}`;
+    window.open(viewerUrl, '_blank');
+  };
+
   const cerrarLector = () => setArchivoSeleccionado(null);
   const forzarSincronizacion = () => {
     recargar();
     window.location.reload();
+  };
+
+  const esPDF = (nombre) => nombre.toLowerCase().endsWith('.pdf');
+  const esFormatoOffice = (nombre) => {
+    const ext = nombre.toLowerCase();
+    return ext.endsWith('.pptx') || ext.endsWith('.ppt') ||
+           ext.endsWith('.docx') || ext.endsWith('.doc') ||
+           ext.endsWith('.xlsx') || ext.endsWith('.xls');
   };
 
   const textoColor = temaOscuro ? 'text-white' : 'text-[#1e293b]';
@@ -105,7 +119,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
     return (
       <main className="p-8 text-center">
         <div className="text-[#22d3ee] text-xl font-black">🔄 Escaneando repositorio desde GitHub...</div>
-        <p className="text-gray-400 text-sm mt-2">Esto toma solo unos segundos. La próxima vez será más rápido.</p>
+        <p className="text-gray-400 text-sm mt-2">No se pudo conectar a GitHub. Verifica tu conexión a internet y vuelve a intentarlo.</p>
       </main>
     );
   }
@@ -190,7 +204,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
     );
   }
 
-  // Vista 3: Navegador del ciclo (materias y archivos) con botón de favorito
+  // Vista 3: Navegador del ciclo (materias y archivos) con botón de favorito y acciones
   return (
     <main className="p-4 md:p-8 max-w-full overflow-hidden">
       <style>{`
@@ -261,12 +275,33 @@ export default function AreaDeEstudio({ temaOscuro }) {
                     >
                       {esFavorito(f) ? '⭐' : '☆'}
                     </button>
-                    <button 
-                      onClick={() => prepararLector(f)} 
-                      className="bg-[#22d3ee] text-black px-6 py-3.5 rounded-xl text-[10px] font-black"
-                    >
-                      Ver
-                    </button>
+                    
+                    {/* Botón LEER (solo para PDF) */}
+                    {esPDF(f) && (
+                      <button 
+                        onClick={() => prepararLector(f)} 
+                        className="bg-[#22d3ee] text-black px-6 py-3.5 rounded-xl text-[10px] font-black"
+                      >
+                        LEER
+                      </button>
+                    )}
+                    
+                    {/* Botón VER (para otros formatos de Office) */}
+                    {!esPDF(f) && esFormatoOffice(f) && (
+                      <button 
+                        onClick={() => abrirOtroFormato(f)} 
+                        className="bg-blue-500 text-white px-6 py-3.5 rounded-xl text-[10px] font-black hover:bg-blue-600 transition-all"
+                      >
+                        VER
+                      </button>
+                    )}
+
+                    {/* Si no es PDF ni Office, mostramos solo descarga */}
+                    {!esPDF(f) && !esFormatoOffice(f) && (
+                      <div className="flex items-center text-gray-500 text-[10px] font-black px-2">
+                        Formato no soportado
+                      </div>
+                    )}
                   </div>
                 </div>
               )) : (

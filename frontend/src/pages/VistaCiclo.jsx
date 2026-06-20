@@ -45,8 +45,6 @@ export default function VistaCiclo({ numero }) {
   const toggleFavorito = (nombrePDF) => {
     const objetoFavorito = {
       nombre: nombrePDF,
-  // La carpeta en GitHub usa minúsculas y guiones bajos.
-  // Convertimos el nombre de la materia a ese formato.
       ciclo: `CICLO_${numero}`,
       materia: materiaSel.toLowerCase().replace(/ /g, '_'),
     };
@@ -65,6 +63,7 @@ export default function VistaCiclo({ numero }) {
     return favoritos.some(f => f.nombre === nombrePDF);
   };
 
+  // Función para abrir PDF (visor de Google Docs)
   const abrirPDF = (nombrePDF) => {
     const c_seguro = `CICLO_${numero}`;
     const m_segura = materiaSel.replace(/ /g, "%20");
@@ -72,6 +71,26 @@ export default function VistaCiclo({ numero }) {
     const urlCruda = `https://raw.githubusercontent.com/CJPANTA/cj-project/main/BASE_DATOS/01_CARRION/${c_seguro}/${m_segura}/${a_seguro}`;
     setNombreArchivoViendo(nombrePDF);
     setUrlVisor(urlCruda);
+  };
+
+  // Función para abrir otros formatos (visor de Office Online)
+  const abrirOtroFormato = (nombreArchivo) => {
+    const c_seguro = `CICLO_${numero}`;
+    const m_segura = materiaSel.replace(/ /g, "%20");
+    const a_seguro = nombreArchivo.replace(/ /g, "%20");
+    const urlCruda = `https://raw.githubusercontent.com/CJPANTA/cj-project/main/BASE_DATOS/01_CARRION/${c_seguro}/${m_segura}/${a_seguro}`;
+    // Usar el visor de Office Online para Word, Excel, PowerPoint
+    const viewerUrl = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(urlCruda)}`;
+    window.open(viewerUrl, '_blank');
+  };
+
+  // Detectar extensión del archivo
+  const esPDF = (nombre) => nombre.toLowerCase().endsWith('.pdf');
+  const esFormatoOffice = (nombre) => {
+    const ext = nombre.toLowerCase();
+    return ext.endsWith('.pptx') || ext.endsWith('.ppt') ||
+           ext.endsWith('.docx') || ext.endsWith('.doc') ||
+           ext.endsWith('.xlsx') || ext.endsWith('.xls');
   };
 
   return (
@@ -136,7 +155,7 @@ export default function VistaCiclo({ numero }) {
                 </div>
               </div>
 
-              {/* Panel derecho: Archivos PDF con botón de favorito */}
+              {/* Panel derecho: Archivos con botones de acción */}
               <div className="md:col-span-3">
                 <div className="flex items-center justify-between mb-4 px-2">
                   <h3 className="text-xs text-cj-emerald uppercase font-bold tracking-widest">
@@ -157,12 +176,34 @@ export default function VistaCiclo({ numero }) {
                         </div>
                         
                         <div className="flex gap-2">
-                          <button 
-                            onClick={() => abrirPDF(pdf)}
-                            className="flex-1 bg-cj-cyan/10 text-cj-cyan px-3 py-2 rounded-xl text-[10px] font-black border border-cj-cyan/20 hover:bg-cj-cyan/30 transition-all flex items-center justify-center gap-1.5"
-                          >
-                            👁️ LEER
-                          </button>
+                          {/* Botón LEER (solo para PDF) */}
+                          {esPDF(pdf) && (
+                            <button 
+                              onClick={() => abrirPDF(pdf)}
+                              className="flex-1 bg-cj-cyan/10 text-cj-cyan px-3 py-2 rounded-xl text-[10px] font-black border border-cj-cyan/20 hover:bg-cj-cyan/30 transition-all flex items-center justify-center gap-1.5"
+                            >
+                              👁️ LEER
+                            </button>
+                          )}
+                          
+                          {/* Botón VER (para otros formatos de Office) */}
+                          {!esPDF(pdf) && esFormatoOffice(pdf) && (
+                            <button 
+                              onClick={() => abrirOtroFormato(pdf)}
+                              className="flex-1 bg-blue-500/20 text-blue-400 px-3 py-2 rounded-xl text-[10px] font-black border border-blue-500/30 hover:bg-blue-500/30 transition-all flex items-center justify-center gap-1.5"
+                            >
+                              👁️ VER
+                            </button>
+                          )}
+
+                          {/* Si no es PDF ni Office, mostramos solo descarga */}
+                          {!esPDF(pdf) && !esFormatoOffice(pdf) && (
+                            <div className="flex-1 text-center text-gray-500 text-[10px] font-black">
+                              Formato no soportado
+                            </div>
+                          )}
+                          
+                          {/* Botón de favorito (estrella) */}
                           <button
                             onClick={() => toggleFavorito(pdf)}
                             className={`px-3 py-2 rounded-xl text-[10px] font-black border transition-all flex items-center justify-center gap-1.5 ${
@@ -174,6 +215,8 @@ export default function VistaCiclo({ numero }) {
                           >
                             {esFavorito(pdf) ? '⭐' : '☆'}
                           </button>
+
+                          {/* Botón DESCARGAR (para todos) */}
                           <a 
                             href={`https://raw.githubusercontent.com/CJPANTA/cj-project/main/BASE_DATOS/01_CARRION/CICLO_${numero}/${materiaSel.replace(/ /g, "%20")}/${pdf.replace(/ /g, "%20")}`} 
                             target="_blank" 
@@ -188,7 +231,7 @@ export default function VistaCiclo({ numero }) {
                   </div>
                 ) : (
                   <div className="bg-white/5 border border-dashed border-white/10 rounded-2xl p-8 text-center">
-                    <p className="text-gray-500 text-xs italic">No se encontraron archivos PDF en esta carpeta.</p>
+                    <p className="text-gray-500 text-xs italic">No se encontraron archivos en esta carpeta.</p>
                   </div>
                 )}
               </div>

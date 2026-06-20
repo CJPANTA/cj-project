@@ -110,3 +110,37 @@ body {
 .prose-invert pre {
   color: #e2e8f0;
 }
+
+/* Ajustes para orientación horizontal (landscape) */
+@media (orientation: landscape) and (max-height: 600px) {
+  /* Reducir padding y tamaños de fuente en pantallas horizontales pequeñas */
+  .p-4.md\:p-8 {
+    padding: 0.5rem !important;
+  }
+  .prose {
+    font-size: 0.8rem !important;
+  }
+  .text-3xl {
+    font-size: 1.8rem !important;
+  }
+  .text-2xl {
+    font-size: 1.4rem !important;
+  }
+  .text-xl {
+    font-size: 1.2rem !important;
+  }
+  /* Ajustar sidebar en horizontal */
+  .sidebar-container {
+    max-width: 60px !important;
+  }
+}
+
+/* Ajustes para orientación horizontal en tabletas */
+@media (orientation: landscape) and (min-width: 768px) {
+  .prose table {
+    font-size: 0.9rem !important;
+  }
+  .grid-cols-1.md\:grid-cols-3 {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
