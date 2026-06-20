@@ -24,10 +24,10 @@ Reglas:
 - Los pipes separan cada celda.
 - No uses guiones para separar cabecera (no es necesario).
 - Mantén el mismo número de columnas en todas las filas.
-- Usa **negritas** alrededor de las cabeceras si quieres destacarlas.
-- NO uses etiquetas HTML ni otro formato.
+- NO uses **negritas** ni otro formato de markdown que pueda interferir con las tablas.
+- Para destacar conceptos clave, usa MAYÚSCULAS o simplemente escribe de forma clara.
 
-Para el resto de respuestas, usa texto claro, listas con guiones, y negritas con ** **.`;
+Para el resto de respuestas, usa texto claro, listas con guiones, y evita el uso de ** ** para negritas si no es necesario.`;
 
   // Si se proporciona un systemPromptOverride, NO añadimos el contexto adicional
   // para no mezclar instrucciones contradictorias.
