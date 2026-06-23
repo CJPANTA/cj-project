@@ -6,13 +6,25 @@ import AreaDeEstudio from './pages/AreaDeEstudio';
 import BaseConocimiento from './pages/BaseConocimiento';
 import Biblioteca from './pages/Biblioteca';
 import Multimedia from './pages/Multimedia';
-import Horario from './pages/Horario';  // <-- NUEVA IMPORTACIÓN
+import Horario from './pages/Horario';
 import Login from './pages/Login';
 import PanelDirector from './pages/PanelDirector';
 import SimuladorExamen from './pages/SimuladorExamen';
 import HistorialExamenes from './pages/HistorialExamenes';
 import { AuraProvider } from './context/AuraContext';
 import ConfiguracionAura from './pages/ConfiguracionAura';
+
+// Captura errores globales para registrar en consola
+window.onerror = function (message, source, lineno, colno, error) {
+  console.error('🔴 ERROR GLOBAL CAPTURADO:', { message, source, lineno, colno, error });
+  // Opcional: enviar a un servicio de monitoreo (ej. Sentry)
+  return false; // Permite que el navegador también lo muestre
+};
+
+// Captura promesas rechazadas no manejadas
+window.addEventListener('unhandledrejection', function (event) {
+  console.error('🔴 PROMESA RECHAZADA SIN MANEJAR:', event.reason);
+});
 
 const RutaProtegida = ({ children }) => {
   const estaLogueado = localStorage.getItem('usuario_cj');
@@ -63,16 +75,29 @@ function LayoutConSidebar({ children, temaOscuro, setTemaOscuro }) {
 
 function App() {
   const [temaOscuro, setTemaOscuro] = useState(true);
+
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
+    // Solo activamos el service worker si no estamos en modo de prueba (desactivado por variable de entorno)
+    // Si queremos desactivarlo completamente, podemos poner un flag en .env
+    const disableSW = import.meta.env.VITE_DISABLE_SW === 'true';
+    if (!disableSW && 'serviceWorker' in navigator) {
       navigator.serviceWorker.ready.then(registration => {
-        registration.update();
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-          window.location.reload();
-        });
+        console.log('✅ Service Worker registrado:', registration);
+        // Ya no forzamos recarga automática, solo registramos para depuración
+        // Si quieres mantener la recarga automática, descomenta las líneas de abajo
+        // registration.update();
+        // navigator.serviceWorker.addEventListener('controllerchange', () => {
+        //   console.log('🔄 Service Worker actualizado, recargando...');
+        //   window.location.reload();
+        // });
+      }).catch(err => {
+        console.warn('⚠️ Error al registrar service worker:', err);
       });
+    } else {
+      console.log('ℹ️ Service Worker desactivado (VITE_DISABLE_SW=true)');
     }
   }, []);
+
   return (
     <AuraProvider>
       <BrowserRouter>
@@ -83,7 +108,7 @@ function App() {
             <Route path="/area-estudio" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
             <Route path="/biblioteca" element={<RutaProtegida><Biblioteca temaOscuro={temaOscuro} /></RutaProtegida>} />
             <Route path="/multimedia" element={<RutaProtegida><Multimedia temaOscuro={temaOscuro} /></RutaProtegida>} />
-            <Route path="/horario" element={<RutaProtegida><Horario temaOscuro={temaOscuro} /></RutaProtegida>} />  {/* NUEVA RUTA */}
+            <Route path="/horario" element={<RutaProtegida><Horario temaOscuro={temaOscuro} /></RutaProtegida>} />
             <Route path="/base-conocimiento" element={<RutaProtegida><BaseConocimiento temaOscuro={temaOscuro} /></RutaProtegida>} />
             <Route path="/configuracion-ia" element={<RutaProtegida><ConfiguracionAura temaOscuro={temaOscuro} /></RutaProtegida>} />
             <Route path="/simulador" element={<RutaProtegida><SimuladorExamen temaOscuro={temaOscuro} /></RutaProtegida>} />

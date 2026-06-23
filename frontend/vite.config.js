@@ -39,6 +39,10 @@ export default defineConfig({
         ]
       },
       workbox: {
+        // NUEVO: fallback para rutas no cacheadas (SPA)
+        navigateFallback: 'index.html',
+        // NUEVO: para que las rutas sin extensión funcionen
+        cleanUrls: false,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,json,woff2}'],
         runtimeCaching: [
           // Cache para el mapa de datos (estructura del repositorio)

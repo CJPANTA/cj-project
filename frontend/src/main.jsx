@@ -3,46 +3,48 @@ import ReactDOM from 'react-dom/client'
 import './index.css'
 import App from './App'
 
-// Registrar el Service Worker para PWA con manejo de actualización
-if ('serviceWorker' in navigator) {
+// Registrar el Service Worker solo en producción (o si no estamos en localhost)
+const isProduction = import.meta.env.PROD;
+
+if ('serviceWorker' in navigator && isProduction) {
   const registerSW = async () => {
     try {
-      const registration = await navigator.serviceWorker.register('/sw.js')
-      console.log('Service Worker registrado con éxito:', registration)
+      const registration = await navigator.serviceWorker.register('/sw.js', {
+        scope: '/'
+      });
+      console.log('✅ Service Worker registrado con éxito:', registration);
 
-      // Escuchar actualizaciones del Service Worker
+      // Detectar nueva versión sin recarga forzosa (solo aviso)
       registration.addEventListener('updatefound', () => {
-        const newWorker = registration.installing
-        console.log('Nuevo Service Worker encontrado:', newWorker)
+        const newWorker = registration.installing;
+        console.log('🔄 Nuevo Service Worker encontrado:', newWorker);
         if (newWorker) {
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              console.log('Nuevo Service Worker instalado. Recarga para actualizar.')
-              // Mostrar notificación al usuario para que recargue
-              if (confirm('Nueva versión disponible. ¿Recargar ahora?')) {
-                window.location.reload()
-              }
+              console.log('📢 Nueva versión disponible. La próxima recarga aplicará los cambios.');
+              // Podrías mostrar una notificación no intrusiva aquí (opcional)
             }
-          })
+          });
         }
-      })
+      });
 
-      // Verificar actualizaciones periódicamente (cada hora)
+      // Verificar actualizaciones cada hora (solo si hay conexión)
       setInterval(() => {
-        registration.update()
-        console.log('Verificando actualizaciones del Service Worker...')
-      }, 60 * 60 * 1000) // 1 hora
+        registration.update().catch(err => console.warn('⚠️ Error al actualizar SW:', err));
+      }, 60 * 60 * 1000);
 
     } catch (error) {
-      console.error('Error al registrar el Service Worker:', error)
+      console.warn('⚠️ El Service Worker no se pudo registrar (la app sigue funcionando):', error);
     }
-  }
+  };
 
-  registerSW()
+  registerSW();
+} else {
+  console.log('ℹ️ Service Worker no registrado en desarrollo (o navegador no soportado).');
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />
   </React.StrictMode>
-)
+);

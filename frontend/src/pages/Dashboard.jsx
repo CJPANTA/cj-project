@@ -12,6 +12,7 @@ import FavoritosWidget from '../components/FavoritosWidget';
 import NotificacionesActivador from '../components/NotificacionesActivador';
 
 export default function Dashboard({ temaOscuro }) {
+  // ========== ESTADOS ==========
   const [saludo, setSaludo] = useState('');
   const [busqueda, setBusqueda] = useState('');
   const [respuestaIA, setRespuestaIA] = useState('');
@@ -25,6 +26,11 @@ export default function Dashboard({ temaOscuro }) {
   const [resumiendoPDF, setResumiendoPDF] = useState(false);
   const [escuchandoVoz, setEscuchandoVoz] = useState(false);
   const [reproduciendoAudio, setReproduciendoAudio] = useState(false);
+
+  // NUEVO: estado para controlar la carga inicial y evitar pantalla en negro
+  const [cargandoInicial, setCargandoInicial] = useState(true);
+  const [errorCarga, setErrorCarga] = useState(null); // para mostrar errores en la UI
+
   const recognitionRef = useRef(null);
   const navigate = useNavigate();
   const { contexto } = useAura();
@@ -32,12 +38,12 @@ export default function Dashboard({ temaOscuro }) {
   const [panelTutorAbierto, setPanelTutorAbierto] = useState(false);
   const [panelNotasAbierto, setPanelNotasAbierto] = useState(false);
 
-  // Convierte líneas con pipes (|) en una tabla HTML
+  // ========== FUNCIONES AUXILIARES (sin cambios) ==========
   const convertirTablasHTML = (texto) => {
+    // ... (igual que antes, no modificado)
     const lineas = texto.split('\n');
     const resultado = [];
     let i = 0;
-
     while (i < lineas.length) {
       const linea = lineas[i];
       if (linea.trim().startsWith('|') && linea.trim().endsWith('|')) {
@@ -92,7 +98,6 @@ export default function Dashboard({ temaOscuro }) {
     return resultado;
   };
 
-  // Reproducir texto con voz (segundo plano)
   const reproducirTexto = (texto) => {
     if (!texto) return;
     let limpio = texto.replace(/\|/g, ' ').replace(/\s+/g, ' ').trim();
@@ -119,59 +124,178 @@ export default function Dashboard({ temaOscuro }) {
     }
   };
 
-  // LIMPIEZA DE NEGRITAS Y SEPARADORES
   const limpiarRespuesta = (texto) => {
     let limpio = texto.replace(/\*\*/g, '').replace(/\*/g, '');
     limpio = limpio.replace(/[\*\-=]{3,}/g, '');
     return limpio.trim();
   };
 
+  // ========== FUNCIONES DE CARGA (CON LOGS Y ERRORES) ==========
+
+  // Carga la frase motivacional desde la IA
   const cargarFraseInicial = async () => {
-    const prompt = "Actúa como un motivador experto en fisioterapia. Genera una frase corta, original y poderosa para inspirar a un estudiante de fisioterapia a seguir estudiando. Responde solo con la frase, sin comillas ni texto adicional.";
-    const respuesta = await consultarAuraIA(prompt, {});
-    setFraseMotivacional(respuesta || "🌟 Hoy es un excelente día para aprender algo nuevo.");
-  };
-
-  useEffect(() => {
-    const usuarioLogueado = localStorage.getItem('usuario_cj');
-    if (!usuarioLogueado) navigate('/login');
-    const hora = new Date().getHours();
-    setSaludo(hora < 12 ? 'Buenos días' : hora < 18 ? 'Buenas tardes' : 'Buenas noches');
-    cargarFraseInicial();
-    const pdf = localStorage.getItem('ultimo_pdf_visto');
-    if (pdf) setUltimoPDF(JSON.parse(pdf));
-    cargarProgresoExamenes();
-    cargarProximosRecordatorios();
-    return () => {
-      window.speechSynthesis.cancel();
-    };
-  }, [navigate]);
-
-  const cargarProgresoExamenes = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { data, error } = await supabase.from('examenes').select('puntuacion_total').eq('user_id', user.id);
-    if (!error && data?.length) {
-      const total = data.length;
-      const suma = data.reduce((acc, ex) => acc + ex.puntuacion_total, 0);
-      const promedio = (suma / total).toFixed(1);
-      setProgresoExamenes({ promedio, total });
+    console.log('🟡 [Dashboard] Iniciando carga de frase motivacional...');
+    try {
+      const prompt = "Actúa como un motivador experto en fisioterapia. Genera una frase corta, original y poderosa para inspirar a un estudiante de fisioterapia a seguir estudiando. Responde solo con la frase, sin comillas ni texto adicional.";
+      const respuesta = await consultarAuraIA(prompt, {});
+      console.log('✅ [Dashboard] Frase motivacional obtenida:', respuesta);
+      setFraseMotivacional(respuesta || "🌟 Hoy es un excelente día para aprender algo nuevo.");
+    } catch (error) {
+      console.error('❌ [Dashboard] Error al cargar frase motivacional:', error);
+      setFraseMotivacional("🌟 Hoy es un excelente día para aprender algo nuevo."); // fallback
     }
   };
 
-  const cargarProximosRecordatorios = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const ahora = new Date().toISOString();
-    const { data, error } = await supabase.from('recordatorios').select('*').eq('user_id', user.id).gte('fecha_hora', ahora).order('fecha_hora').limit(3);
-    if (!error) setProximosRecordatorios(data || []);
+  // Carga el progreso de exámenes desde Supabase
+  const cargarProgresoExamenes = async () => {
+    console.log('🟡 [Dashboard] Iniciando carga de progreso de exámenes...');
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        console.error('❌ [Dashboard] Error al obtener usuario (progreso):', userError);
+        return;
+      }
+      if (!user) {
+        console.warn('⚠️ [Dashboard] No hay usuario autenticado para progreso.');
+        return;
+      }
+      console.log('👤 [Dashboard] Usuario autenticado para progreso:', user.id);
+
+      const { data, error } = await supabase.from('examenes')
+        .select('puntuacion_total')
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('❌ [Dashboard] Error en consulta de exámenes:', error);
+        return;
+      }
+
+      if (data?.length) {
+        const total = data.length;
+        const suma = data.reduce((acc, ex) => acc + ex.puntuacion_total, 0);
+        const promedio = (suma / total).toFixed(1);
+        console.log(`✅ [Dashboard] Progreso: ${promedio}% (${total} exámenes)`);
+        setProgresoExamenes({ promedio, total });
+      } else {
+        console.log('ℹ️ [Dashboard] No hay exámenes registrados.');
+        setProgresoExamenes({ promedio: 0, total: 0 });
+      }
+    } catch (error) {
+      console.error('❌ [Dashboard] Error inesperado en cargarProgresoExamenes:', error);
+    }
   };
 
+  // Carga los próximos recordatorios desde Supabase
+  const cargarProximosRecordatorios = async () => {
+    console.log('🟡 [Dashboard] Iniciando carga de próximos recordatorios...');
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        console.error('❌ [Dashboard] Error al obtener usuario (recordatorios):', userError);
+        return;
+      }
+      if (!user) {
+        console.warn('⚠️ [Dashboard] No hay usuario autenticado para recordatorios.');
+        return;
+      }
+      console.log('👤 [Dashboard] Usuario autenticado para recordatorios:', user.id);
+
+      const ahora = new Date().toISOString();
+      const { data, error } = await supabase.from('recordatorios')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('fecha_hora', ahora)
+        .order('fecha_hora')
+        .limit(3);
+
+      if (error) {
+        console.error('❌ [Dashboard] Error en consulta de recordatorios:', error);
+        return;
+      }
+
+      console.log(`✅ [Dashboard] ${data?.length || 0} recordatorios próximos encontrados.`);
+      setProximosRecordatorios(data || []);
+    } catch (error) {
+      console.error('❌ [Dashboard] Error inesperado en cargarProximosRecordatorios:', error);
+    }
+  };
+
+  // ========== EFECTO PRINCIPAL (con manejo de errores y carga inicial) ==========
+  useEffect(() => {
+    console.log('🚀 [Dashboard] useEffect montado - Iniciando carga de datos...');
+
+    const cargarDatosIniciales = async () => {
+      try {
+        // 1. Verificar autenticación
+        const usuarioLogueado = localStorage.getItem('usuario_cj');
+        if (!usuarioLogueado) {
+          console.warn('⚠️ [Dashboard] Usuario no logueado, redirigiendo a /login');
+          navigate('/login');
+          setCargandoInicial(false);
+          return;
+        }
+        console.log('✅ [Dashboard] Usuario logueado:', usuarioLogueado);
+
+        // 2. Saludo
+        const hora = new Date().getHours();
+        const saludoTexto = hora < 12 ? 'Buenos días' : hora < 18 ? 'Buenas tardes' : 'Buenas noches';
+        setSaludo(saludoTexto);
+        console.log('🕐 [Dashboard] Saludo:', saludoTexto);
+
+        // 3. Cargar último PDF desde localStorage
+        try {
+          const pdf = localStorage.getItem('ultimo_pdf_visto');
+          if (pdf) {
+            const parsed = JSON.parse(pdf);
+            setUltimoPDF(parsed);
+            console.log('📄 [Dashboard] Último PDF cargado:', parsed.nombre);
+          } else {
+            console.log('ℹ️ [Dashboard] No hay último PDF guardado.');
+          }
+        } catch (e) {
+          console.error('❌ [Dashboard] Error al leer último PDF del localStorage:', e);
+        }
+
+        // 4. Cargar datos en paralelo (con manejo de errores individual)
+        console.log('🔄 [Dashboard] Cargando datos en paralelo...');
+        await Promise.allSettled([
+          cargarFraseInicial(),
+          cargarProgresoExamenes(),
+          cargarProximosRecordatorios()
+        ]);
+
+        console.log('✅ [Dashboard] Todos los datos cargados (o intentados).');
+      } catch (error) {
+        console.error('❌ [Dashboard] Error crítico en cargarDatosIniciales:', error);
+        setErrorCarga('Ocurrió un error al cargar los datos. Revisa la consola para más detalles.');
+      } finally {
+        setCargandoInicial(false);
+        console.log('🏁 [Dashboard] Carga inicial finalizada (cargandoInicial=false)');
+      }
+    };
+
+    cargarDatosIniciales();
+
+    return () => {
+      window.speechSynthesis.cancel();
+      console.log('🧹 [Dashboard] Limpieza: speechSynthesis cancelado');
+    };
+  }, [navigate]);
+
+  // ========== FUNCIONES DE INTERACCIÓN (con logs y errores) ==========
+
   const generarFraseIA = async () => {
+    console.log('🔄 [Dashboard] Generando nueva frase motivacional...');
     setGenerandoFrase(true);
-    const prompt = "Actúa como un motivador experto en fisioterapia. Genera una frase corta, original y poderosa para inspirar a un estudiante de fisioterapia a seguir estudiando. Responde solo con la frase, sin comillas ni texto adicional.";
-    const respuesta = await consultarAuraIA(prompt, {});
-    setFraseMotivacional(respuesta || "🌟 Hoy es un excelente día para aprender algo nuevo.");
+    try {
+      const prompt = "Actúa como un motivador experto en fisioterapia. Genera una frase corta, original y poderosa para inspirar a un estudiante de fisioterapia a seguir estudiando. Responde solo con la frase, sin comillas ni texto adicional.";
+      const respuesta = await consultarAuraIA(prompt, {});
+      setFraseMotivacional(respuesta || "🌟 Hoy es un excelente día para aprender algo nuevo.");
+      console.log('✅ [Dashboard] Nueva frase generada:', respuesta);
+    } catch (error) {
+      console.error('❌ [Dashboard] Error al generar frase:', error);
+      setFraseMotivacional("🌟 No pude generar una frase, pero sigue adelante.");
+    }
     setGenerandoFrase(false);
   };
 
@@ -180,16 +304,23 @@ export default function Dashboard({ temaOscuro }) {
       setRespuestaIA("📄 No has abierto ningún PDF aún. Ve al Repositorio y abre un documento para poder resumirlo.");
       return;
     }
+    console.log('🔄 [Dashboard] Resumiendo PDF:', ultimoPDF.nombre);
     setResumiendoPDF(true);
     setRespuestaIA('');
-    const prompt = `Actúa como un tutor experto en fisioterapia. El usuario ha estado leyendo el siguiente documento:
-    Título: ${ultimoPDF.nombre}
-    Ciclo: ${ultimoPDF.ciclo}
-    Materia: ${ultimoPDF.materia}
-    
-    Genera un resumen claro y estructurado de los puntos clave. Incluye los conceptos más importantes y, si es posible, 3 preguntas de repaso.`;
-    const respuesta = await consultarAuraIA(prompt, { ...contexto, ultimoPDF });
-    setRespuestaIA(respuesta);
+    try {
+      const prompt = `Actúa como un tutor experto en fisioterapia. El usuario ha estado leyendo el siguiente documento:
+      Título: ${ultimoPDF.nombre}
+      Ciclo: ${ultimoPDF.ciclo}
+      Materia: ${ultimoPDF.materia}
+      
+      Genera un resumen claro y estructurado de los puntos clave. Incluye los conceptos más importantes y, si es posible, 3 preguntas de repaso.`;
+      const respuesta = await consultarAuraIA(prompt, { ...contexto, ultimoPDF });
+      setRespuestaIA(respuesta);
+      console.log('✅ [Dashboard] Resumen generado correctamente.');
+    } catch (error) {
+      console.error('❌ [Dashboard] Error al resumir PDF:', error);
+      setRespuestaIA('⚠️ Ocurrió un error al generar el resumen. Intenta de nuevo.');
+    }
     setResumiendoPDF(false);
   };
 
@@ -198,6 +329,7 @@ export default function Dashboard({ temaOscuro }) {
       alert("Tu navegador no soporta reconocimiento de voz.");
       return;
     }
+    console.log('🎤 [Dashboard] Iniciando dictado por voz...');
     const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
     const recognition = new SpeechRecognition();
     recognition.lang = 'es-ES';
@@ -206,12 +338,13 @@ export default function Dashboard({ temaOscuro }) {
     recognition.onstart = () => setEscuchandoVoz(true);
     recognition.onend = () => setEscuchandoVoz(false);
     recognition.onerror = (event) => {
-      console.error(event.error);
+      console.error('❌ [Dashboard] Error en reconocimiento de voz:', event.error);
       setEscuchandoVoz(false);
       alert("Error al escuchar: " + event.error);
     };
     recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
+      console.log('🗣️ [Dashboard] Transcripción:', transcript);
       setBusqueda(transcript);
       ejecutarConsultaIA(transcript);
     };
@@ -223,23 +356,36 @@ export default function Dashboard({ temaOscuro }) {
       alert("No hay respuesta del Oráculo para leer.");
       return;
     }
+    console.log('🔊 [Dashboard] Leyendo respuesta en voz alta...');
     reproducirTexto(respuestaIA);
   };
 
   const ejecutarConsultaIA = async (texto = null) => {
     const consulta = texto !== null ? texto : busqueda;
     if (!consulta.trim()) return;
+    console.log('🤖 [Dashboard] Consultando a la IA:', consulta);
     setCargandoIA(true);
     setRespuestaIA('');
-    const ultimoPDFAlmacenado = localStorage.getItem('ultimo_pdf_visto');
-    let contextoCompleto = { ...contexto };
-    if (ultimoPDFAlmacenado) contextoCompleto.ultimoPDF = JSON.parse(ultimoPDFAlmacenado);
-    const historialLimitado = historialConversacion.slice(-4);
-    let respuestaRaw = await consultarAuraIA(consulta, contextoCompleto, historialLimitado);
-    // LIMPIEZA: eliminar ** y * (negritas y cursivas) y separadores
-    respuestaRaw = limpiarRespuesta(respuestaRaw);
-    setHistorialConversacion(prev => [...prev.slice(-4), { role: 'user', content: consulta }, { role: 'assistant', content: respuestaRaw }]);
-    setRespuestaIA(respuestaRaw);
+    try {
+      const ultimoPDFAlmacenado = localStorage.getItem('ultimo_pdf_visto');
+      let contextoCompleto = { ...contexto };
+      if (ultimoPDFAlmacenado) {
+        try {
+          contextoCompleto.ultimoPDF = JSON.parse(ultimoPDFAlmacenado);
+        } catch (e) {
+          console.warn('⚠️ [Dashboard] Error al parsear ultimoPDF del localStorage:', e);
+        }
+      }
+      const historialLimitado = historialConversacion.slice(-4);
+      let respuestaRaw = await consultarAuraIA(consulta, contextoCompleto, historialLimitado);
+      respuestaRaw = limpiarRespuesta(respuestaRaw);
+      setHistorialConversacion(prev => [...prev.slice(-4), { role: 'user', content: consulta }, { role: 'assistant', content: respuestaRaw }]);
+      setRespuestaIA(respuestaRaw);
+      console.log('✅ [Dashboard] Respuesta IA obtenida (longitud:', respuestaRaw.length, 'caracteres)');
+    } catch (error) {
+      console.error('❌ [Dashboard] Error en ejecutarConsultaIA:', error);
+      setRespuestaIA('⚠️ Ocurrió un error al consultar a la IA. Intenta de nuevo.');
+    }
     setBusqueda('');
     setCargandoIA(false);
   };
@@ -247,9 +393,45 @@ export default function Dashboard({ temaOscuro }) {
   const buscarReferencias = () => {
     if (!busqueda && !respuestaIA) return;
     const query = encodeURIComponent(busqueda || respuestaIA.slice(0, 50));
-    window.open(`https://www.youtube.com/results?search_query=${query}+fisioterapia`, '_blank');
+    const url = `https://www.youtube.com/results?search_query=${query}+fisioterapia`;
+    console.log('📺 [Dashboard] Abriendo YouTube con búsqueda:', query);
+    window.open(url, '_blank');
   };
 
+  // ========== RENDERIZADO ==========
+
+  // Si estamos cargando inicialmente, mostramos un spinner (evita pantalla en negro)
+  if (cargandoInicial) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[#020813]">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-[#22d3ee] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-[#22d3ee] text-sm font-bold">Cargando Dashboard...</p>
+          <p className="text-gray-500 text-xs mt-2">(Revisa la consola para ver el progreso)</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Si hubo un error crítico, mostramos un mensaje amigable
+  if (errorCarga) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[#020813] p-4">
+        <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-6 max-w-md text-center">
+          <p className="text-red-400 font-bold text-lg">⚠️ Error al cargar el Dashboard</p>
+          <p className="text-gray-300 text-sm mt-2">{errorCarga}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 px-6 py-2 bg-[#22d3ee] text-black font-bold rounded-xl hover:scale-105 transition-all"
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ========== RENDER NORMAL (sin cambios visuales, solo los logs ya están) ==========
   const bgTarjeta = temaOscuro ? 'bg-black/20 border-gray-800' : 'bg-white border-gray-200 shadow-sm';
   const textoColor = temaOscuro ? 'text-white' : 'text-[#0f172a]';
   const bgInput = temaOscuro ? 'bg-black/20 border-white/10' : 'bg-gray-100 border-gray-300';
