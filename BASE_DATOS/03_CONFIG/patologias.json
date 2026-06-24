@@ -1,1 +1,23 @@
-
+{
+  "patologias": [
+    {
+      "id": "epicondilitis",
+      "nombre": "Epicondilitis (Codo de tenista)",
+      "sistema": "musculoesqueletico",
+      "palabras_clave": ["codo", "dolor", "extensión", "tenista"],
+      "descripcion_corta": "Inflamación de los tendones extensores del codo.",
+      "protocolo_base": {
+        "evaluacion": ["Dolor a la palpación en epicóndilo", "Prueba de Cozen positiva", "Disminución de fuerza en extensión de muñeca"],
+        "objetivos": ["Reducir dolor", "Mejorar fuerza de extensión", "Retorno a la actividad"],
+        "intervencion": ["Reposo relativo", "Crioterapia", "Ultrasonido", "Ejercicios excéntricos", "Masoterapia en músculos extensores"],
+        "aparatos": ["Ultrasonido", "TENS", "Láser de baja potencia"],
+        "contraindicaciones": ["Fracturas", "Infecciones locales"],
+        "criterios_alta": ["Ausencia de dolor", "Fuerza simétrica al lado contralateral"]
+      },
+      "archivos_relacionados": [
+        "CICLO_02/Mecanoterapia/14_Estiramientos.pdf",
+        "CICLO_04/ACTIVIDADES_FUNCIONALES/01_Biomecanica_del_cuerpo_humano.pdf"
+      ]
+    }
+  ]
+}
