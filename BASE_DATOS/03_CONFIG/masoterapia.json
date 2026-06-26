@@ -9,16 +9,6 @@
       "indicaciones": ["Edemas", "Postcirugía", "Fibromialgia"],
       "contraindicaciones": ["Infecciones agudas", "Insuficiencia cardíaca", "Trombosis"],
       "videoId": "qD8B8nQ8m9w"
-    },
-    {
-      "id": "masaje_descontracturante",
-      "nombre": "Masaje Descontracturante",
-      "zona": ["espalda", "cuello", "hombros"],
-      "objetivo": "descontracturante",
-      "descripcion": "Técnica profunda que libera tensiones musculares y puntos gatillo.",
-      "indicaciones": ["Contracturas", "Estrés", "Dolor cervical"],
-      "contraindicaciones": ["Fracturas", "Hematomas", "Procesos inflamatorios agudos"],
-      "videoId": "g6qWkH1g7Tk"
     }
   ]
 }
