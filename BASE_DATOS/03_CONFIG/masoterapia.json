@@ -1,1 +1,26 @@
-
+{
+  "tecnicas": [
+    {
+      "id": "drenaje_linfatico",
+      "nombre": "Drenaje Linfático Manual",
+      "zona": ["cuerpo_completo", "miembros_inferiores"],
+      "categoria_objetivo": "circulatorio",
+      "categoria_origen": "manual",
+      "descripcion": "Técnica suave y rítmica que estimula el sistema linfático...",
+      "indicaciones": ["Edemas", "Postcirugía", "Fibromialgia"],
+      "contraindicaciones": ["Infecciones agudas", "Insuficiencia cardíaca", "Trombosis"],
+      "videoId": "qD8B8nQ8m9w"
+    },
+    {
+      "id": "masaje_descontracturante",
+      "nombre": "Masaje Descontracturante",
+      "zona": ["espalda", "cuello", "hombros"],
+      "categoria_objetivo": "descontracturante",
+      "categoria_origen": "manual",
+      "descripcion": "Técnica profunda que libera tensiones musculares y puntos gatillo.",
+      "indicaciones": ["Contracturas", "Estrés", "Dolor cervical"],
+      "contraindicaciones": ["Fracturas", "Hematomas", "Procesos inflamatorios agudos"],
+      "videoId": "g6qWkH1g7Tk"
+    }
+  ]
+}
