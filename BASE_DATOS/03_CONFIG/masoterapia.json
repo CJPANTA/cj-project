@@ -5,7 +5,6 @@
       "nombre": "Drenaje Linfático Manual",
       "zona": ["cuerpo_completo", "miembros_inferiores"],
       "objetivo": "circulatorio",
-      "origen": "manual",
       "descripcion": "Técnica suave y rítmica que estimula el sistema linfático para eliminar toxinas y reducir edemas.",
       "indicaciones": ["Edemas", "Postcirugía", "Fibromialgia"],
       "contraindicaciones": ["Infecciones agudas", "Insuficiencia cardíaca", "Trombosis"],
@@ -16,22 +15,10 @@
       "nombre": "Masaje Descontracturante",
       "zona": ["espalda", "cuello", "hombros"],
       "objetivo": "descontracturante",
-      "origen": "manual",
       "descripcion": "Técnica profunda que libera tensiones musculares y puntos gatillo.",
       "indicaciones": ["Contracturas", "Estrés", "Dolor cervical"],
       "contraindicaciones": ["Fracturas", "Hematomas", "Procesos inflamatorios agudos"],
-      "videoId": "HPWXmnaszWo"
-    },
-    {
-      "id": "masaje_deportivo",
-      "nombre": "Masaje Deportivo",
-      "zona": ["miembros_superiores", "miembros_inferiores"],
-      "objetivo": "deportivo",
-      "origen": "manual",
-      "descripcion": "Técnica combinada de estiramientos y amasamiento para preparar y recuperar al deportista.",
-      "indicaciones": ["Pre-competición", "Post-competición", "Prevención de lesiones"],
-      "contraindicaciones": ["Fracturas", "Lesiones agudas", "Fiebre"],
-      "videoId": "8l1qJkD2m_w"
+      "videoId": "g6qWkH1g7Tk"
     }
   ]
 }
