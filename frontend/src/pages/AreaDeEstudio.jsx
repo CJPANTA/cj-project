@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGitHubScanner } from '../hooks/useGitHubScanner';
 import { useAura } from '../context/AuraContext';
 
-// Clave para localStorage (favoritos)
 const STORAGE_KEY = 'cj_favoritos';
 
 export default function AreaDeEstudio({ temaOscuro }) {
@@ -54,23 +53,24 @@ export default function AreaDeEstudio({ temaOscuro }) {
 
   const esFavorito = (nombrePDF) => favoritos.includes(nombrePDF);
 
+  // Efecto para cargar cursos al seleccionar ciclo (sin actualizar contexto)
   useEffect(() => {
     if (cicloSeleccionado && estructura && estructura[cicloSeleccionado]) {
       const materias = Object.keys(estructura[cicloSeleccionado]);
       setCursos(materias);
       if (materias.length > 0) setCursoActivo(materias[0]);
-      actualizarContexto({ ciclo: `Ciclo ${cicloSeleccionado}`, materia: '', archivo: '' });
+      // No llamamos a actualizarContexto aquí para evitar bucles
     }
-  }, [cicloSeleccionado, estructura, actualizarContexto]);
+  }, [cicloSeleccionado, estructura]);
 
+  // Efecto para cargar archivos al seleccionar curso (sin actualizar contexto)
   useEffect(() => {
     if (cicloSeleccionado && cursoActivo && estructura?.[cicloSeleccionado]?.[cursoActivo]) {
       setArchivosCurso(estructura[cicloSeleccionado][cursoActivo]);
-      actualizarContexto({ materia: cursoActivo, archivo: '' });
     } else {
       setArchivosCurso([]);
     }
-  }, [cursoActivo, cicloSeleccionado, estructura, actualizarContexto]);
+  }, [cursoActivo, cicloSeleccionado, estructura]);
 
   const prepararLector = (nombreArchivo) => {
     const rawUrl = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/main/BASE_DATOS/01_CARRION/CICLO_${cicloSeleccionado}/${encodeURIComponent(cursoActivo)}/${encodeURIComponent(nombreArchivo)}`;
@@ -85,7 +85,8 @@ export default function AreaDeEstudio({ temaOscuro }) {
       viewer: `https://docs.google.com/viewer?url=${encodeURIComponent(rawUrl)}&embedded=true&ignore=${antiCache}`,
       descarga: rawUrl
     });
-    actualizarContexto({ archivo: nombreArchivo });
+    // Solo aquí actualizamos el contexto, al abrir un archivo
+    actualizarContexto({ ciclo: `Ciclo ${cicloSeleccionado}`, materia: cursoActivo, archivo: nombreArchivo });
   };
 
   const abrirOtroFormato = (nombreArchivo) => {

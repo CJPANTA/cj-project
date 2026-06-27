@@ -1,23 +1,41 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo } from 'react';
 
 const AuraContext = createContext();
 
-export function AuraProvider({ children }) {
-  const [contexto, setContexto] = useState({ ciclo: '', materia: '', archivo: '' });
+export const AuraProvider = ({ children }) => {
+  const [contexto, setContexto] = useState({
+    ciclo: '',
+    materia: '',
+    archivo: ''
+  });
 
+  // NUEVO: estado para el resumen global del ciclo
+  const [resumenGlobal, setResumenGlobal] = useState(null);
+
+  // Estabilizar actualizarContexto con useCallback
   const actualizarContexto = useCallback((nuevoContexto) => {
-    setContexto((prev) => ({ ...prev, ...nuevoContexto }));
-  }, []); // Estable, no cambia entre renders
+    setContexto(prev => ({ ...prev, ...nuevoContexto }));
+  }, []);
+
+  // Estabilizar el valor del contexto con useMemo
+  const value = useMemo(() => ({
+    contexto,
+    actualizarContexto,
+    resumenGlobal,
+    setResumenGlobal
+  }), [contexto, actualizarContexto, resumenGlobal]);
 
   return (
-    <AuraContext.Provider value={{ contexto, actualizarContexto }}>
+    <AuraContext.Provider value={value}>
       {children}
     </AuraContext.Provider>
   );
-}
+};
 
 export const useAura = () => {
   const context = useContext(AuraContext);
-  if (!context) return { contexto: {}, actualizarContexto: () => {} };
+  if (!context) {
+    throw new Error('useAura debe usarse dentro de un AuraProvider');
+  }
   return context;
 };

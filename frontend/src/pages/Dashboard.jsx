@@ -1,18 +1,17 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { consultarAuraIA } from '../services/iaService';
 import { NotebookCJ } from '../components/NotebookCJ';
 import TutorChat from '../components/TutorChat';
 import { useAura } from '../context/AuraContext';
 import HistorialWidget from '../components/HistorialWidget';
-import RecordatoriosWidget from '../components/RecordatoriosWidget';
+// RecordatoriosWidget eliminado (punto 6)
 import CalendarioWidget from '../components/CalendarioWidget';
 import { supabase } from '../lib/supabaseClient';
 import FavoritosWidget from '../components/FavoritosWidget';
 import NotificacionesActivador from '../components/NotificacionesActivador';
 
 export default function Dashboard({ temaOscuro }) {
-  // ========== ESTADOS ==========
   const [saludo, setSaludo] = useState('');
   const [busqueda, setBusqueda] = useState('');
   const [respuestaIA, setRespuestaIA] = useState('');
@@ -20,17 +19,13 @@ export default function Dashboard({ temaOscuro }) {
   const [fraseMotivacional, setFraseMotivacional] = useState('');
   const [ultimoPDF, setUltimoPDF] = useState(null);
   const [progresoExamenes, setProgresoExamenes] = useState({ promedio: 0, total: 0 });
-  const [proximosRecordatorios, setProximosRecordatorios] = useState([]);
+  // Eliminamos el estado de próximos recordatorios
   const [historialConversacion, setHistorialConversacion] = useState([]);
   const [generandoFrase, setGenerandoFrase] = useState(false);
   const [resumiendoPDF, setResumiendoPDF] = useState(false);
   const [escuchandoVoz, setEscuchandoVoz] = useState(false);
   const [reproduciendoAudio, setReproduciendoAudio] = useState(false);
-
-  // NUEVO: estado para controlar la carga inicial y evitar pantalla en negro
-  const [cargandoInicial, setCargandoInicial] = useState(true);
-  const [errorCarga, setErrorCarga] = useState(null); // para mostrar errores en la UI
-
+  const [audioPausado, setAudioPausado] = useState(false); // <-- NUEVO: para pausar/reanudar
   const recognitionRef = useRef(null);
   const navigate = useNavigate();
   const { contexto } = useAura();
@@ -38,14 +33,15 @@ export default function Dashboard({ temaOscuro }) {
   const [panelTutorAbierto, setPanelTutorAbierto] = useState(false);
   const [panelNotasAbierto, setPanelNotasAbierto] = useState(false);
 
-  // ========== FUNCIONES AUXILIARES (sin cambios) ==========
+  // ========== CONVERSIÓN DE TABLAS Y NEGRITAS ==========
   const convertirTablasHTML = (texto) => {
-    // ... (igual que antes, no modificado)
     const lineas = texto.split('\n');
     const resultado = [];
     let i = 0;
+
     while (i < lineas.length) {
       const linea = lineas[i];
+      // Detectar tabla con pipes
       if (linea.trim().startsWith('|') && linea.trim().endsWith('|')) {
         const filasTabla = [];
         while (i < lineas.length && lineas[i].trim().startsWith('|') && lineas[i].trim().endsWith('|')) {
@@ -87,10 +83,19 @@ export default function Dashboard({ temaOscuro }) {
           continue;
         }
       } else {
-        if (linea.trim() === '') {
+        // Procesar líneas normales y convertir **negritas**
+        let lineaProcesada = linea;
+        // Reemplazar **texto** por <strong>texto</strong>
+        lineaProcesada = lineaProcesada.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        // También soportar *texto* como cursiva (opcional)
+        lineaProcesada = lineaProcesada.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+        if (lineaProcesada.trim() === '') {
           resultado.push(<br key={`br-${i}`} />);
         } else {
-          resultado.push(<p key={`p-${i}`} className="my-2">{linea}</p>);
+          resultado.push(
+            <p key={`p-${i}`} className="my-2" dangerouslySetInnerHTML={{ __html: lineaProcesada }} />
+          );
         }
         i++;
       }
@@ -98,18 +103,34 @@ export default function Dashboard({ temaOscuro }) {
     return resultado;
   };
 
-  const reproducirTexto = (texto) => {
+  // ========== REPRODUCCIÓN DE AUDIO CON TOGGLE ==========
+  const reproducirTexto = useCallback((texto) => {
     if (!texto) return;
     let limpio = texto.replace(/\|/g, ' ').replace(/\s+/g, ' ').trim();
+
     if ('speechSynthesis' in window) {
+      // Si ya hay una síntesis en curso y no está pausada, la pausamos
+      if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+        window.speechSynthesis.pause();
+        setAudioPausado(true);
+        setReproduciendoAudio(true);
+        return;
+      }
+      // Si está pausada, reanudamos
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+        setAudioPausado(false);
+        setReproduciendoAudio(true);
+        return;
+      }
+
+      // Si no hay nada hablando, iniciamos nueva síntesis
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(limpio);
       utterance.lang = 'es-ES';
       utterance.rate = 0.9;
-      utterance.onstart = () => setReproduciendoAudio(true);
-      utterance.onend = () => setReproduciendoAudio(false);
-      utterance.onerror = () => setReproduciendoAudio(false);
-      window.speechSynthesis.speak(utterance);
+
+      // Mantener el contexto de audio activo (para segundo plano)
       if (!window.audioContextKeepAlive) {
         window.audioContextKeepAlive = new (window.AudioContext || window.webkitAudioContext)();
         const silent = window.audioContextKeepAlive.createOscillator();
@@ -118,184 +139,75 @@ export default function Dashboard({ temaOscuro }) {
         silent.connect(gain);
         gain.connect(window.audioContextKeepAlive.destination);
         silent.start();
+        window.silentOscillator = silent;
       }
+
+      utterance.onstart = () => {
+        setReproduciendoAudio(true);
+        setAudioPausado(false);
+      };
+      utterance.onend = () => {
+        setReproduciendoAudio(false);
+        setAudioPausado(false);
+      };
+      utterance.onerror = () => {
+        setReproduciendoAudio(false);
+        setAudioPausado(false);
+      };
+      window.speechSynthesis.speak(utterance);
     } else {
       alert("Tu navegador no soporta síntesis de voz.");
     }
-  };
+  }, []);
 
+  // ========== LIMPIEZA DE NEGRITAS (ya no se usa, pero la dejamos) ==========
   const limpiarRespuesta = (texto) => {
-    let limpio = texto.replace(/\*\*/g, '').replace(/\*/g, '');
-    limpio = limpio.replace(/[\*\-=]{3,}/g, '');
+    // Esta función ya no elimina negritas, las conserva para que las procese convertirTablasHTML
+    // Solo eliminamos separadores de líneas que puedan interferir
+    let limpio = texto.replace(/[\*\-=]{3,}/g, '');
     return limpio.trim();
   };
 
-  // ========== FUNCIONES DE CARGA (CON LOGS Y ERRORES) ==========
-
-  // Carga la frase motivacional desde la IA
+  // ========== FUNCIONES DE CARGA ==========
   const cargarFraseInicial = async () => {
-    console.log('🟡 [Dashboard] Iniciando carga de frase motivacional...');
-    try {
-      const prompt = "Actúa como un motivador experto en fisioterapia. Genera una frase corta, original y poderosa para inspirar a un estudiante de fisioterapia a seguir estudiando. Responde solo con la frase, sin comillas ni texto adicional.";
-      const respuesta = await consultarAuraIA(prompt, {});
-      console.log('✅ [Dashboard] Frase motivacional obtenida:', respuesta);
-      setFraseMotivacional(respuesta || "🌟 Hoy es un excelente día para aprender algo nuevo.");
-    } catch (error) {
-      console.error('❌ [Dashboard] Error al cargar frase motivacional:', error);
-      setFraseMotivacional("🌟 Hoy es un excelente día para aprender algo nuevo."); // fallback
-    }
+    const prompt = "Actúa como un motivador experto en fisioterapia. Genera una frase corta, original y poderosa para inspirar a un estudiante de fisioterapia a seguir estudiando. Responde solo con la frase, sin comillas ni texto adicional.";
+    const respuesta = await consultarAuraIA(prompt, {});
+    setFraseMotivacional(respuesta || "🌟 Hoy es un excelente día para aprender algo nuevo.");
   };
 
-  // Carga el progreso de exámenes desde Supabase
-  const cargarProgresoExamenes = async () => {
-    console.log('🟡 [Dashboard] Iniciando carga de progreso de exámenes...');
-    try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) {
-        console.error('❌ [Dashboard] Error al obtener usuario (progreso):', userError);
-        return;
-      }
-      if (!user) {
-        console.warn('⚠️ [Dashboard] No hay usuario autenticado para progreso.');
-        return;
-      }
-      console.log('👤 [Dashboard] Usuario autenticado para progreso:', user.id);
-
-      const { data, error } = await supabase.from('examenes')
-        .select('puntuacion_total')
-        .eq('user_id', user.id);
-
-      if (error) {
-        console.error('❌ [Dashboard] Error en consulta de exámenes:', error);
-        return;
-      }
-
-      if (data?.length) {
-        const total = data.length;
-        const suma = data.reduce((acc, ex) => acc + ex.puntuacion_total, 0);
-        const promedio = (suma / total).toFixed(1);
-        console.log(`✅ [Dashboard] Progreso: ${promedio}% (${total} exámenes)`);
-        setProgresoExamenes({ promedio, total });
-      } else {
-        console.log('ℹ️ [Dashboard] No hay exámenes registrados.');
-        setProgresoExamenes({ promedio: 0, total: 0 });
-      }
-    } catch (error) {
-      console.error('❌ [Dashboard] Error inesperado en cargarProgresoExamenes:', error);
-    }
-  };
-
-  // Carga los próximos recordatorios desde Supabase
-  const cargarProximosRecordatorios = async () => {
-    console.log('🟡 [Dashboard] Iniciando carga de próximos recordatorios...');
-    try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) {
-        console.error('❌ [Dashboard] Error al obtener usuario (recordatorios):', userError);
-        return;
-      }
-      if (!user) {
-        console.warn('⚠️ [Dashboard] No hay usuario autenticado para recordatorios.');
-        return;
-      }
-      console.log('👤 [Dashboard] Usuario autenticado para recordatorios:', user.id);
-
-      const ahora = new Date().toISOString();
-      const { data, error } = await supabase.from('recordatorios')
-        .select('*')
-        .eq('user_id', user.id)
-        .gte('fecha_hora', ahora)
-        .order('fecha_hora')
-        .limit(3);
-
-      if (error) {
-        console.error('❌ [Dashboard] Error en consulta de recordatorios:', error);
-        return;
-      }
-
-      console.log(`✅ [Dashboard] ${data?.length || 0} recordatorios próximos encontrados.`);
-      setProximosRecordatorios(data || []);
-    } catch (error) {
-      console.error('❌ [Dashboard] Error inesperado en cargarProximosRecordatorios:', error);
-    }
-  };
-
-  // ========== EFECTO PRINCIPAL (con manejo de errores y carga inicial) ==========
   useEffect(() => {
-    console.log('🚀 [Dashboard] useEffect montado - Iniciando carga de datos...');
-
-    const cargarDatosIniciales = async () => {
-      try {
-        // 1. Verificar autenticación
-        const usuarioLogueado = localStorage.getItem('usuario_cj');
-        if (!usuarioLogueado) {
-          console.warn('⚠️ [Dashboard] Usuario no logueado, redirigiendo a /login');
-          navigate('/login');
-          setCargandoInicial(false);
-          return;
-        }
-        console.log('✅ [Dashboard] Usuario logueado:', usuarioLogueado);
-
-        // 2. Saludo
-        const hora = new Date().getHours();
-        const saludoTexto = hora < 12 ? 'Buenos días' : hora < 18 ? 'Buenas tardes' : 'Buenas noches';
-        setSaludo(saludoTexto);
-        console.log('🕐 [Dashboard] Saludo:', saludoTexto);
-
-        // 3. Cargar último PDF desde localStorage
-        try {
-          const pdf = localStorage.getItem('ultimo_pdf_visto');
-          if (pdf) {
-            const parsed = JSON.parse(pdf);
-            setUltimoPDF(parsed);
-            console.log('📄 [Dashboard] Último PDF cargado:', parsed.nombre);
-          } else {
-            console.log('ℹ️ [Dashboard] No hay último PDF guardado.');
-          }
-        } catch (e) {
-          console.error('❌ [Dashboard] Error al leer último PDF del localStorage:', e);
-        }
-
-        // 4. Cargar datos en paralelo (con manejo de errores individual)
-        console.log('🔄 [Dashboard] Cargando datos en paralelo...');
-        await Promise.allSettled([
-          cargarFraseInicial(),
-          cargarProgresoExamenes(),
-          cargarProximosRecordatorios()
-        ]);
-
-        console.log('✅ [Dashboard] Todos los datos cargados (o intentados).');
-      } catch (error) {
-        console.error('❌ [Dashboard] Error crítico en cargarDatosIniciales:', error);
-        setErrorCarga('Ocurrió un error al cargar los datos. Revisa la consola para más detalles.');
-      } finally {
-        setCargandoInicial(false);
-        console.log('🏁 [Dashboard] Carga inicial finalizada (cargandoInicial=false)');
-      }
-    };
-
-    cargarDatosIniciales();
-
+    const usuarioLogueado = localStorage.getItem('usuario_cj');
+    if (!usuarioLogueado) navigate('/login');
+    const hora = new Date().getHours();
+    setSaludo(hora < 12 ? 'Buenos días' : hora < 18 ? 'Buenas tardes' : 'Buenas noches');
+    cargarFraseInicial();
+    const pdf = localStorage.getItem('ultimo_pdf_visto');
+    if (pdf) setUltimoPDF(JSON.parse(pdf));
+    cargarProgresoExamenes();
+    // cargarProximosRecordatorios eliminado
     return () => {
       window.speechSynthesis.cancel();
-      console.log('🧹 [Dashboard] Limpieza: speechSynthesis cancelado');
     };
   }, [navigate]);
 
-  // ========== FUNCIONES DE INTERACCIÓN (con logs y errores) ==========
-
-  const generarFraseIA = async () => {
-    console.log('🔄 [Dashboard] Generando nueva frase motivacional...');
-    setGenerandoFrase(true);
-    try {
-      const prompt = "Actúa como un motivador experto en fisioterapia. Genera una frase corta, original y poderosa para inspirar a un estudiante de fisioterapia a seguir estudiando. Responde solo con la frase, sin comillas ni texto adicional.";
-      const respuesta = await consultarAuraIA(prompt, {});
-      setFraseMotivacional(respuesta || "🌟 Hoy es un excelente día para aprender algo nuevo.");
-      console.log('✅ [Dashboard] Nueva frase generada:', respuesta);
-    } catch (error) {
-      console.error('❌ [Dashboard] Error al generar frase:', error);
-      setFraseMotivacional("🌟 No pude generar una frase, pero sigue adelante.");
+  const cargarProgresoExamenes = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data, error } = await supabase.from('examenes').select('puntuacion_total').eq('user_id', user.id);
+    if (!error && data?.length) {
+      const total = data.length;
+      const suma = data.reduce((acc, ex) => acc + ex.puntuacion_total, 0);
+      const promedio = (suma / total).toFixed(1);
+      setProgresoExamenes({ promedio, total });
     }
+  };
+
+  // ========== FUNCIONES DE INTERACCIÓN ==========
+  const generarFraseIA = async () => {
+    setGenerandoFrase(true);
+    const prompt = "Actúa como un motivador experto en fisioterapia. Genera una frase corta, original y poderosa para inspirar a un estudiante de fisioterapia a seguir estudiando. Responde solo con la frase, sin comillas ni texto adicional.";
+    const respuesta = await consultarAuraIA(prompt, {});
+    setFraseMotivacional(respuesta || "🌟 Hoy es un excelente día para aprender algo nuevo.");
     setGenerandoFrase(false);
   };
 
@@ -304,23 +216,16 @@ export default function Dashboard({ temaOscuro }) {
       setRespuestaIA("📄 No has abierto ningún PDF aún. Ve al Repositorio y abre un documento para poder resumirlo.");
       return;
     }
-    console.log('🔄 [Dashboard] Resumiendo PDF:', ultimoPDF.nombre);
     setResumiendoPDF(true);
     setRespuestaIA('');
-    try {
-      const prompt = `Actúa como un tutor experto en fisioterapia. El usuario ha estado leyendo el siguiente documento:
-      Título: ${ultimoPDF.nombre}
-      Ciclo: ${ultimoPDF.ciclo}
-      Materia: ${ultimoPDF.materia}
-      
-      Genera un resumen claro y estructurado de los puntos clave. Incluye los conceptos más importantes y, si es posible, 3 preguntas de repaso.`;
-      const respuesta = await consultarAuraIA(prompt, { ...contexto, ultimoPDF });
-      setRespuestaIA(respuesta);
-      console.log('✅ [Dashboard] Resumen generado correctamente.');
-    } catch (error) {
-      console.error('❌ [Dashboard] Error al resumir PDF:', error);
-      setRespuestaIA('⚠️ Ocurrió un error al generar el resumen. Intenta de nuevo.');
-    }
+    const prompt = `Actúa como un tutor experto en fisioterapia. El usuario ha estado leyendo el siguiente documento:
+    Título: ${ultimoPDF.nombre}
+    Ciclo: ${ultimoPDF.ciclo}
+    Materia: ${ultimoPDF.materia}
+    
+    Genera un resumen claro y estructurado de los puntos clave. Incluye los conceptos más importantes y, si es posible, 3 preguntas de repaso.`;
+    const respuesta = await consultarAuraIA(prompt, { ...contexto, ultimoPDF });
+    setRespuestaIA(respuesta);
     setResumiendoPDF(false);
   };
 
@@ -329,7 +234,6 @@ export default function Dashboard({ temaOscuro }) {
       alert("Tu navegador no soporta reconocimiento de voz.");
       return;
     }
-    console.log('🎤 [Dashboard] Iniciando dictado por voz...');
     const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
     const recognition = new SpeechRecognition();
     recognition.lang = 'es-ES';
@@ -338,13 +242,12 @@ export default function Dashboard({ temaOscuro }) {
     recognition.onstart = () => setEscuchandoVoz(true);
     recognition.onend = () => setEscuchandoVoz(false);
     recognition.onerror = (event) => {
-      console.error('❌ [Dashboard] Error en reconocimiento de voz:', event.error);
+      console.error(event.error);
       setEscuchandoVoz(false);
       alert("Error al escuchar: " + event.error);
     };
     recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
-      console.log('🗣️ [Dashboard] Transcripción:', transcript);
       setBusqueda(transcript);
       ejecutarConsultaIA(transcript);
     };
@@ -356,36 +259,23 @@ export default function Dashboard({ temaOscuro }) {
       alert("No hay respuesta del Oráculo para leer.");
       return;
     }
-    console.log('🔊 [Dashboard] Leyendo respuesta en voz alta...');
     reproducirTexto(respuestaIA);
   };
 
   const ejecutarConsultaIA = async (texto = null) => {
     const consulta = texto !== null ? texto : busqueda;
     if (!consulta.trim()) return;
-    console.log('🤖 [Dashboard] Consultando a la IA:', consulta);
     setCargandoIA(true);
     setRespuestaIA('');
-    try {
-      const ultimoPDFAlmacenado = localStorage.getItem('ultimo_pdf_visto');
-      let contextoCompleto = { ...contexto };
-      if (ultimoPDFAlmacenado) {
-        try {
-          contextoCompleto.ultimoPDF = JSON.parse(ultimoPDFAlmacenado);
-        } catch (e) {
-          console.warn('⚠️ [Dashboard] Error al parsear ultimoPDF del localStorage:', e);
-        }
-      }
-      const historialLimitado = historialConversacion.slice(-4);
-      let respuestaRaw = await consultarAuraIA(consulta, contextoCompleto, historialLimitado);
-      respuestaRaw = limpiarRespuesta(respuestaRaw);
-      setHistorialConversacion(prev => [...prev.slice(-4), { role: 'user', content: consulta }, { role: 'assistant', content: respuestaRaw }]);
-      setRespuestaIA(respuestaRaw);
-      console.log('✅ [Dashboard] Respuesta IA obtenida (longitud:', respuestaRaw.length, 'caracteres)');
-    } catch (error) {
-      console.error('❌ [Dashboard] Error en ejecutarConsultaIA:', error);
-      setRespuestaIA('⚠️ Ocurrió un error al consultar a la IA. Intenta de nuevo.');
-    }
+    const ultimoPDFAlmacenado = localStorage.getItem('ultimo_pdf_visto');
+    let contextoCompleto = { ...contexto };
+    if (ultimoPDFAlmacenado) contextoCompleto.ultimoPDF = JSON.parse(ultimoPDFAlmacenado);
+    const historialLimitado = historialConversacion.slice(-4);
+    let respuestaRaw = await consultarAuraIA(consulta, contextoCompleto, historialLimitado);
+    // No limpiamos negritas, solo separadores
+    respuestaRaw = limpiarRespuesta(respuestaRaw);
+    setHistorialConversacion(prev => [...prev.slice(-4), { role: 'user', content: consulta }, { role: 'assistant', content: respuestaRaw }]);
+    setRespuestaIA(respuestaRaw);
     setBusqueda('');
     setCargandoIA(false);
   };
@@ -393,45 +283,10 @@ export default function Dashboard({ temaOscuro }) {
   const buscarReferencias = () => {
     if (!busqueda && !respuestaIA) return;
     const query = encodeURIComponent(busqueda || respuestaIA.slice(0, 50));
-    const url = `https://www.youtube.com/results?search_query=${query}+fisioterapia`;
-    console.log('📺 [Dashboard] Abriendo YouTube con búsqueda:', query);
-    window.open(url, '_blank');
+    window.open(`https://www.youtube.com/results?search_query=${query}+fisioterapia`, '_blank');
   };
 
   // ========== RENDERIZADO ==========
-
-  // Si estamos cargando inicialmente, mostramos un spinner (evita pantalla en negro)
-  if (cargandoInicial) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-[#020813]">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-[#22d3ee] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-[#22d3ee] text-sm font-bold">Cargando Dashboard...</p>
-          <p className="text-gray-500 text-xs mt-2">(Revisa la consola para ver el progreso)</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Si hubo un error crítico, mostramos un mensaje amigable
-  if (errorCarga) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-[#020813] p-4">
-        <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-6 max-w-md text-center">
-          <p className="text-red-400 font-bold text-lg">⚠️ Error al cargar el Dashboard</p>
-          <p className="text-gray-300 text-sm mt-2">{errorCarga}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-4 px-6 py-2 bg-[#22d3ee] text-black font-bold rounded-xl hover:scale-105 transition-all"
-          >
-            Reintentar
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ========== RENDER NORMAL (sin cambios visuales, solo los logs ya están) ==========
   const bgTarjeta = temaOscuro ? 'bg-black/20 border-gray-800' : 'bg-white border-gray-200 shadow-sm';
   const textoColor = temaOscuro ? 'text-white' : 'text-[#0f172a]';
   const bgInput = temaOscuro ? 'bg-black/20 border-white/10' : 'bg-gray-100 border-gray-300';
@@ -457,7 +312,8 @@ export default function Dashboard({ temaOscuro }) {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Tarjeta de progreso */}
         <div className={`${bgTarjeta} p-4 rounded-2xl border flex items-center gap-4`}>
           <div className="w-16 h-16 relative">
             <svg className="w-full h-full" viewBox="0 0 36 36">
@@ -472,6 +328,8 @@ export default function Dashboard({ temaOscuro }) {
             <p className={`text-[10px] ${textoColor} opacity-70`}>{progresoExamenes.total} exámenes realizados</p>
           </div>
         </div>
+
+        {/* Tarjeta de último PDF */}
         <div className={`${bgTarjeta} p-4 rounded-2xl border`}>
           <h3 className={`text-xs font-bold mb-1 ${textoColor}`}>📄 Último PDF visto</h3>
           {ultimoPDF ? (
@@ -481,12 +339,6 @@ export default function Dashboard({ temaOscuro }) {
               <button onClick={resumirUltimoPDF} disabled={resumiendoPDF} className="mt-2 text-[#22d3ee] text-xs font-bold flex items-center gap-1 hover:underline"><IconSummarize /> {resumiendoPDF ? 'Resumiendo...' : 'Resumir PDF'}</button>
             </>
           ) : <p className="text-sm text-gray-500">Aún no has abierto ningún PDF</p>}
-        </div>
-        <div className={`${bgTarjeta} p-4 rounded-2xl border`}>
-          <h3 className={`text-xs font-bold mb-2 ${textoColor}`}>📅 Próximos recordatorios</h3>
-          {proximosRecordatorios.length === 0 ? <p className="text-sm text-gray-500">No hay recordatorios próximos</p> : (
-            <ul className="space-y-1">{proximosRecordatorios.map(rec => <li key={rec.id} className="text-xs flex justify-between"><span className="truncate">{rec.titulo}</span><span className="text-[10px] text-gray-400">{new Date(rec.fecha_hora).toLocaleDateString()}</span></li>)}</ul>
-          )}
         </div>
       </div>
 
@@ -515,7 +367,9 @@ export default function Dashboard({ temaOscuro }) {
         {respuestaIA && (
           <div className="mt-6 p-5 rounded-2xl bg-[#22d3ee]/5 border border-[#22d3ee]/20 backdrop-blur-sm relative">
             <div className="flex gap-2 absolute top-2 right-2">
-              <button onClick={leerRespuesta} className={`p-2 rounded-full ${reproduciendoAudio ? 'bg-green-800' : 'bg-green-600'} text-white hover:bg-green-700 transition-all`} title="Leer respuesta en segundo plano">🔊</button>
+              <button onClick={leerRespuesta} className={`p-2 rounded-full ${reproduciendoAudio ? (audioPausado ? 'bg-yellow-600' : 'bg-green-800') : 'bg-green-600'} text-white hover:bg-opacity-80 transition-all`} title={reproduciendoAudio ? (audioPausado ? 'Reanudar' : 'Pausar') : 'Leer respuesta'}>
+                {reproduciendoAudio ? (audioPausado ? '▶️' : '⏸️') : '🔊'}
+              </button>
               <button onClick={buscarReferencias} className="p-2 rounded-full bg-yellow-600 text-white hover:bg-yellow-700 transition-all" title="Buscar en YouTube">📺</button>
             </div>
             <div className={`prose prose-sm max-w-none ${temaOscuro ? 'prose-invert' : ''} mt-6`}>
@@ -525,7 +379,7 @@ export default function Dashboard({ temaOscuro }) {
         )}
       </section>
 
-      <RecordatoriosWidget temaOscuro={temaOscuro} />
+      {/* RecordatoriosWidget eliminado */}
       <HistorialWidget temaOscuro={temaOscuro} />
       <CalendarioWidget temaOscuro={temaOscuro} />
       <NotificacionesActivador temaOscuro={temaOscuro} />
