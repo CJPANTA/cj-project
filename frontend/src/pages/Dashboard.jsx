@@ -19,13 +19,12 @@ export default function Dashboard({ temaOscuro }) {
   const [fraseMotivacional, setFraseMotivacional] = useState('');
   const [ultimoPDF, setUltimoPDF] = useState(null);
   const [progresoExamenes, setProgresoExamenes] = useState({ promedio: 0, total: 0 });
-  // Eliminamos el estado de próximos recordatorios
   const [historialConversacion, setHistorialConversacion] = useState([]);
   const [generandoFrase, setGenerandoFrase] = useState(false);
   const [resumiendoPDF, setResumiendoPDF] = useState(false);
   const [escuchandoVoz, setEscuchandoVoz] = useState(false);
   const [reproduciendoAudio, setReproduciendoAudio] = useState(false);
-  const [audioPausado, setAudioPausado] = useState(false); // <-- NUEVO: para pausar/reanudar
+  const [audioPausado, setAudioPausado] = useState(false);
   const recognitionRef = useRef(null);
   const navigate = useNavigate();
   const { contexto } = useAura();
@@ -41,7 +40,6 @@ export default function Dashboard({ temaOscuro }) {
 
     while (i < lineas.length) {
       const linea = lineas[i];
-      // Detectar tabla con pipes
       if (linea.trim().startsWith('|') && linea.trim().endsWith('|')) {
         const filasTabla = [];
         while (i < lineas.length && lineas[i].trim().startsWith('|') && lineas[i].trim().endsWith('|')) {
@@ -83,11 +81,8 @@ export default function Dashboard({ temaOscuro }) {
           continue;
         }
       } else {
-        // Procesar líneas normales y convertir **negritas**
         let lineaProcesada = linea;
-        // Reemplazar **texto** por <strong>texto</strong>
         lineaProcesada = lineaProcesada.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-        // También soportar *texto* como cursiva (opcional)
         lineaProcesada = lineaProcesada.replace(/\*(.+?)\*/g, '<em>$1</em>');
 
         if (lineaProcesada.trim() === '') {
@@ -109,14 +104,12 @@ export default function Dashboard({ temaOscuro }) {
     let limpio = texto.replace(/\|/g, ' ').replace(/\s+/g, ' ').trim();
 
     if ('speechSynthesis' in window) {
-      // Si ya hay una síntesis en curso y no está pausada, la pausamos
       if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
         window.speechSynthesis.pause();
         setAudioPausado(true);
         setReproduciendoAudio(true);
         return;
       }
-      // Si está pausada, reanudamos
       if (window.speechSynthesis.paused) {
         window.speechSynthesis.resume();
         setAudioPausado(false);
@@ -124,13 +117,11 @@ export default function Dashboard({ temaOscuro }) {
         return;
       }
 
-      // Si no hay nada hablando, iniciamos nueva síntesis
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(limpio);
       utterance.lang = 'es-ES';
       utterance.rate = 0.9;
 
-      // Mantener el contexto de audio activo (para segundo plano)
       if (!window.audioContextKeepAlive) {
         window.audioContextKeepAlive = new (window.AudioContext || window.webkitAudioContext)();
         const silent = window.audioContextKeepAlive.createOscillator();
@@ -160,10 +151,8 @@ export default function Dashboard({ temaOscuro }) {
     }
   }, []);
 
-  // ========== LIMPIEZA DE NEGRITAS (ya no se usa, pero la dejamos) ==========
+  // ========== LIMPIEZA DE RESPUESTA ==========
   const limpiarRespuesta = (texto) => {
-    // Esta función ya no elimina negritas, las conserva para que las procese convertirTablasHTML
-    // Solo eliminamos separadores de líneas que puedan interferir
     let limpio = texto.replace(/[\*\-=]{3,}/g, '');
     return limpio.trim();
   };
@@ -184,7 +173,6 @@ export default function Dashboard({ temaOscuro }) {
     const pdf = localStorage.getItem('ultimo_pdf_visto');
     if (pdf) setUltimoPDF(JSON.parse(pdf));
     cargarProgresoExamenes();
-    // cargarProximosRecordatorios eliminado
     return () => {
       window.speechSynthesis.cancel();
     };
@@ -272,7 +260,6 @@ export default function Dashboard({ temaOscuro }) {
     if (ultimoPDFAlmacenado) contextoCompleto.ultimoPDF = JSON.parse(ultimoPDFAlmacenado);
     const historialLimitado = historialConversacion.slice(-4);
     let respuestaRaw = await consultarAuraIA(consulta, contextoCompleto, historialLimitado);
-    // No limpiamos negritas, solo separadores
     respuestaRaw = limpiarRespuesta(respuestaRaw);
     setHistorialConversacion(prev => [...prev.slice(-4), { role: 'user', content: consulta }, { role: 'assistant', content: respuestaRaw }]);
     setRespuestaIA(respuestaRaw);
@@ -284,6 +271,22 @@ export default function Dashboard({ temaOscuro }) {
     if (!busqueda && !respuestaIA) return;
     const query = encodeURIComponent(busqueda || respuestaIA.slice(0, 50));
     window.open(`https://www.youtube.com/results?search_query=${query}+fisioterapia`, '_blank');
+  };
+
+  // ========== AUTO-RESIZE DEL TEXTAREA ==========
+  const handleTextareaChange = (e) => {
+    const textarea = e.target;
+    setBusqueda(textarea.value);
+    // Ajustar altura automáticamente
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 'px';
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault(); // Evita salto de línea
+      ejecutarConsultaIA();
+    }
   };
 
   // ========== RENDERIZADO ==========
@@ -358,16 +361,41 @@ export default function Dashboard({ temaOscuro }) {
         )}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <input type="text" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && ejecutarConsultaIA()} placeholder="¿Qué patología o protocolo revisamos hoy?" className={`w-full ${bgInput} border p-4 rounded-2xl outline-none focus:border-[#22d3ee] transition-all text-sm ${textoColor}`} />
-            <button onClick={iniciarDictado} className={`absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full ${escuchandoVoz ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all`} title="Dictar por voz">🎙️</button>
+            {/* CAMBIO AQUÍ: input → textarea autoajustable */}
+            <textarea
+              value={busqueda}
+              onChange={handleTextareaChange}
+              onKeyDown={handleKeyDown}
+              placeholder="¿Qué patología o protocolo revisamos hoy?"
+              className={`w-full ${bgInput} border p-4 rounded-2xl outline-none focus:border-[#22d3ee] transition-all text-sm ${textoColor} resize-none overflow-hidden min-h-[60px]`}
+              rows={1}
+              style={{ height: 'auto' }}
+            />
+            <button
+              onClick={iniciarDictado}
+              className={`absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full ${escuchandoVoz ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all`}
+              title="Dictar por voz"
+            >
+              🎙️
+            </button>
           </div>
-          <button onClick={() => ejecutarConsultaIA()} disabled={cargandoIA} className="px-6 py-4 bg-[#22d3ee] text-black font-black rounded-xl text-[10px] uppercase hover:scale-105 active:scale-95 transition-all disabled:opacity-50 w-full sm:w-auto">{cargandoIA ? '...' : 'Consultar'}</button>
+          <button
+            onClick={() => ejecutarConsultaIA()}
+            disabled={cargandoIA}
+            className="px-6 py-4 bg-[#22d3ee] text-black font-black rounded-xl text-[10px] uppercase hover:scale-105 active:scale-95 transition-all disabled:opacity-50 w-full sm:w-auto"
+          >
+            {cargandoIA ? '...' : 'Consultar'}
+          </button>
         </div>
 
         {respuestaIA && (
           <div className="mt-6 p-5 rounded-2xl bg-[#22d3ee]/5 border border-[#22d3ee]/20 backdrop-blur-sm relative">
             <div className="flex gap-2 absolute top-2 right-2">
-              <button onClick={leerRespuesta} className={`p-2 rounded-full ${reproduciendoAudio ? (audioPausado ? 'bg-yellow-600' : 'bg-green-800') : 'bg-green-600'} text-white hover:bg-opacity-80 transition-all`} title={reproduciendoAudio ? (audioPausado ? 'Reanudar' : 'Pausar') : 'Leer respuesta'}>
+              <button
+                onClick={leerRespuesta}
+                className={`p-2 rounded-full ${reproduciendoAudio ? (audioPausado ? 'bg-yellow-600' : 'bg-green-800') : 'bg-green-600'} text-white hover:bg-opacity-80 transition-all`}
+                title={reproduciendoAudio ? (audioPausado ? 'Reanudar' : 'Pausar') : 'Leer respuesta'}
+              >
                 {reproduciendoAudio ? (audioPausado ? '▶️' : '⏸️') : '🔊'}
               </button>
               <button onClick={buscarReferencias} className="p-2 rounded-full bg-yellow-600 text-white hover:bg-yellow-700 transition-all" title="Buscar en YouTube">📺</button>
@@ -379,7 +407,6 @@ export default function Dashboard({ temaOscuro }) {
         )}
       </section>
 
-      {/* RecordatoriosWidget eliminado */}
       <HistorialWidget temaOscuro={temaOscuro} />
       <CalendarioWidget temaOscuro={temaOscuro} />
       <NotificacionesActivador temaOscuro={temaOscuro} />
