@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { GlobalMusicPlayer } from './GlobalMusicPlayer';
 
-export default function Sidebar({ temaOscuro, alClickLink, setTemaOscuro }) {
+export default function Sidebar({ temaOscuro, alClickLink }) {
   const location = useLocation();
   const navigate = useNavigate();
   const path = location.pathname;
@@ -31,11 +31,10 @@ export default function Sidebar({ temaOscuro, alClickLink, setTemaOscuro }) {
   const bordeColor = temaOscuro ? 'border-gray-800' : 'border-gray-200';
   const hoverBg = temaOscuro ? 'hover:bg-white/5' : 'hover:bg-gray-100';
 
-  // Iconos (se mantienen todos, incluido el de Multimedia aunque no se use)
+  // Iconos
   const IconDashboard = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>;
   const IconRepositorio = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>;
   const IconBiblioteca = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/></svg>;
-  // IconMultimedia eliminado (ya no se usa)
   const IconCalendario = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>;
   const IconSimulador = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>;
   const IconHistorial = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
@@ -77,7 +76,6 @@ export default function Sidebar({ temaOscuro, alClickLink, setTemaOscuro }) {
             <div className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 px-4 py-1">Zona Académica</div>
             <Link to="/area-estudio" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${isActive('/area-estudio') ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}><IconRepositorio /> Repositorio</Link>
             <Link to="/biblioteca" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${isActive('/biblioteca') ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}><IconBiblioteca /> Biblioteca</Link>
-            {/* ELIMINADO enlace a Multimedia */}
             <Link to="/horario" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${isActive('/horario') ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}><IconCalendario /> Horario</Link>
             <Link to="/simulador" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${isActive('/simulador') ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}><IconSimulador /> Simulador de examen</Link>
             <Link to="/historial-examenes" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${isActive('/historial-examenes') ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}><IconHistorial /> Historial de exámenes</Link>
@@ -95,8 +93,13 @@ export default function Sidebar({ temaOscuro, alClickLink, setTemaOscuro }) {
             <Link to="/masoterapia" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${isActive('/masoterapia') ? 'bg-orange-500/10 text-orange-500' : `${textoSecundario} ${hoverBg}`}`}><IconMasoterapia /> Masoterapia</Link>
             <div className="border-t border-gray-700/30 my-2"></div>
             <div className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 px-4 py-1">Gimnasio Terapéutico</div>
-            <Link to="/fichas" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${isActive('/fichas') ? 'bg-[#10b981]/10 text-[#10b981]' : `${textoSecundario} ${hoverBg}`}`}><IconPatologias /> Fichas de Ingreso</Link>
-            <Link to="/expedientes" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${isActive('/expedientes') ? 'bg-[#10b981]/10 text-[#10b981]' : `${textoSecundario} ${hoverBg}`}`}><IconBiblioteca /> Expedientes</Link>
+            {/* ENLACES ELIMINADOS porque las rutas no existen en App.jsx, los reemplazo por placeholders sin navegación */}
+            <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase text-gray-500 opacity-60 cursor-not-allowed">
+              <IconPatologias /> Fichas de Ingreso <span className="text-[8px] text-gray-400">(próximamente)</span>
+            </div>
+            <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase text-gray-500 opacity-60 cursor-not-allowed">
+              <IconBiblioteca /> Expedientes <span className="text-[8px] text-gray-400">(próximamente)</span>
+            </div>
           </div>
         )}
 
