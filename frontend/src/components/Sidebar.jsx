@@ -31,7 +31,7 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
   const bordeColor = temaOscuro ? 'border-gray-800' : 'border-gray-200';
   const hoverBg = temaOscuro ? 'hover:bg-white/5' : 'hover:bg-gray-100';
 
-  // Iconos
+  // Iconos (todos los que usas)
   const IconDashboard = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>;
   const IconRepositorio = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>;
   const IconBiblioteca = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/></svg>;
@@ -46,7 +46,7 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
   return (
     <aside className={`${bgSidebar} border ${bordeColor} rounded-3xl p-6 h-full flex flex-col shadow-2xl overflow-y-auto custom-scrollbar transition-colors duration-500`}>
       <div className="mb-6 flex items-center gap-3 shrink-0">
-        <img src="/logos_cj_circular.png" alt="Logo CJ" className="w-12 h-12 rounded-full border-2 border-[#22d3ee]/30 shadow-[0_0_15px_rgba(34,211,238,0.2)]" onError={(e) => e.target.style.display='none'} />
+        <img src="/logos_cj_circular.png" alt="Logo CJ" className="w-10 h-10 rounded-full border-2 border-[#22d3ee]/30 shadow-[0_0_15px_rgba(34,211,238,0.2)]" onError={(e) => e.target.style.display='none'} />
         <div>
           <h2 className={`${textoPrincipal} font-black text-lg tracking-widest leading-none`}>ECOSISTEMA</h2>
           <span className="text-[#22d3ee] text-[9px] font-bold uppercase tracking-[0.3em]">Gimnasio & Academia</span>
@@ -93,7 +93,7 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
             <Link to="/masoterapia" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${isActive('/masoterapia') ? 'bg-orange-500/10 text-orange-500' : `${textoSecundario} ${hoverBg}`}`}><IconMasoterapia /> Masoterapia</Link>
             <div className="border-t border-gray-700/30 my-2"></div>
             <div className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 px-4 py-1">Gimnasio Terapéutico</div>
-            {/* ENLACES ELIMINADOS porque las rutas no existen en App.jsx, los reemplazo por placeholders sin navegación */}
+            {/* ELIMINADOS los enlaces a /fichas y /expedientes porque no existen en App.jsx */}
             <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase text-gray-500 opacity-60 cursor-not-allowed">
               <IconPatologias /> Fichas de Ingreso <span className="text-[8px] text-gray-400">(próximamente)</span>
             </div>
