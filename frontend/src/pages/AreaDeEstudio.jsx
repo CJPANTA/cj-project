@@ -24,7 +24,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
   const LOGO_CARRION = "https://raw.githubusercontent.com/CJPANTA/cj-project/main/logo_carrion.png";
   const LOGO_CJ_CIRCULAR = "https://raw.githubusercontent.com/CJPANTA/cj-project/main/logos_cj_circular.png";
 
-  // Cargar favoritos desde localStorage
+  // Cargar favoritos desde localStorage al montar
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
@@ -36,7 +36,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
     }
   }, []);
 
-  // Guardar favoritos en localStorage
+  // Guardar favoritos en localStorage cada vez que cambien
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(favoritos));
   }, [favoritos]);
@@ -53,7 +53,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
 
   const esFavorito = (nombrePDF) => favoritos.includes(nombrePDF);
 
-  // Efecto para cargar cursos al seleccionar ciclo
+  // Efecto para cargar cursos al seleccionar ciclo (sin actualizar contexto)
   useEffect(() => {
     if (cicloSeleccionado && estructura && estructura[cicloSeleccionado]) {
       const materias = Object.keys(estructura[cicloSeleccionado]);
@@ -62,7 +62,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
     }
   }, [cicloSeleccionado, estructura]);
 
-  // Efecto para cargar archivos al seleccionar curso
+  // Efecto para cargar archivos al seleccionar curso (sin actualizar contexto)
   useEffect(() => {
     if (cicloSeleccionado && cursoActivo && estructura?.[cicloSeleccionado]?.[cursoActivo]) {
       setArchivosCurso(estructura[cicloSeleccionado][cursoActivo]);
@@ -132,13 +132,13 @@ export default function AreaDeEstudio({ temaOscuro }) {
     );
   }
 
-  // Vista 1: Selección de ciclos
+  // Vista 1: Selección de ciclos (CORREGIDA)
   if (!cicloSeleccionado) {
     return (
-      <main className="p-4 md:p-8 max-w-7xl mx-auto w-full animate-fade-in font-sans">
+      <main className="p-4 md:p-8 max-w-7xl mx-auto w-full overflow-hidden font-sans">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
           <div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 flex-wrap">
               <img src={LOGO_CARRION} alt="Instituto Carrión" className="h-12 w-auto object-contain" />
               <h1 className={`text-3xl md:text-4xl font-black tracking-tighter ${textoColor}`}>
                 Repositorio <span className="text-[#22d3ee]">Clínico</span>
@@ -150,7 +150,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
           </div>
           <button 
             onClick={forzarSincronizacion}
-            className="p-2 rounded-full hover:bg-white/10 transition-all"
+            className="p-2 rounded-full hover:bg-white/10 transition-all shrink-0"
             title="Refrescar repositorio"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400 hover:text-[#22d3ee]">
@@ -162,25 +162,28 @@ export default function AreaDeEstudio({ temaOscuro }) {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+        {/* Grid de ciclos con tamaño fijo y sin desborde */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 md:gap-6">
           {ciclosDisponibles.map((ciclo) => (
             <div 
               key={ciclo} 
-              className={`group relative overflow-hidden rounded-2xl cursor-pointer ${tarjetaClase}`}
+              className={`group relative overflow-hidden rounded-2xl cursor-pointer ${tarjetaClase} flex flex-col items-center justify-center p-6 h-40 md:h-48`}
               onClick={() => setCicloSeleccionado(ciclo)}
             >
               <img 
                 src={LOGO_CJ_CIRCULAR} 
-                className={`absolute bottom-2 right-2 w-16 h-16 pointer-events-none transition-opacity duration-300 ${selloOpacidad}`}
+                className={`absolute bottom-2 right-2 w-14 h-14 md:w-16 md:h-16 pointer-events-none transition-opacity duration-300 ${selloOpacidad}`}
                 alt="CJ"
               />
-              <div className="p-6 flex flex-col items-center justify-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-[#22d3ee]/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="text-[#22d3ee]">
+              <div className="flex flex-col items-center justify-center gap-2 w-full">
+                <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-[#22d3ee]/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="text-[#22d3ee]">
                     <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" />
                   </svg>
                 </div>
-                <span className={`text-2xl font-black ${textoColor}`}>Ciclo {ciclo}</span>
+                <span className={`text-xl md:text-2xl font-black ${textoColor} text-center break-words`}>
+                  Ciclo {ciclo}
+                </span>
               </div>
             </div>
           ))}
@@ -203,9 +206,15 @@ export default function AreaDeEstudio({ temaOscuro }) {
     );
   }
 
-  // Vista 3: Navegador del ciclo (materias y archivos) con favorito y acciones (SIN MARQUEE)
+  // Vista 3: Navegador del ciclo (materias y archivos)
   return (
     <main className="p-4 md:p-8 max-w-full overflow-hidden">
+      <style>{`
+        @keyframes marquee { 0% { transform: translateX(10%); } 100% { transform: translateX(-100%); } }
+        .marquee-container { overflow: hidden; white-space: nowrap; mask-image: linear-gradient(to right, transparent, black 5%, black 90%, transparent); }
+        .marquee-text { display: inline-block; animation: marquee 15s linear infinite; padding-left: 10px; }
+      `}</style>
+
       <header className="flex flex-col md:flex-row justify-between gap-4 mb-8">
         <div className="flex items-center gap-3">
           <img src={LOGO_CARRION} alt="Carrión" className="h-8 w-auto" />
@@ -251,12 +260,12 @@ export default function AreaDeEstudio({ temaOscuro }) {
                     ? 'border-gray-700 hover:border-[#22d3ee]/40' 
                     : 'border-gray-200 hover:border-[#22d3ee]/60'
                 } group`}>
-                  <div className="flex-1 min-w-0 pr-4">
-                    <p className={`truncate ${temaOscuro ? 'text-gray-300' : 'text-gray-700'} text-[13px] font-bold`}>
+                  <div className="flex-1 marquee-container pr-4">
+                    <p className={`marquee-text ${temaOscuro ? 'text-gray-300' : 'text-gray-700'} text-[13px] font-bold`}>
                       {f.replace('.pdf', '').replace(/_/g, ' ')}
                     </p>
                   </div>
-                  <div className="flex gap-2 flex-shrink-0">
+                  <div className="flex gap-2">
                     <button
                       onClick={() => toggleFavorito(f)}
                       className={`px-2 py-2 rounded-xl text-sm transition-all ${
@@ -269,6 +278,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
                       {esFavorito(f) ? '⭐' : '☆'}
                     </button>
                     
+                    {/* Botón LEER (solo para PDF) */}
                     {esPDF(f) && (
                       <button 
                         onClick={() => prepararLector(f)} 
@@ -278,6 +288,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
                       </button>
                     )}
                     
+                    {/* Botón VER (para otros formatos de Office) */}
                     {!esPDF(f) && esFormatoOffice(f) && (
                       <button 
                         onClick={() => abrirOtroFormato(f)} 
@@ -287,6 +298,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
                       </button>
                     )}
 
+                    {/* Si no es PDF ni Office, mostramos solo descarga */}
                     {!esPDF(f) && !esFormatoOffice(f) && (
                       <div className="flex items-center text-gray-500 text-[10px] font-black px-2">
                         Formato no soportado
