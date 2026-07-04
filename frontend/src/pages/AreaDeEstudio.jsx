@@ -16,6 +16,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
   const [archivosCurso, setArchivosCurso] = useState([]);
   const [archivoSeleccionado, setArchivoSeleccionado] = useState(null);
   const [favoritos, setFavoritos] = useState([]);
+  const [renderReady, setRenderReady] = useState(false); // Para evitar el "rayado"
 
   const GITHUB_USER = "CJPANTA";
   const GITHUB_REPO = "cj-project";
@@ -23,6 +24,11 @@ export default function AreaDeEstudio({ temaOscuro }) {
 
   const LOGO_CARRION = "https://raw.githubusercontent.com/CJPANTA/cj-project/main/logo_carrion.png";
   const LOGO_CJ_CIRCULAR = "https://raw.githubusercontent.com/CJPANTA/cj-project/main/logos_cj_circular.png";
+
+  // Forzar que el componente se marque como listo después del montaje
+  useEffect(() => {
+    setRenderReady(true);
+  }, []);
 
   // Cargar favoritos desde localStorage al montar
   useEffect(() => {
@@ -53,7 +59,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
 
   const esFavorito = (nombrePDF) => favoritos.includes(nombrePDF);
 
-  // Efecto para cargar cursos al seleccionar ciclo (sin actualizar contexto)
+  // Efecto para cargar cursos al seleccionar ciclo
   useEffect(() => {
     if (cicloSeleccionado && estructura && estructura[cicloSeleccionado]) {
       const materias = Object.keys(estructura[cicloSeleccionado]);
@@ -62,7 +68,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
     }
   }, [cicloSeleccionado, estructura]);
 
-  // Efecto para cargar archivos al seleccionar curso (sin actualizar contexto)
+  // Efecto para cargar archivos al seleccionar curso
   useEffect(() => {
     if (cicloSeleccionado && cursoActivo && estructura?.[cicloSeleccionado]?.[cursoActivo]) {
       setArchivosCurso(estructura[cicloSeleccionado][cursoActivo]);
@@ -118,7 +124,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
     return (
       <main className="p-8 text-center">
         <div className="text-[#22d3ee] text-xl font-black">🔄 Escaneando repositorio desde GitHub...</div>
-        <p className="text-gray-400 text-sm mt-2">No se pudo conectar a GitHub. Verifica tu conexión a internet y vuelve a intentarlo.</p>
+        <p className="text-gray-400 text-sm mt-2">Cargando materiales de estudio...</p>
       </main>
     );
   }
@@ -132,13 +138,22 @@ export default function AreaDeEstudio({ temaOscuro }) {
     );
   }
 
-  // Vista 1: Selección de ciclos (CORREGIDA)
+  // Si el componente aún no está listo para renderizar, mostramos un placeholder
+  if (!renderReady) {
+    return (
+      <main className="p-8 text-center">
+        <div className="text-gray-400 text-sm">Cargando...</div>
+      </main>
+    );
+  }
+
+  // Vista 1: Selección de ciclos
   if (!cicloSeleccionado) {
     return (
-      <main className="p-4 md:p-8 max-w-7xl mx-auto w-full overflow-hidden font-sans">
+      <main className="p-4 md:p-8 max-w-7xl mx-auto w-full animate-fade-in font-sans">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
           <div>
-            <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-4">
               <img src={LOGO_CARRION} alt="Instituto Carrión" className="h-12 w-auto object-contain" />
               <h1 className={`text-3xl md:text-4xl font-black tracking-tighter ${textoColor}`}>
                 Repositorio <span className="text-[#22d3ee]">Clínico</span>
@@ -150,7 +165,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
           </div>
           <button 
             onClick={forzarSincronizacion}
-            className="p-2 rounded-full hover:bg-white/10 transition-all shrink-0"
+            className="p-2 rounded-full hover:bg-white/10 transition-all"
             title="Refrescar repositorio"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400 hover:text-[#22d3ee]">
@@ -162,28 +177,25 @@ export default function AreaDeEstudio({ temaOscuro }) {
           </button>
         </div>
 
-        {/* Grid de ciclos con tamaño fijo y sin desborde */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
           {ciclosDisponibles.map((ciclo) => (
             <div 
               key={ciclo} 
-              className={`group relative overflow-hidden rounded-2xl cursor-pointer ${tarjetaClase} flex flex-col items-center justify-center p-6 h-40 md:h-48`}
+              className={`group relative overflow-hidden rounded-2xl cursor-pointer ${tarjetaClase}`}
               onClick={() => setCicloSeleccionado(ciclo)}
             >
               <img 
                 src={LOGO_CJ_CIRCULAR} 
-                className={`absolute bottom-2 right-2 w-14 h-14 md:w-16 md:h-16 pointer-events-none transition-opacity duration-300 ${selloOpacidad}`}
+                className={`absolute bottom-2 right-2 w-16 h-16 pointer-events-none transition-opacity duration-300 ${selloOpacidad}`}
                 alt="CJ"
               />
-              <div className="flex flex-col items-center justify-center gap-2 w-full">
-                <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-[#22d3ee]/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="text-[#22d3ee]">
+              <div className="p-6 flex flex-col items-center justify-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-[#22d3ee]/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="text-[#22d3ee]">
                     <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" />
                   </svg>
                 </div>
-                <span className={`text-xl md:text-2xl font-black ${textoColor} text-center break-words`}>
-                  Ciclo {ciclo}
-                </span>
+                <span className={`text-2xl font-black ${textoColor}`}>Ciclo {ciclo}</span>
               </div>
             </div>
           ))}
@@ -278,7 +290,6 @@ export default function AreaDeEstudio({ temaOscuro }) {
                       {esFavorito(f) ? '⭐' : '☆'}
                     </button>
                     
-                    {/* Botón LEER (solo para PDF) */}
                     {esPDF(f) && (
                       <button 
                         onClick={() => prepararLector(f)} 
@@ -288,7 +299,6 @@ export default function AreaDeEstudio({ temaOscuro }) {
                       </button>
                     )}
                     
-                    {/* Botón VER (para otros formatos de Office) */}
                     {!esPDF(f) && esFormatoOffice(f) && (
                       <button 
                         onClick={() => abrirOtroFormato(f)} 
@@ -298,7 +308,6 @@ export default function AreaDeEstudio({ temaOscuro }) {
                       </button>
                     )}
 
-                    {/* Si no es PDF ni Office, mostramos solo descarga */}
                     {!esPDF(f) && !esFormatoOffice(f) && (
                       <div className="flex items-center text-gray-500 text-[10px] font-black px-2">
                         Formato no soportado
