@@ -24,7 +24,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
   const LOGO_CARRION = "https://raw.githubusercontent.com/CJPANTA/cj-project/main/logo_carrion.png";
   const LOGO_CJ_CIRCULAR = "https://raw.githubusercontent.com/CJPANTA/cj-project/main/logos_cj_circular.png";
 
-  // Cargar favoritos desde localStorage al montar
+  // Cargar favoritos desde localStorage
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
@@ -36,7 +36,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
     }
   }, []);
 
-  // Guardar favoritos en localStorage cada vez que cambien
+  // Guardar favoritos en localStorage
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(favoritos));
   }, [favoritos]);
@@ -53,17 +53,16 @@ export default function AreaDeEstudio({ temaOscuro }) {
 
   const esFavorito = (nombrePDF) => favoritos.includes(nombrePDF);
 
-  // Efecto para cargar cursos al seleccionar ciclo (sin actualizar contexto)
+  // Efecto para cargar cursos al seleccionar ciclo
   useEffect(() => {
     if (cicloSeleccionado && estructura && estructura[cicloSeleccionado]) {
       const materias = Object.keys(estructura[cicloSeleccionado]);
       setCursos(materias);
       if (materias.length > 0) setCursoActivo(materias[0]);
-      // No llamamos a actualizarContexto aquí para evitar bucles
     }
   }, [cicloSeleccionado, estructura]);
 
-  // Efecto para cargar archivos al seleccionar curso (sin actualizar contexto)
+  // Efecto para cargar archivos al seleccionar curso
   useEffect(() => {
     if (cicloSeleccionado && cursoActivo && estructura?.[cicloSeleccionado]?.[cursoActivo]) {
       setArchivosCurso(estructura[cicloSeleccionado][cursoActivo]);
@@ -85,7 +84,6 @@ export default function AreaDeEstudio({ temaOscuro }) {
       viewer: `https://docs.google.com/viewer?url=${encodeURIComponent(rawUrl)}&embedded=true&ignore=${antiCache}`,
       descarga: rawUrl
     });
-    // Solo aquí actualizamos el contexto, al abrir un archivo
     actualizarContexto({ ciclo: `Ciclo ${cicloSeleccionado}`, materia: cursoActivo, archivo: nombreArchivo });
   };
 
@@ -205,15 +203,9 @@ export default function AreaDeEstudio({ temaOscuro }) {
     );
   }
 
-  // Vista 3: Navegador del ciclo (materias y archivos) con botón de favorito y acciones
+  // Vista 3: Navegador del ciclo (materias y archivos) con favorito y acciones (SIN MARQUEE)
   return (
     <main className="p-4 md:p-8 max-w-full overflow-hidden">
-      <style>{`
-        @keyframes marquee { 0% { transform: translateX(10%); } 100% { transform: translateX(-100%); } }
-        .marquee-container { overflow: hidden; white-space: nowrap; mask-image: linear-gradient(to right, transparent, black 5%, black 90%, transparent); }
-        .marquee-text { display: inline-block; animation: marquee 15s linear infinite; padding-left: 10px; }
-      `}</style>
-
       <header className="flex flex-col md:flex-row justify-between gap-4 mb-8">
         <div className="flex items-center gap-3">
           <img src={LOGO_CARRION} alt="Carrión" className="h-8 w-auto" />
@@ -259,12 +251,12 @@ export default function AreaDeEstudio({ temaOscuro }) {
                     ? 'border-gray-700 hover:border-[#22d3ee]/40' 
                     : 'border-gray-200 hover:border-[#22d3ee]/60'
                 } group`}>
-                  <div className="flex-1 marquee-container pr-4">
-                    <p className={`marquee-text ${temaOscuro ? 'text-gray-300' : 'text-gray-700'} text-[13px] font-bold`}>
+                  <div className="flex-1 min-w-0 pr-4">
+                    <p className={`truncate ${temaOscuro ? 'text-gray-300' : 'text-gray-700'} text-[13px] font-bold`}>
                       {f.replace('.pdf', '').replace(/_/g, ' ')}
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-shrink-0">
                     <button
                       onClick={() => toggleFavorito(f)}
                       className={`px-2 py-2 rounded-xl text-sm transition-all ${
@@ -277,7 +269,6 @@ export default function AreaDeEstudio({ temaOscuro }) {
                       {esFavorito(f) ? '⭐' : '☆'}
                     </button>
                     
-                    {/* Botón LEER (solo para PDF) */}
                     {esPDF(f) && (
                       <button 
                         onClick={() => prepararLector(f)} 
@@ -287,7 +278,6 @@ export default function AreaDeEstudio({ temaOscuro }) {
                       </button>
                     )}
                     
-                    {/* Botón VER (para otros formatos de Office) */}
                     {!esPDF(f) && esFormatoOffice(f) && (
                       <button 
                         onClick={() => abrirOtroFormato(f)} 
@@ -297,7 +287,6 @@ export default function AreaDeEstudio({ temaOscuro }) {
                       </button>
                     )}
 
-                    {/* Si no es PDF ni Office, mostramos solo descarga */}
                     {!esPDF(f) && !esFormatoOffice(f) && (
                       <div className="flex items-center text-gray-500 text-[10px] font-black px-2">
                         Formato no soportado
