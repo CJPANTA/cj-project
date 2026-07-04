@@ -15,8 +15,9 @@ import ConfiguracionAura from './pages/ConfiguracionAura';
 import Patologias from './pages/Patologias';
 import Masoterapia from './pages/Masoterapia';
 import ErrorBoundary from './components/ErrorBoundary';
-// NUEVA IMPORTACIÓN
+// NUEVAS IMPORTACIONES CLÍNICA
 import PacientesLista from './pages/clinica/PacientesLista';
+import PacienteDetalle from './pages/clinica/PacienteDetalle';
 
 const RutaProtegida = ({ children }) => {
   const estaLogueado = localStorage.getItem('usuario_cj');
@@ -107,8 +108,9 @@ function App() {
               <Route path="/panel-director" element={<RutaProtegida><PanelDirector temaOscuro={temaOscuro} /></RutaProtegida>} />
               <Route path="/patologias" element={<RutaProtegida><Patologias temaOscuro={temaOscuro} /></RutaProtegida>} />
               <Route path="/masoterapia" element={<RutaProtegida><Masoterapia temaOscuro={temaOscuro} /></RutaProtegida>} />
-              {/* NUEVA RUTA CLÍNICA */}
+              {/* RUTAS CLÍNICA */}
               <Route path="/clinica/pacientes" element={<RutaProtegida><PacientesLista temaOscuro={temaOscuro} /></RutaProtegida>} />
+              <Route path="/clinica/pacientes/:id" element={<RutaProtegida><PacienteDetalle temaOscuro={temaOscuro} /></RutaProtegida>} />
               {/* Rutas de ciclos */}
               <Route path="/ciclo-01" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
               <Route path="/ciclo-02" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
