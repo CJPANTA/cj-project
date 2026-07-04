@@ -15,6 +15,8 @@ import ConfiguracionAura from './pages/ConfiguracionAura';
 import Patologias from './pages/Patologias';
 import Masoterapia from './pages/Masoterapia';
 import ErrorBoundary from './components/ErrorBoundary';
+// NUEVA IMPORTACIÓN
+import PacientesLista from './pages/clinica/PacientesLista';
 
 const RutaProtegida = ({ children }) => {
   const estaLogueado = localStorage.getItem('usuario_cj');
@@ -28,7 +30,6 @@ function LayoutConSidebar({ children, temaOscuro, setTemaOscuro }) {
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [isTablet, setIsTablet] = useState(window.innerWidth >= 768);
 
-  // Detectar cambios de tamaño para tablet
   useEffect(() => {
     const handleResize = () => {
       setIsTablet(window.innerWidth >= 768);
@@ -50,20 +51,17 @@ function LayoutConSidebar({ children, temaOscuro, setTemaOscuro }) {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90] md:hidden" onClick={() => setMenuAbierto(false)} />
       )}
 
-      {/* Sidebar: visible en tablet (>=768px) y desktop, oculto en móvil (<768px) */}
       <aside className={`fixed inset-y-0 left-0 z-[100] w-72 transform transition-transform duration-300 ${isTablet ? 'relative translate-x-0 flex shrink-0' : `${menuAbierto ? 'translate-x-0' : '-translate-x-full'}`}`}>
         <Sidebar temaOscuro={temaOscuro} alClickLink={() => setMenuAbierto(false)} />
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden p-4 md:p-6 relative z-20">
         <header className="flex justify-between items-center mb-4 shrink-0">
-          {/* Botón hamburguesa: solo visible en móvil (<768px) */}
           {!isTablet && (
             <button onClick={() => setMenuAbierto(!menuAbierto)} className={`flex items-center justify-center p-2 rounded-xl border ${bordeColor} ${bgCaja} shadow-sm text-[#22d3ee] z-[80] transition-colors hover:bg-[#22d3ee]/10`}>
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
             </button>
           )}
-          {/* Espaciador para mantener el header alineado cuando no hay botón */}
           {isTablet && <div className="w-10" />}
 
           <div className="flex items-center gap-3 ml-auto">
@@ -109,6 +107,9 @@ function App() {
               <Route path="/panel-director" element={<RutaProtegida><PanelDirector temaOscuro={temaOscuro} /></RutaProtegida>} />
               <Route path="/patologias" element={<RutaProtegida><Patologias temaOscuro={temaOscuro} /></RutaProtegida>} />
               <Route path="/masoterapia" element={<RutaProtegida><Masoterapia temaOscuro={temaOscuro} /></RutaProtegida>} />
+              {/* NUEVA RUTA CLÍNICA */}
+              <Route path="/clinica/pacientes" element={<RutaProtegida><PacientesLista temaOscuro={temaOscuro} /></RutaProtegida>} />
+              {/* Rutas de ciclos */}
               <Route path="/ciclo-01" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
               <Route path="/ciclo-02" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
               <Route path="/ciclo-03" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />

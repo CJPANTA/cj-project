@@ -9,14 +9,12 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
 
   const [rolUsuario, setRolUsuario] = useState(null);
   const [modoNavegacion, setModoNavegacion] = useState('academia');
-  const [errorEnMusica, setErrorEnMusica] = useState(false);
 
   useEffect(() => {
     const rol = localStorage.getItem('cj_user_rol');
     setRolUsuario(rol ? parseInt(rol) : 2);
-    // Por defecto, los estudiantes ven academia, los licenciados ven clínica
-    if (rol === '2') setModoNavegacion('academia');
-    if (rol === '3' || rol === '4' || rol === '6') setModoNavegacion('clinica');
+    // Por defecto academia, si es clínico (3 o 4) mostramos clínica
+    if (rol === '3' || rol === '4') setModoNavegacion('clinica');
   }, []);
 
   const isActive = (route) => path === route || path.startsWith(route + '-');
@@ -25,13 +23,14 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
     navigate('/login');
   };
 
-  const puedeCambiarModo = rolUsuario === 1 || rolUsuario === 4 || rolUsuario === 6;
+  const puedeCambiarModo = rolUsuario === 1 || rolUsuario === 3 || rolUsuario === 4;
 
-  const bgSidebar = temaOscuro ? 'bg-[#0a141d]' : 'bg-white';
+  // Estilos mejorados
+  const bgSidebar = temaOscuro ? 'bg-[#0a141d]/95 backdrop-blur-sm' : 'bg-white/95 backdrop-blur-sm';
   const textoPrincipal = temaOscuro ? 'text-white' : 'text-[#0f172a]';
   const textoSecundario = temaOscuro ? 'text-[#94a3b8]' : 'text-gray-600';
   const bordeColor = temaOscuro ? 'border-gray-800' : 'border-gray-200';
-  const hoverBg = temaOscuro ? 'hover:bg-white/5' : 'hover:bg-gray-100';
+  const hoverBg = temaOscuro ? 'hover:bg-white/10' : 'hover:bg-gray-100/80';
 
   // Iconos (todos los necesarios)
   const IconDashboard = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>;
@@ -44,30 +43,39 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
   const IconMasoterapia = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>;
   const IconConfig = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>;
   const IconDirector = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>;
+  const IconPacientes = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>;
+
+  const getRolLabel = (rol) => {
+    if (rol === 1) return 'Director';
+    if (rol === 2) return 'Estudiante';
+    if (rol === 3) return 'Licenciado';
+    if (rol === 4) return 'Híbrido';
+    return 'Paciente';
+  };
 
   return (
-    <aside className={`${bgSidebar} border ${bordeColor} rounded-3xl p-5 h-full flex flex-col shadow-2xl overflow-y-auto custom-scrollbar transition-colors duration-500`}>
-      {/* Logo y título */}
-      <div className="mb-5 flex items-center gap-3 shrink-0">
-        <img src="/logos_cj_circular.png" alt="Logo CJ" className="w-10 h-10 rounded-full border-2 border-[#22d3ee]/30 shadow-[0_0_15px_rgba(34,211,238,0.2)]" onError={(e) => e.target.style.display='none'} />
+    <aside className={`${bgSidebar} border-r ${bordeColor} rounded-3xl p-5 h-full flex flex-col shadow-2xl overflow-y-auto custom-scrollbar transition-colors duration-500`}>
+      {/* Logo y Cabecera */}
+      <div className="mb-6 flex items-center gap-3 shrink-0">
+        <img src="/logos_cj_circular.png" alt="Logo CJ" className="w-12 h-12 rounded-full border-2 border-[#22d3ee]/30 shadow-lg shadow-[#22d3ee]/10" onError={(e) => e.target.style.display='none'} />
         <div>
-          <h2 className={`${textoPrincipal} font-black text-sm tracking-widest leading-none`}>ECOSISTEMA</h2>
-          <span className="text-[#22d3ee] text-[8px] font-bold uppercase tracking-[0.3em]">Gimnasio & Academia</span>
+          <h2 className={`${textoPrincipal} font-black text-xl tracking-wider leading-none`}>CJ Fisio</h2>
+          <span className="text-[#22d3ee] text-[8px] font-black uppercase tracking-[0.4em]">Ecosistema de Salud</span>
         </div>
       </div>
 
-      {/* Selector de modo (solo para roles avanzados) */}
+      {/* Selector de Modo (Academia / Clínica) */}
       {puedeCambiarModo && (
-        <div className="flex gap-1 p-1 bg-black/10 rounded-xl mb-4">
+        <div className="flex gap-1 p-1 bg-black/10 dark:bg-white/5 rounded-xl mb-6 border border-[#22d3ee]/10">
           <button 
             onClick={() => setModoNavegacion('academia')} 
-            className={`flex-1 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all ${modoNavegacion === 'academia' ? 'bg-[#22d3ee] text-black shadow-md' : `${textoSecundario} hover:text-white`}`}
+            className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${modoNavegacion === 'academia' ? 'bg-[#22d3ee] text-black shadow-md' : `${textoSecundario} hover:text-white`}`}
           >
             📚 Academia
           </button>
           <button 
             onClick={() => setModoNavegacion('clinica')} 
-            className={`flex-1 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all ${modoNavegacion === 'clinica' ? 'bg-[#10b981] text-black shadow-md' : `${textoSecundario} hover:text-white`}`}
+            className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${modoNavegacion === 'clinica' ? 'bg-[#10b981] text-black shadow-md' : `${textoSecundario} hover:text-white`}`}
           >
             🩺 Clínica
           </button>
@@ -76,95 +84,70 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
 
       {/* Navegación */}
       <nav className="flex-1 space-y-1">
-        <Link to="/" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-[12px] font-bold ${path === '/' ? 'bg-[#22d3ee]/10 text-[#22d3ee] border border-[#22d3ee]/20' : `${textoSecundario} ${hoverBg}`}`}>
-          <IconDashboard /> Centro de Mando
+        <Link to="/" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${path === '/' ? 'bg-[#22d3ee]/10 text-[#22d3ee] border border-[#22d3ee]/20' : `${textoSecundario} ${hoverBg}`}`}>
+          <IconDashboard /><span className="text-xs font-bold uppercase tracking-wider">Centro de Mando</span>
         </Link>
 
         {rolUsuario === 1 && (
-          <Link to="/panel-director" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-[12px] font-bold ${path === '/panel-director' ? 'bg-[#facc15]/10 text-[#facc15] border border-[#facc15]/20' : `${textoSecundario} ${hoverBg}`}`}>
-            <IconDirector /> Panel del Director
+          <Link to="/panel-director" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${path === '/panel-director' ? 'bg-[#facc15]/10 text-[#facc15] border border-[#facc15]/20' : `${textoSecundario} ${hoverBg}`}`}>
+            <IconDirector /><span className="text-xs font-bold uppercase tracking-wider">Panel del Director</span>
           </Link>
         )}
 
+        {/* MODO ACADEMIA */}
         {modoNavegacion === 'academia' && (
-          <>
-            <div className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-500 px-4 py-1 mt-2">Academia</div>
-            <Link to="/area-estudio" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2 rounded-xl transition-all text-[11px] font-bold uppercase ${isActive('/area-estudio') ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}>
-              <IconRepositorio /> Repositorio
-            </Link>
-            <Link to="/biblioteca" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2 rounded-xl transition-all text-[11px] font-bold uppercase ${isActive('/biblioteca') ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}>
-              <IconBiblioteca /> Biblioteca
-            </Link>
-            <Link to="/horario" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2 rounded-xl transition-all text-[11px] font-bold uppercase ${isActive('/horario') ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}>
-              <IconCalendario /> Horario
-            </Link>
-            <Link to="/simulador" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2 rounded-xl transition-all text-[11px] font-bold uppercase ${isActive('/simulador') ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}>
-              <IconSimulador /> Simulador
-            </Link>
-            <Link to="/historial-examenes" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2 rounded-xl transition-all text-[11px] font-bold uppercase ${isActive('/historial-examenes') ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}>
-              <IconHistorial /> Historial
-            </Link>
-            <div className="border-t border-gray-700/30 my-2"></div>
-            <div className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-500 px-4 py-1">Herramientas</div>
-            <Link to="/patologias" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2 rounded-xl transition-all text-[11px] font-bold uppercase ${isActive('/patologias') ? 'bg-purple-500/10 text-purple-500' : `${textoSecundario} ${hoverBg}`}`}>
-              <IconPatologias /> Patologías
-            </Link>
-            <Link to="/masoterapia" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2 rounded-xl transition-all text-[11px] font-bold uppercase ${isActive('/masoterapia') ? 'bg-orange-500/10 text-orange-500' : `${textoSecundario} ${hoverBg}`}`}>
-              <IconMasoterapia /> Masoterapia
-            </Link>
-          </>
+          <div className="space-y-1 mt-2">
+            <div className="text-[9px] font-black uppercase tracking-[0.3em] text-gray-500 px-4 py-1">Academia</div>
+            <Link to="/area-estudio" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/area-estudio') || path.startsWith('/ciclo') ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}><IconRepositorio /> Repositorio</Link>
+            <Link to="/biblioteca" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/biblioteca') ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}><IconBiblioteca /> Biblioteca</Link>
+            <Link to="/horario" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/horario') ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}><IconCalendario /> Horario</Link>
+            <Link to="/simulador" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/simulador') ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}><IconSimulador /> Simulador</Link>
+            <Link to="/historial-examenes" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/historial-examenes') ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}><IconHistorial /> Historial</Link>
+            
+            <div className="text-[9px] font-black uppercase tracking-[0.3em] text-gray-500 px-4 py-1 mt-3">Herramientas Clínicas</div>
+            <Link to="/patologias" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/patologias') ? 'bg-purple-500/10 text-purple-500' : `${textoSecundario} ${hoverBg}`}`}><IconPatologias /> Patologías</Link>
+            <Link to="/masoterapia" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/masoterapia') ? 'bg-orange-500/10 text-orange-500' : `${textoSecundario} ${hoverBg}`}`}><IconMasoterapia /> Masoterapia</Link>
+          </div>
         )}
 
+        {/* MODO CLÍNICA */}
         {modoNavegacion === 'clinica' && (
-          <>
-            <div className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-500 px-4 py-1 mt-2">Clínica</div>
-            <Link to="/patologias" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2 rounded-xl transition-all text-[11px] font-bold uppercase ${isActive('/patologias') ? 'bg-purple-500/10 text-purple-500' : `${textoSecundario} ${hoverBg}`}`}>
-              <IconPatologias /> Patologías
-            </Link>
-            <Link to="/masoterapia" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2 rounded-xl transition-all text-[11px] font-bold uppercase ${isActive('/masoterapia') ? 'bg-orange-500/10 text-orange-500' : `${textoSecundario} ${hoverBg}`}`}>
-              <IconMasoterapia /> Masoterapia
-            </Link>
-            <div className="border-t border-gray-700/30 my-2"></div>
-            <div className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-500 px-4 py-1">Terapéutica</div>
-            <div className="flex items-center gap-3 px-4 py-2 rounded-xl text-[11px] font-bold uppercase text-gray-500 opacity-60 cursor-not-allowed">
-              <IconPatologias /> Fichas <span className="text-[8px] text-gray-400">(próximamente)</span>
+          <div className="space-y-1 mt-2">
+            <div className="text-[9px] font-black uppercase tracking-[0.3em] text-emerald-400 px-4 py-1">Gestión Clínica</div>
+            <Link to="/clinica/pacientes" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/clinica/pacientes') ? 'bg-emerald-500/10 text-emerald-400' : `${textoSecundario} ${hoverBg}`}`}><IconPacientes /> Pacientes</Link>
+            {/* Aquí irán más enlaces de clínica (Evaluaciones, Tratamientos, etc.) */}
+            <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase text-gray-500 opacity-60 cursor-not-allowed">
+              <IconPacientes /> Evaluaciones <span className="text-[8px] text-gray-400">(próximamente)</span>
             </div>
-            <div className="flex items-center gap-3 px-4 py-2 rounded-xl text-[11px] font-bold uppercase text-gray-500 opacity-60 cursor-not-allowed">
-              <IconBiblioteca /> Expedientes <span className="text-[8px] text-gray-400">(próximamente)</span>
+            <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase text-gray-500 opacity-60 cursor-not-allowed">
+              <IconPacientes /> Tratamientos <span className="text-[8px] text-gray-400">(próximamente)</span>
             </div>
-          </>
+          </div>
         )}
 
-        <div className={`mt-3 pt-3 border-t ${bordeColor}`}>
-          <Link to="/configuracion-ia" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-[12px] font-bold ${isActive('/configuracion-ia') ? 'bg-blue-500/10 text-blue-400' : `${textoSecundario} ${hoverBg}`}`}>
-            <IconConfig /> Aura AI Config
+        {/* Configuración */}
+        <div className={`mt-4 pt-4 border-t ${bordeColor}`}>
+          <Link to="/configuracion-ia" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${path.startsWith('/configuracion-ia') ? 'bg-blue-500/10 text-blue-400' : `${textoSecundario} ${hoverBg}`}`}>
+            <IconConfig /><span className="text-xs font-bold uppercase tracking-wider">Aura AI Config</span>
           </Link>
         </div>
       </nav>
 
-      {/* Reproductor de música + perfil */}
-      <div className={`mt-4 pt-4 border-t ${bordeColor} flex flex-col gap-3`}>
-        {!errorEnMusica && (
-          <div className="text-center">
-            <GlobalMusicPlayer temaOscuro={temaOscuro} />
-          </div>
-        )}
+      {/* Footer con Música y Perfil */}
+      <div className={`mt-4 pt-4 border-t ${bordeColor} flex flex-col gap-4`}>
+        <GlobalMusicPlayer temaOscuro={temaOscuro} />
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-gradient-to-r from-[#22d3ee] to-[#10b981] flex items-center justify-center font-black text-[9px] text-[#020813]">JL</div>
-            <div className="leading-tight">
-              <p className={`text-[10px] font-bold ${textoPrincipal} uppercase`}>Jorge Luis</p>
-              <p className="text-[7px] text-[#10b981] font-black uppercase tracking-widest">
-                {rolUsuario === 1 ? 'Director' : 
-                 rolUsuario === 2 ? 'Estudiante' : 
-                 rolUsuario === 3 ? 'Licenciado' : 
-                 rolUsuario === 4 ? 'Híbrido' : 
-                 rolUsuario === 6 ? 'Demo' : 'Paciente'}
-              </p>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#22d3ee] to-[#10b981] flex items-center justify-center font-black text-sm text-[#020813] shadow-lg shadow-[#22d3ee]/20">
+              JL
+            </div>
+            <div>
+              <p className={`text-[11px] font-bold ${textoPrincipal} uppercase leading-none`}>Jorge Luis</p>
+              <p className="text-[8px] text-[#10b981] font-black uppercase tracking-widest">{getRolLabel(rolUsuario)}</p>
             </div>
           </div>
-          <button onClick={handleLogout} className="text-red-500 hover:text-red-400 transition-colors p-1.5">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+          <button onClick={handleLogout} className="text-red-500 hover:text-red-400 transition-colors p-2 rounded-full hover:bg-red-500/10">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
           </button>
         </div>
       </div>
