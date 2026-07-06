@@ -5,7 +5,7 @@ import { NotebookCJ } from '../components/NotebookCJ';
 import TutorChat from '../components/TutorChat';
 import { useAura } from '../context/AuraContext';
 import HistorialWidget from '../components/HistorialWidget';
-// RecordatoriosWidget eliminado (punto 6)
+// RecordatoriosWidget eliminado
 import CalendarioWidget from '../components/CalendarioWidget';
 import { supabase } from '../lib/supabaseClient';
 import FavoritosWidget from '../components/FavoritosWidget';
@@ -13,6 +13,7 @@ import NotificacionesActivador from '../components/NotificacionesActivador';
 
 export default function Dashboard({ temaOscuro }) {
   const [saludo, setSaludo] = useState('');
+  const [nombreUsuario, setNombreUsuario] = useState('Usuario');
   const [busqueda, setBusqueda] = useState('');
   const [respuestaIA, setRespuestaIA] = useState('');
   const [cargandoIA, setCargandoIA] = useState(false);
@@ -167,16 +168,41 @@ export default function Dashboard({ temaOscuro }) {
   useEffect(() => {
     const usuarioLogueado = localStorage.getItem('usuario_cj');
     if (!usuarioLogueado) navigate('/login');
+    
     const hora = new Date().getHours();
     setSaludo(hora < 12 ? 'Buenos días' : hora < 18 ? 'Buenas tardes' : 'Buenas noches');
+    
     cargarFraseInicial();
+    
     const pdf = localStorage.getItem('ultimo_pdf_visto');
     if (pdf) setUltimoPDF(JSON.parse(pdf));
+    
     cargarProgresoExamenes();
+    cargarNombreUsuario(); // <-- NUEVO: Carga el nombre del usuario
+
     return () => {
       window.speechSynthesis.cancel();
     };
   }, [navigate]);
+
+  // ========== CARGAR NOMBRE DEL USUARIO ==========
+  const cargarNombreUsuario = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: perfil } = await supabase
+          .from('profiles')
+          .select('nombre_completo')
+          .eq('id', user.id)
+          .single();
+        if (perfil?.nombre_completo) {
+          setNombreUsuario(perfil.nombre_completo);
+        }
+      }
+    } catch (error) {
+      console.error('Error al cargar nombre:', error);
+    }
+  };
 
   const cargarProgresoExamenes = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -277,14 +303,13 @@ export default function Dashboard({ temaOscuro }) {
   const handleTextareaChange = (e) => {
     const textarea = e.target;
     setBusqueda(textarea.value);
-    // Ajustar altura automáticamente
     textarea.style.height = 'auto';
     textarea.style.height = textarea.scrollHeight + 'px';
   };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault(); // Evita salto de línea
+      e.preventDefault();
       ejecutarConsultaIA();
     }
   };
@@ -305,7 +330,9 @@ export default function Dashboard({ temaOscuro }) {
       <header className="flex flex-col gap-2">
         <div className="flex justify-between items-start flex-wrap gap-2">
           <div>
-            <h1 className={`text-4xl font-black tracking-tighter ${textoColor}`}>{saludo}, <span className="text-[#22d3ee]">Jorge Luis</span></h1>
+            <h1 className={`text-4xl font-black tracking-tighter ${textoColor}`}>
+              {saludo}, <span className="text-[#22d3ee]">{nombreUsuario}</span>
+            </h1>
             <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Proyecto CJ</p>
           </div>
           <div className="flex items-center gap-2 max-w-xs text-right bg-black/10 rounded-full px-3 py-1">
@@ -361,7 +388,6 @@ export default function Dashboard({ temaOscuro }) {
         )}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            {/* CAMBIO AQUÍ: input → textarea autoajustable */}
             <textarea
               value={busqueda}
               onChange={handleTextareaChange}
