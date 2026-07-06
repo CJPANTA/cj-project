@@ -15,7 +15,6 @@ import ConfiguracionAura from './pages/ConfiguracionAura';
 import Patologias from './pages/Patologias';
 import Masoterapia from './pages/Masoterapia';
 import ErrorBoundary from './components/ErrorBoundary';
-// NUEVAS IMPORTACIONES CLÍNICA
 import PacientesLista from './pages/clinica/PacientesLista';
 import PacienteDetalle from './pages/clinica/PacienteDetalle';
 
@@ -29,11 +28,12 @@ function LayoutConSidebar({ children, temaOscuro, setTemaOscuro }) {
   const location = useLocation();
   const esRutaLogin = location.pathname === '/login';
   const [menuAbierto, setMenuAbierto] = useState(false);
-  const [isTablet, setIsTablet] = useState(window.innerWidth >= 768);
+  // Cambiamos el umbral a 600px (tablets pequeñas)
+  const [isTablet, setIsTablet] = useState(window.innerWidth >= 600);
 
   useEffect(() => {
     const handleResize = () => {
-      setIsTablet(window.innerWidth >= 768);
+      setIsTablet(window.innerWidth >= 600);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -108,10 +108,8 @@ function App() {
               <Route path="/panel-director" element={<RutaProtegida><PanelDirector temaOscuro={temaOscuro} /></RutaProtegida>} />
               <Route path="/patologias" element={<RutaProtegida><Patologias temaOscuro={temaOscuro} /></RutaProtegida>} />
               <Route path="/masoterapia" element={<RutaProtegida><Masoterapia temaOscuro={temaOscuro} /></RutaProtegida>} />
-              {/* RUTAS CLÍNICA */}
               <Route path="/clinica/pacientes" element={<RutaProtegida><PacientesLista temaOscuro={temaOscuro} /></RutaProtegida>} />
               <Route path="/clinica/pacientes/:id" element={<RutaProtegida><PacienteDetalle temaOscuro={temaOscuro} /></RutaProtegida>} />
-              {/* Rutas de ciclos */}
               <Route path="/ciclo-01" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
               <Route path="/ciclo-02" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
               <Route path="/ciclo-03" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />

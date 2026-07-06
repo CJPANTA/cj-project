@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { GlobalMusicPlayer } from './GlobalMusicPlayer';
+// import { GlobalMusicPlayer } from './GlobalMusicPlayer'; // COMENTADO PARA PRUEBA
 
 export default function Sidebar({ temaOscuro, alClickLink }) {
   const location = useLocation();
@@ -13,7 +13,6 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
   useEffect(() => {
     const rol = localStorage.getItem('cj_user_rol');
     setRolUsuario(rol ? parseInt(rol) : 2);
-    // Por defecto academia, si es clínico (3 o 4) mostramos clínica
     if (rol === '3' || rol === '4') setModoNavegacion('clinica');
   }, []);
 
@@ -25,14 +24,13 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
 
   const puedeCambiarModo = rolUsuario === 1 || rolUsuario === 3 || rolUsuario === 4;
 
-  // Estilos mejorados
   const bgSidebar = temaOscuro ? 'bg-[#0a141d]/95 backdrop-blur-sm' : 'bg-white/95 backdrop-blur-sm';
   const textoPrincipal = temaOscuro ? 'text-white' : 'text-[#0f172a]';
   const textoSecundario = temaOscuro ? 'text-[#94a3b8]' : 'text-gray-600';
   const bordeColor = temaOscuro ? 'border-gray-800' : 'border-gray-200';
   const hoverBg = temaOscuro ? 'hover:bg-white/10' : 'hover:bg-gray-100/80';
 
-  // Iconos (todos los necesarios)
+  // Iconos (todos) ...
   const IconDashboard = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>;
   const IconRepositorio = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>;
   const IconBiblioteca = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/></svg>;
@@ -64,7 +62,7 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
         </div>
       </div>
 
-      {/* Selector de Modo (Academia / Clínica) */}
+      {/* Selector de Modo */}
       {puedeCambiarModo && (
         <div className="flex gap-1 p-1 bg-black/10 dark:bg-white/5 rounded-xl mb-6 border border-[#22d3ee]/10">
           <button 
@@ -94,7 +92,6 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
           </Link>
         )}
 
-        {/* MODO ACADEMIA */}
         {modoNavegacion === 'academia' && (
           <div className="space-y-1 mt-2">
             <div className="text-[9px] font-black uppercase tracking-[0.3em] text-gray-500 px-4 py-1">Academia</div>
@@ -110,12 +107,10 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
           </div>
         )}
 
-        {/* MODO CLÍNICA */}
         {modoNavegacion === 'clinica' && (
           <div className="space-y-1 mt-2">
             <div className="text-[9px] font-black uppercase tracking-[0.3em] text-emerald-400 px-4 py-1">Gestión Clínica</div>
             <Link to="/clinica/pacientes" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/clinica/pacientes') ? 'bg-emerald-500/10 text-emerald-400' : `${textoSecundario} ${hoverBg}`}`}><IconPacientes /> Pacientes</Link>
-            {/* Aquí irán más enlaces de clínica (Evaluaciones, Tratamientos, etc.) */}
             <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase text-gray-500 opacity-60 cursor-not-allowed">
               <IconPacientes /> Evaluaciones <span className="text-[8px] text-gray-400">(próximamente)</span>
             </div>
@@ -125,7 +120,6 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
           </div>
         )}
 
-        {/* Configuración */}
         <div className={`mt-4 pt-4 border-t ${bordeColor}`}>
           <Link to="/configuracion-ia" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${path.startsWith('/configuracion-ia') ? 'bg-blue-500/10 text-blue-400' : `${textoSecundario} ${hoverBg}`}`}>
             <IconConfig /><span className="text-xs font-bold uppercase tracking-wider">Aura AI Config</span>
@@ -133,9 +127,8 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
         </div>
       </nav>
 
-      {/* Footer con Música y Perfil */}
-      <div className={`mt-4 pt-4 border-t ${bordeColor} flex flex-col gap-4`}>
-        <GlobalMusicPlayer temaOscuro={temaOscuro} />
+      {/* Footer sin GlobalMusicPlayer */}
+      <div className={`mt-4 pt-4 border-t ${bordeColor}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#22d3ee] to-[#10b981] flex items-center justify-center font-black text-sm text-[#020813] shadow-lg shadow-[#22d3ee]/20">
