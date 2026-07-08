@@ -65,9 +65,15 @@ export default function Login() {
     setCargando(true);
     setError('');
 
+    // 1. Crear el usuario en auth.users (el trigger creará el perfil automáticamente)
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          name: nombreCompleto,
+        },
+      },
     });
 
     if (signUpError) {
@@ -76,28 +82,26 @@ export default function Login() {
       return;
     }
 
-    const { error: profileError } = await supabase.from('profiles').insert([
-      {
-        id: data.user.id,
-        email: email,
-        nombre_completo: nombreCompleto,
-        telefono: telefono || null,
-        rol: rolDeseado,
-        estado: 'pendiente',
-      },
-    ]);
-
-    if (profileError) {
-      console.error(profileError);
-      mostrarError('Error al crear perfil. Contacta al administrador.');
-    } else {
-      mostrarMensaje('Registro exitoso. Espera la aprobación del Director.');
-      setEsRegistro(false);
-      setEmail('');
-      setPassword('');
-      setNombreCompleto('');
-      setTelefono('');
+    // 2. El trigger ya creó el perfil con rol 2 y estado 'pendiente'
+    // Solo necesitamos verificar que se haya creado correctamente
+    // y actualizar el teléfono si se proporcionó
+    if (telefono) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({ telefono })
+          .eq('id', data.user.id);
+      } catch (e) {
+        console.warn('No se pudo actualizar el teléfono:', e);
+      }
     }
+
+    mostrarMensaje('Registro exitoso. Espera la aprobación del Director.');
+    setEsRegistro(false);
+    setEmail('');
+    setPassword('');
+    setNombreCompleto('');
+    setTelefono('');
     setCargando(false);
   };
 
@@ -121,7 +125,6 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#020813] to-[#0a141d] flex items-center justify-center p-4 font-sans">
       <div className="w-full max-w-md">
-        {/* Logo circular */}
         <div className="text-center mb-8">
           <img src="/logos_cj_circular.png" alt="CJ Fisioterapia" className="w-24 h-24 mx-auto mb-4 rounded-full border-2 border-[#22d3ee]/30 shadow-lg" />
           <h1 className="text-3xl font-black text-white tracking-tighter">
