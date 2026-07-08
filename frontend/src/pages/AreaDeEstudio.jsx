@@ -24,7 +24,6 @@ export default function AreaDeEstudio({ temaOscuro }) {
   const LOGO_CARRION = "https://raw.githubusercontent.com/CJPANTA/cj-project/main/logo_carrion.png";
   const LOGO_CJ_CIRCULAR = "https://raw.githubusercontent.com/CJPANTA/cj-project/main/logos_cj_circular.png";
 
-  // Cargar favoritos
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
@@ -52,7 +51,6 @@ export default function AreaDeEstudio({ temaOscuro }) {
 
   const esFavorito = (nombrePDF) => favoritos.includes(nombrePDF);
 
-  // Cargar cursos al seleccionar ciclo
   useEffect(() => {
     if (cicloSeleccionado && estructura && estructura[cicloSeleccionado]) {
       const materias = Object.keys(estructura[cicloSeleccionado]);
@@ -61,7 +59,6 @@ export default function AreaDeEstudio({ temaOscuro }) {
     }
   }, [cicloSeleccionado, estructura]);
 
-  // Cargar archivos al seleccionar curso
   useEffect(() => {
     if (cicloSeleccionado && cursoActivo && estructura?.[cicloSeleccionado]?.[cursoActivo]) {
       setArchivosCurso(estructura[cicloSeleccionado][cursoActivo]);
@@ -113,10 +110,9 @@ export default function AreaDeEstudio({ temaOscuro }) {
     : 'bg-white border border-indigo-300/50 shadow-md shadow-indigo-100/50 hover:shadow-lg hover:shadow-indigo-200/50 hover:border-indigo-500 hover:-translate-y-1 active:scale-[0.98] transition-all duration-300';
   const selloOpacidad = temaOscuro ? 'opacity-15 group-hover:opacity-25' : 'opacity-8 group-hover:opacity-15';
 
-  // Estados de carga
   if (cargando) {
     return (
-      <main className="p-8 text-center">
+      <main className="p-8 text-center" key="loading">
         <div className="text-[#22d3ee] text-xl font-black">🔄 Escaneando repositorio desde GitHub...</div>
         <p className="text-gray-400 text-sm mt-2">Cargando materiales de estudio...</p>
       </main>
@@ -125,7 +121,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
 
   if (error) {
     return (
-      <main className="p-8 text-center">
+      <main className="p-8 text-center" key="error">
         <div className="text-red-500 text-xl font-black">❌ Error al conectar con GitHub</div>
         <p className="text-gray-400 text-sm mt-2">{error}</p>
         <button onClick={forzarSincronizacion} className="mt-4 bg-[#22d3ee] text-black px-4 py-2 rounded-xl">Reintentar</button>
@@ -136,7 +132,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
   // Vista 1: Selección de ciclos
   if (!cicloSeleccionado) {
     return (
-      <main className="p-4 md:p-8 max-w-7xl mx-auto w-full font-sans">
+      <main className="p-4 md:p-8 max-w-7xl mx-auto w-full font-sans" key="ciclos">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
           <div>
             <div className="flex items-center gap-4">
@@ -193,7 +189,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
   // Vista 2: Visor de PDF
   if (archivoSeleccionado) {
     return (
-      <main className="h-screen w-full flex flex-col bg-black overflow-hidden">
+      <main className="h-screen w-full flex flex-col bg-black overflow-hidden" key="visor">
         <header className="flex justify-between p-3 bg-[#020813] border-b border-gray-800">
           <button onClick={cerrarLector} className="px-4 py-2 bg-gray-800/50 rounded-xl text-white text-[11px] font-black">← Regresar</button>
           <p className="text-[#22d3ee] text-[10px] font-bold truncate">{archivoSeleccionado.nombre}</p>
@@ -204,9 +200,9 @@ export default function AreaDeEstudio({ temaOscuro }) {
     );
   }
 
-  // Vista 3: Navegador del ciclo (materias y archivos) - VERSIÓN SIMPLIFICADA SIN MARQUEE
+  // Vista 3: Navegador del ciclo (materias y archivos) - VERSIÓN SIMPLIFICADA CON KEYS
   return (
-    <main className="p-4 md:p-8 max-w-full overflow-hidden">
+    <main className="p-4 md:p-8 max-w-full overflow-hidden" key="navegador">
       <header className="flex flex-col md:flex-row justify-between gap-4 mb-8">
         <div className="flex items-center gap-3">
           <img src={LOGO_CARRION} alt="Carrión" className="h-8 w-auto" />
@@ -247,7 +243,6 @@ export default function AreaDeEstudio({ temaOscuro }) {
           <div className={`${temaOscuro ? 'bg-white/5 border-gray-800' : 'bg-gray-50 border-gray-200'} border rounded-[2rem] p-5 min-h-[500px]`}>
             <div className="grid grid-cols-1 gap-4">
               {archivosCurso.length > 0 ? archivosCurso.map(f => {
-                // Extraer nombre sin extensión para mostrar
                 const nombreMostrar = f.replace(/\.(pdf|pptx|ppt|docx|doc|xlsx|xls)$/, '').replace(/_/g, ' ');
                 return (
                   <div key={f} className={`p-4 rounded-2xl flex flex-wrap justify-between items-center border transition-all ${
