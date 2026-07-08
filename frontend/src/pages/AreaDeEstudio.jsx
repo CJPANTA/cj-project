@@ -16,7 +16,6 @@ export default function AreaDeEstudio({ temaOscuro }) {
   const [archivosCurso, setArchivosCurso] = useState([]);
   const [archivoSeleccionado, setArchivoSeleccionado] = useState(null);
   const [favoritos, setFavoritos] = useState([]);
-  const [renderReady, setRenderReady] = useState(false);
 
   const GITHUB_USER = "CJPANTA";
   const GITHUB_REPO = "cj-project";
@@ -25,10 +24,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
   const LOGO_CARRION = "https://raw.githubusercontent.com/CJPANTA/cj-project/main/logo_carrion.png";
   const LOGO_CJ_CIRCULAR = "https://raw.githubusercontent.com/CJPANTA/cj-project/main/logos_cj_circular.png";
 
-  useEffect(() => {
-    setRenderReady(true);
-  }, []);
-
+  // Cargar favoritos
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
@@ -56,6 +52,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
 
   const esFavorito = (nombrePDF) => favoritos.includes(nombrePDF);
 
+  // Cargar cursos al seleccionar ciclo
   useEffect(() => {
     if (cicloSeleccionado && estructura && estructura[cicloSeleccionado]) {
       const materias = Object.keys(estructura[cicloSeleccionado]);
@@ -64,6 +61,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
     }
   }, [cicloSeleccionado, estructura]);
 
+  // Cargar archivos al seleccionar curso
   useEffect(() => {
     if (cicloSeleccionado && cursoActivo && estructura?.[cicloSeleccionado]?.[cursoActivo]) {
       setArchivosCurso(estructura[cicloSeleccionado][cursoActivo]);
@@ -113,7 +111,9 @@ export default function AreaDeEstudio({ temaOscuro }) {
   const tarjetaClase = temaOscuro
     ? 'bg-[#0f172a] border border-amber-600/30 shadow-lg shadow-amber-900/10 hover:shadow-xl hover:shadow-amber-800/20 hover:border-amber-400/60 hover:-translate-y-1 active:scale-[0.98] transition-all duration-300'
     : 'bg-white border border-indigo-300/50 shadow-md shadow-indigo-100/50 hover:shadow-lg hover:shadow-indigo-200/50 hover:border-indigo-500 hover:-translate-y-1 active:scale-[0.98] transition-all duration-300';
+  const selloOpacidad = temaOscuro ? 'opacity-15 group-hover:opacity-25' : 'opacity-8 group-hover:opacity-15';
 
+  // Estados de carga
   if (cargando) {
     return (
       <main className="p-8 text-center">
@@ -122,6 +122,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
       </main>
     );
   }
+
   if (error) {
     return (
       <main className="p-8 text-center">
@@ -132,17 +133,10 @@ export default function AreaDeEstudio({ temaOscuro }) {
     );
   }
 
-  if (!renderReady) {
-    return (
-      <main className="p-8 text-center">
-        <div className="text-gray-400 text-sm">Cargando...</div>
-      </main>
-    );
-  }
-
+  // Vista 1: Selección de ciclos
   if (!cicloSeleccionado) {
     return (
-      <main className="p-4 md:p-8 max-w-7xl mx-auto w-full animate-fade-in font-sans">
+      <main className="p-4 md:p-8 max-w-7xl mx-auto w-full font-sans">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
           <div>
             <div className="flex items-center gap-4">
@@ -155,7 +149,11 @@ export default function AreaDeEstudio({ temaOscuro }) {
               INSTITUTO DE EDUCACIÓN SUPERIOR DANIEL ALCIDES CARRIÓN
             </p>
           </div>
-          <button onClick={forzarSincronizacion} className="p-2 rounded-full hover:bg-white/10 transition-all" title="Refrescar repositorio">
+          <button 
+            onClick={forzarSincronizacion}
+            className="p-2 rounded-full hover:bg-white/10 transition-all"
+            title="Refrescar repositorio"
+          >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400 hover:text-[#22d3ee]">
               <path d="M21 2v6h-6" />
               <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
@@ -174,7 +172,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
             >
               <img 
                 src={LOGO_CJ_CIRCULAR} 
-                className="absolute bottom-2 right-2 w-16 h-16 pointer-events-none opacity-15"
+                className={`absolute bottom-2 right-2 w-16 h-16 pointer-events-none transition-opacity duration-300 ${selloOpacidad}`}
                 alt="CJ"
               />
               <div className="p-6 flex flex-col items-center justify-center gap-4">
@@ -192,6 +190,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
     );
   }
 
+  // Vista 2: Visor de PDF
   if (archivoSeleccionado) {
     return (
       <main className="h-screen w-full flex flex-col bg-black overflow-hidden">
@@ -205,6 +204,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
     );
   }
 
+  // Vista 3: Navegador del ciclo (materias y archivos) - VERSIÓN SIMPLIFICADA SIN MARQUEE
   return (
     <main className="p-4 md:p-8 max-w-full overflow-hidden">
       <header className="flex flex-col md:flex-row justify-between gap-4 mb-8">
@@ -246,56 +246,60 @@ export default function AreaDeEstudio({ temaOscuro }) {
         <section className="lg:col-span-3">
           <div className={`${temaOscuro ? 'bg-white/5 border-gray-800' : 'bg-gray-50 border-gray-200'} border rounded-[2rem] p-5 min-h-[500px]`}>
             <div className="grid grid-cols-1 gap-4">
-              {archivosCurso.length > 0 ? archivosCurso.map(f => (
-                <div key={f} className={`p-4 rounded-2xl flex flex-wrap justify-between items-center border transition-all ${
-                  temaOscuro 
-                    ? 'border-gray-700 hover:border-[#22d3ee]/40' 
-                    : 'border-gray-200 hover:border-[#22d3ee]/60'
-                } group`}>
-                  <div className="flex-1 min-w-[100px] truncate pr-2">
-                    <p className={`${temaOscuro ? 'text-gray-300' : 'text-gray-700'} text-[13px] font-bold truncate`}>
-                      {f.replace('.pdf', '').replace(/_/g, ' ')}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-1 mt-2 sm:mt-0">
-                    <button
-                      onClick={() => toggleFavorito(f)}
-                      className={`px-2 py-1 rounded-xl text-sm transition-all ${
-                        esFavorito(f)
-                          ? 'text-yellow-400 hover:text-yellow-300'
-                          : 'text-gray-400 hover:text-yellow-300'
-                      }`}
-                      title={esFavorito(f) ? 'Quitar de favoritos' : 'Añadir a favoritos'}
-                    >
-                      {esFavorito(f) ? '⭐' : '☆'}
-                    </button>
-                    
-                    {esPDF(f) && (
-                      <button 
-                        onClick={() => prepararLector(f)} 
-                        className="bg-[#22d3ee] text-black px-4 py-1.5 rounded-xl text-[10px] font-black"
+              {archivosCurso.length > 0 ? archivosCurso.map(f => {
+                // Extraer nombre sin extensión para mostrar
+                const nombreMostrar = f.replace(/\.(pdf|pptx|ppt|docx|doc|xlsx|xls)$/, '').replace(/_/g, ' ');
+                return (
+                  <div key={f} className={`p-4 rounded-2xl flex flex-wrap justify-between items-center border transition-all ${
+                    temaOscuro 
+                      ? 'border-gray-700 hover:border-[#22d3ee]/40' 
+                      : 'border-gray-200 hover:border-[#22d3ee]/60'
+                  } group`}>
+                    <div className="flex-1 min-w-0 pr-4">
+                      <p className={`${temaOscuro ? 'text-gray-300' : 'text-gray-700'} text-[13px] font-bold truncate`}>
+                        {nombreMostrar}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2 mt-2 sm:mt-0">
+                      <button
+                        onClick={() => toggleFavorito(f)}
+                        className={`px-2 py-2 rounded-xl text-sm transition-all ${
+                          esFavorito(f)
+                            ? 'text-yellow-400 hover:text-yellow-300'
+                            : 'text-gray-400 hover:text-yellow-300'
+                        }`}
+                        title={esFavorito(f) ? 'Quitar de favoritos' : 'Añadir a favoritos'}
                       >
-                        LEER
+                        {esFavorito(f) ? '⭐' : '☆'}
                       </button>
-                    )}
-                    
-                    {!esPDF(f) && esFormatoOffice(f) && (
-                      <button 
-                        onClick={() => abrirOtroFormato(f)} 
-                        className="bg-blue-500 text-white px-4 py-1.5 rounded-xl text-[10px] font-black hover:bg-blue-600 transition-all"
-                      >
-                        VER
-                      </button>
-                    )}
+                      
+                      {esPDF(f) && (
+                        <button 
+                          onClick={() => prepararLector(f)} 
+                          className="bg-[#22d3ee] text-black px-4 py-2 rounded-xl text-[10px] font-black"
+                        >
+                          LEER
+                        </button>
+                      )}
+                      
+                      {!esPDF(f) && esFormatoOffice(f) && (
+                        <button 
+                          onClick={() => abrirOtroFormato(f)} 
+                          className="bg-blue-500 text-white px-4 py-2 rounded-xl text-[10px] font-black hover:bg-blue-600 transition-all"
+                        >
+                          VER
+                        </button>
+                      )}
 
-                    {!esPDF(f) && !esFormatoOffice(f) && (
-                      <div className="flex items-center text-gray-500 text-[10px] font-black px-2">
-                        Formato no soportado
-                      </div>
-                    )}
+                      {!esPDF(f) && !esFormatoOffice(f) && (
+                        <div className="flex items-center text-gray-500 text-[10px] font-black px-2">
+                          Formato no soportado
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )) : (
+                );
+              }) : (
                 <div className="py-24 text-center text-gray-500">Sin documentos en esta materia</div>
               )}
             </div>
