@@ -26,7 +26,6 @@ export default function Dashboard({ temaOscuro }) {
   const [audioPausado, setAudioPausado] = useState(false);
   const [nombreUsuario, setNombreUsuario] = useState('');
   const [rolUsuario, setRolUsuario] = useState(null);
-  const [centroId, setCentroId] = useState(null);
   const recognitionRef = useRef(null);
   const navigate = useNavigate();
   const { contexto } = useAura();
@@ -162,13 +161,12 @@ export default function Dashboard({ temaOscuro }) {
     if (!user) return;
     const { data: perfil } = await supabase
       .from('profiles')
-      .select('nombre_completo, rol, centro_id')
+      .select('nombre_completo, rol')
       .eq('id', user.id)
       .single();
     if (perfil) {
       setNombreUsuario(perfil.nombre_completo || 'Usuario');
       setRolUsuario(perfil.rol);
-      setCentroId(perfil.centro_id);
     }
   };
 
@@ -293,7 +291,7 @@ export default function Dashboard({ temaOscuro }) {
   const IconChat = () => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.136-.848-2.1-1.98-2.193a48.572 48.572 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286m0 0c.078.057.158.112.24.166" /></svg>);
 
   // ==========================================
-  // RENDERIZADO POR ROL
+  // RENDERIZADO POR ROL (con rol 7 incluido)
   // ==========================================
 
   // CASO 1: PACIENTE (rol 5)
@@ -320,8 +318,8 @@ export default function Dashboard({ temaOscuro }) {
     );
   }
 
-  // CASO 2: LICENCIADO (rol 3) y DEMO (rol 6) → Dashboard Clínico
-  if (rolUsuario === 3 || rolUsuario === 6) {
+  // CASO 2: LICENCIADO (rol 3), DEMO (rol 6) y ADMIN CENTRO (rol 7) → Dashboard Clínico
+  if (rolUsuario === 3 || rolUsuario === 6 || rolUsuario === 7) {
     return (
       <main className="flex flex-col gap-8 p-4 md:p-8 max-w-7xl mx-auto w-full">
         <header className="flex flex-col gap-2">
