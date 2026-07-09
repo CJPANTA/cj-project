@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 
 export default function PacienteDetalle({ temaOscuro }) {
@@ -8,7 +8,9 @@ export default function PacienteDetalle({ temaOscuro }) {
   const [paciente, setPaciente] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [pestanaActiva, setPestanaActiva] = useState('resumen'); // 'resumen', 'evaluaciones', 'planes', 'sesiones'
+  const [pestanaActiva, setPestanaActiva] = useState('resumen');
+  const [evaluaciones, setEvaluaciones] = useState([]);
+  const [cargandoEval, setCargandoEval] = useState(false);
 
   useEffect(() => {
     const cargarPaciente = async () => {
@@ -27,6 +29,7 @@ export default function PacienteDetalle({ temaOscuro }) {
           return;
         }
         setPaciente(data);
+        cargarEvaluaciones(id);
       } catch (err) {
         console.error(err);
         setError('Error al cargar los datos del paciente.');
@@ -38,7 +41,23 @@ export default function PacienteDetalle({ temaOscuro }) {
     if (id) cargarPaciente();
   }, [id]);
 
-  // Calcular edad a partir de fecha_nacimiento (si existe)
+  const cargarEvaluaciones = async (pacienteId) => {
+    setCargandoEval(true);
+    try {
+      const { data, error } = await supabase
+        .from('evaluaciones')
+        .select('*')
+        .eq('paciente_id', pacienteId)
+        .order('created_at', { ascending: false });
+
+      if (!error) setEvaluaciones(data || []);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setCargandoEval(false);
+    }
+  };
+
   const calcularEdad = (fechaNac) => {
     if (!fechaNac) return '—';
     const hoy = new Date();
@@ -49,7 +68,6 @@ export default function PacienteDetalle({ temaOscuro }) {
     return edad;
   };
 
-  // Estilos según tema
   const bgPrincipal = temaOscuro ? 'bg-[#0a141d]' : 'bg-[#e2e8f0]';
   const textoPrincipal = temaOscuro ? 'text-white' : 'text-[#0f172a]';
   const bgTarjeta = temaOscuro ? 'bg-[#0a141d] border-gray-800' : 'bg-white border-gray-200';
@@ -95,9 +113,13 @@ export default function PacienteDetalle({ temaOscuro }) {
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <button className="px-4 py-2 bg-[#22d3ee]/20 text-[#22d3ee] font-bold rounded-xl text-xs hover:bg-[#22d3ee] hover:text-black transition-all">
+            {/* ✅ BOTÓN CORREGIDO: ahora es un Link a la evaluación */}
+            <Link
+              to={`/clinica/evaluacion/${paciente.id}`}
+              className="px-4 py-2 bg-[#22d3ee]/20 text-[#22d3ee] font-bold rounded-xl text-xs hover:bg-[#22d3ee] hover:text-black transition-all"
+            >
               + Agregar Evaluación
-            </button>
+            </Link>
             <button className="px-4 py-2 bg-purple-600/20 text-purple-400 font-bold rounded-xl text-xs hover:bg-purple-600 hover:text-white transition-all">
               + Nueva Sesión
             </button>
@@ -114,13 +136,11 @@ export default function PacienteDetalle({ temaOscuro }) {
               key={tab}
               onClick={() => setPestanaActiva(tab)}
               className={`px-6 py-3 text-sm font-bold uppercase tracking-wider transition-all border-b-2 ${
-                pestanaActiva === tab
-                  ? bgPestanaActiva
-                  : bgPestanaInactiva
+                pestanaActiva === tab ? bgPestanaActiva : bgPestanaInactiva
               }`}
             >
               {tab === 'resumen' && '📋 Resumen'}
-              {tab === 'evaluaciones' && '📊 Evaluaciones'}
+              {tab === 'evaluaciones' && `📊 Evaluaciones (${evaluaciones.length})`}
               {tab === 'planes' && '📝 Planes'}
               {tab === 'sesiones' && '🔄 Sesiones'}
             </button>
@@ -131,15 +151,12 @@ export default function PacienteDetalle({ temaOscuro }) {
         <div className="space-y-6">
           {pestanaActiva === 'resumen' && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Tarjeta de motivo de consulta */}
               <div className={`${bgTarjeta} p-5 rounded-2xl border col-span-2`}>
                 <h3 className={`text-xs font-black uppercase tracking-wider text-[#22d3ee] mb-2`}>Motivo de consulta</h3>
                 <p className={`text-sm ${textoPrincipal}`}>
                   {paciente.motivo_de_visita || 'No registrado'}
                 </p>
               </div>
-
-              {/* Tarjeta de medicamentos y alergias */}
               <div className={`${bgTarjeta} p-5 rounded-2xl border space-y-4`}>
                 <div>
                   <h4 className={`text-[10px] font-black uppercase tracking-wider text-gray-400`}>Medicamentos</h4>
@@ -154,8 +171,6 @@ export default function PacienteDetalle({ temaOscuro }) {
                   </p>
                 </div>
               </div>
-
-              {/* Línea de tiempo (simulada) */}
               <div className={`${bgTarjeta} p-5 rounded-2xl border col-span-full`}>
                 <h3 className={`text-xs font-black uppercase tracking-wider text-[#22d3ee] mb-4`}>📅 Línea de tiempo visual</h3>
                 <div className="relative pl-6 border-l-2 border-[#22d3ee] space-y-4">
@@ -166,7 +181,17 @@ export default function PacienteDetalle({ temaOscuro }) {
                       <span className={`text-sm font-medium ${textoPrincipal}`}>Fecha de apertura</span>
                     </div>
                   </div>
-                  {/* Puedes agregar más elementos de línea de tiempo dinámicamente */}
+                  {/* Mostrar evaluaciones en la línea de tiempo */}
+                  {evaluaciones.slice(0, 3).map((ev) => (
+                    <div key={ev.id} className="relative">
+                      <div className="absolute -left-8 top-1 w-4 h-4 rounded-full bg-purple-400 border-2 border-[#0a141d]"></div>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                        <span className="text-xs font-mono text-gray-400">{new Date(ev.created_at).toLocaleDateString()}</span>
+                        <span className={`text-sm font-medium ${textoPrincipal}`}>Evaluación postural</span>
+                        <span className="text-[10px] text-purple-400">Regiones: {(ev.regiones || []).join(', ')}</span>
+                      </div>
+                    </div>
+                  ))}
                   <div className="relative opacity-50">
                     <div className="absolute -left-8 top-1 w-4 h-4 rounded-full bg-gray-500 border-2 border-[#0a141d]"></div>
                     <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
@@ -180,9 +205,51 @@ export default function PacienteDetalle({ temaOscuro }) {
           )}
 
           {pestanaActiva === 'evaluaciones' && (
-            <div className={`${bgTarjeta} p-10 rounded-2xl border text-center`}>
-              <p className="text-gray-400">Aquí se listarán las evaluaciones del paciente.</p>
-              <p className="text-sm text-gray-500 mt-2">(Módulo en construcción – Fase 3)</p>
+            <div className={`${bgTarjeta} p-5 rounded-2xl border`}>
+              <h3 className={`text-sm font-black uppercase tracking-wider text-[#22d3ee] mb-4`}>📋 Lista de Evaluaciones</h3>
+              {cargandoEval ? (
+                <p className="text-gray-400 text-center py-4">Cargando evaluaciones...</p>
+              ) : evaluaciones.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-400">No hay evaluaciones registradas.</p>
+                  <Link
+                    to={`/clinica/evaluacion/${paciente.id}`}
+                    className="mt-4 inline-block px-4 py-2 bg-[#22d3ee]/20 text-[#22d3ee] font-bold rounded-xl text-xs hover:bg-[#22d3ee] hover:text-black transition-all"
+                  >
+                    + Crear primera evaluación
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {evaluaciones.map((ev) => (
+                    <div key={ev.id} className={`p-4 rounded-xl border ${temaOscuro ? 'border-gray-700' : 'border-gray-200'} hover:border-[#22d3ee]/40 transition-all`}>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className={`text-sm font-bold ${textoPrincipal}`}>
+                            {new Date(ev.created_at).toLocaleDateString()} - {new Date(ev.created_at).toLocaleTimeString()}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            Regiones: {(ev.regiones || []).join(', ') || 'No especificadas'}
+                          </p>
+                          {ev.analisis_ia && (
+                            <p className="text-xs text-purple-400 mt-1 truncate max-w-md">
+                              🤖 {ev.analisis_ia.substring(0, 100)}...
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <button className="px-3 py-1 bg-[#22d3ee]/10 text-[#22d3ee] rounded-lg text-xs hover:bg-[#22d3ee] hover:text-black transition-all">
+                            Ver detalle
+                          </button>
+                          <button className="px-3 py-1 bg-red-500/10 text-red-400 rounded-lg text-xs hover:bg-red-500 hover:text-white transition-all">
+                            Eliminar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -201,7 +268,6 @@ export default function PacienteDetalle({ temaOscuro }) {
           )}
         </div>
 
-        {/* Botón volver */}
         <div className="mt-8">
           <button
             onClick={() => navigate('/clinica/pacientes')}

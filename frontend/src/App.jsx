@@ -17,6 +17,7 @@ import Masoterapia from './pages/Masoterapia';
 import ErrorBoundary from './components/ErrorBoundary';
 import PacientesLista from './pages/clinica/PacientesLista';
 import PacienteDetalle from './pages/clinica/PacienteDetalle';
+import EvaluacionPostural from './pages/clinica/EvaluacionPostural';
 
 const RutaProtegida = ({ children }) => {
   const estaLogueado = localStorage.getItem('usuario_cj');
@@ -141,6 +142,7 @@ function App() {
               <Route path="/ciclo-04" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
               <Route path="/ciclo-05" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
               <Route path="/ciclo-06" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
+              <Route path="/clinica/evaluacion/:pacienteId" element={<RutaProtegida><EvaluacionPostural temaOscuro={temaOscuro} /></RutaProtegida>} />
             </Routes>
           </LayoutConSidebar>
         </BrowserRouter>
