@@ -14,7 +14,6 @@ export default function AreaDeEstudio({ temaOscuro }) {
   const [cursos, setCursos] = useState([]);
   const [cursoActivo, setCursoActivo] = useState('');
   const [archivosCurso, setArchivosCurso] = useState([]);
-  const [archivoSeleccionado, setArchivoSeleccionado] = useState(null);
   const [favoritos, setFavoritos] = useState([]);
 
   const GITHUB_USER = "CJPANTA";
@@ -24,6 +23,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
   const LOGO_CARRION = "https://raw.githubusercontent.com/CJPANTA/cj-project/main/logo_carrion.png";
   const LOGO_CJ_CIRCULAR = "https://raw.githubusercontent.com/CJPANTA/cj-project/main/logos_cj_circular.png";
 
+  // Cargar favoritos
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
@@ -51,6 +51,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
 
   const esFavorito = (nombrePDF) => favoritos.includes(nombrePDF);
 
+  // Cargar cursos al seleccionar ciclo
   useEffect(() => {
     if (cicloSeleccionado && estructura && estructura[cicloSeleccionado]) {
       const materias = Object.keys(estructura[cicloSeleccionado]);
@@ -59,6 +60,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
     }
   }, [cicloSeleccionado, estructura]);
 
+  // Cargar archivos al seleccionar curso
   useEffect(() => {
     if (cicloSeleccionado && cursoActivo && estructura?.[cicloSeleccionado]?.[cursoActivo]) {
       setArchivosCurso(estructura[cicloSeleccionado][cursoActivo]);
@@ -67,20 +69,17 @@ export default function AreaDeEstudio({ temaOscuro }) {
     }
   }, [cursoActivo, cicloSeleccionado, estructura]);
 
-  const prepararLector = (nombreArchivo) => {
+  // ABRIR PDF (SIN IFRAME - ABRE EN NUEVA PESTAÑA)
+  const abrirPDF = (nombreArchivo) => {
     const rawUrl = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/main/BASE_DATOS/01_CARRION/CICLO_${cicloSeleccionado}/${encodeURIComponent(cursoActivo)}/${encodeURIComponent(nombreArchivo)}`;
-    const antiCache = new Date().getTime();
     localStorage.setItem('ultimo_pdf_visto', JSON.stringify({
       nombre: nombreArchivo,
       ciclo: `Ciclo ${cicloSeleccionado}`,
       materia: cursoActivo
     }));
-    setArchivoSeleccionado({
-      nombre: nombreArchivo,
-      viewer: `https://docs.google.com/viewer?url=${encodeURIComponent(rawUrl)}&embedded=true&ignore=${antiCache}`,
-      descarga: rawUrl
-    });
     actualizarContexto({ ciclo: `Ciclo ${cicloSeleccionado}`, materia: cursoActivo, archivo: nombreArchivo });
+    // Abrir en nueva pestaña (el navegador mostrará el PDF o descargará)
+    window.open(rawUrl, '_blank');
   };
 
   const abrirOtroFormato = (nombreArchivo) => {
@@ -89,7 +88,6 @@ export default function AreaDeEstudio({ temaOscuro }) {
     window.open(viewerUrl, '_blank');
   };
 
-  const cerrarLector = () => setArchivoSeleccionado(null);
   const forzarSincronizacion = () => {
     recargar();
     window.location.reload();
@@ -112,8 +110,8 @@ export default function AreaDeEstudio({ temaOscuro }) {
 
   if (cargando) {
     return (
-      <main className="p-8 text-center" key="loading">
-        <div className="text-[#22d3ee] text-xl font-black">🔄 Escaneando repositorio desde GitHub...</div>
+      <main className="p-8 text-center">
+        <div className="text-[#22d3ee] text-xl font-black">🔄 Escaneando repositorio...</div>
         <p className="text-gray-400 text-sm mt-2">Cargando materiales de estudio...</p>
       </main>
     );
@@ -121,7 +119,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
 
   if (error) {
     return (
-      <main className="p-8 text-center" key="error">
+      <main className="p-8 text-center">
         <div className="text-red-500 text-xl font-black">❌ Error al conectar con GitHub</div>
         <p className="text-gray-400 text-sm mt-2">{error}</p>
         <button onClick={forzarSincronizacion} className="mt-4 bg-[#22d3ee] text-black px-4 py-2 rounded-xl">Reintentar</button>
@@ -132,7 +130,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
   // Vista 1: Selección de ciclos
   if (!cicloSeleccionado) {
     return (
-      <main className="p-4 md:p-8 max-w-7xl mx-auto w-full font-sans" key="ciclos">
+      <main className="p-4 md:p-8 max-w-7xl mx-auto w-full font-sans">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
           <div>
             <div className="flex items-center gap-4">
@@ -186,23 +184,9 @@ export default function AreaDeEstudio({ temaOscuro }) {
     );
   }
 
-  // Vista 2: Visor de PDF
-  if (archivoSeleccionado) {
-    return (
-      <main className="h-screen w-full flex flex-col bg-black overflow-hidden" key="visor">
-        <header className="flex justify-between p-3 bg-[#020813] border-b border-gray-800">
-          <button onClick={cerrarLector} className="px-4 py-2 bg-gray-800/50 rounded-xl text-white text-[11px] font-black">← Regresar</button>
-          <p className="text-[#22d3ee] text-[10px] font-bold truncate">{archivoSeleccionado.nombre}</p>
-          <a href={archivoSeleccionado.descarga} target="_blank" rel="noreferrer" className="px-4 py-2 bg-[#22d3ee] text-black rounded-xl text-[11px] font-black">Descargar</a>
-        </header>
-        <iframe src={archivoSeleccionado.viewer} className="flex-1 w-full border-none bg-white" title="PDF Viewer" />
-      </main>
-    );
-  }
-
-  // Vista 3: Navegador del ciclo (materias y archivos) - VERSIÓN SIMPLIFICADA CON KEYS
+  // Vista 2: Navegador del ciclo (materias y archivos) - SIN ANIMACIONES, SIN MARQUEE
   return (
-    <main className="p-4 md:p-8 max-w-full overflow-hidden" key="navegador">
+    <main className="p-4 md:p-8 max-w-full overflow-hidden">
       <header className="flex flex-col md:flex-row justify-between gap-4 mb-8">
         <div className="flex items-center gap-3">
           <img src={LOGO_CARRION} alt="Carrión" className="h-8 w-auto" />
@@ -270,8 +254,8 @@ export default function AreaDeEstudio({ temaOscuro }) {
                       
                       {esPDF(f) && (
                         <button 
-                          onClick={() => prepararLector(f)} 
-                          className="bg-[#22d3ee] text-black px-4 py-2 rounded-xl text-[10px] font-black"
+                          onClick={() => abrirPDF(f)} 
+                          className="bg-[#22d3ee] text-black px-4 py-2 rounded-xl text-[10px] font-black hover:bg-[#1bc1da] transition-all"
                         >
                           LEER
                         </button>
