@@ -14,6 +14,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
   const [cursos, setCursos] = useState([]);
   const [cursoActivo, setCursoActivo] = useState('');
   const [archivosCurso, setArchivosCurso] = useState([]);
+  const [archivoSeleccionado, setArchivoSeleccionado] = useState(null);
   const [favoritos, setFavoritos] = useState([]);
 
   const GITHUB_USER = "CJPANTA";
@@ -69,17 +70,20 @@ export default function AreaDeEstudio({ temaOscuro }) {
     }
   }, [cursoActivo, cicloSeleccionado, estructura]);
 
-  // ABRIR PDF (SIN IFRAME - ABRE EN NUEVA PESTAÑA)
-  const abrirPDF = (nombreArchivo) => {
+  const prepararLector = (nombreArchivo) => {
     const rawUrl = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/main/BASE_DATOS/01_CARRION/CICLO_${cicloSeleccionado}/${encodeURIComponent(cursoActivo)}/${encodeURIComponent(nombreArchivo)}`;
+    const antiCache = new Date().getTime();
     localStorage.setItem('ultimo_pdf_visto', JSON.stringify({
       nombre: nombreArchivo,
       ciclo: `Ciclo ${cicloSeleccionado}`,
       materia: cursoActivo
     }));
+    setArchivoSeleccionado({
+      nombre: nombreArchivo,
+      viewer: `https://docs.google.com/viewer?url=${encodeURIComponent(rawUrl)}&embedded=true&ignore=${antiCache}`,
+      descarga: rawUrl
+    });
     actualizarContexto({ ciclo: `Ciclo ${cicloSeleccionado}`, materia: cursoActivo, archivo: nombreArchivo });
-    // Abrir en nueva pestaña (el navegador mostrará el PDF o descargará)
-    window.open(rawUrl, '_blank');
   };
 
   const abrirOtroFormato = (nombreArchivo) => {
@@ -88,6 +92,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
     window.open(viewerUrl, '_blank');
   };
 
+  const cerrarLector = () => setArchivoSeleccionado(null);
   const forzarSincronizacion = () => {
     recargar();
     window.location.reload();
@@ -184,7 +189,36 @@ export default function AreaDeEstudio({ temaOscuro }) {
     );
   }
 
-  // Vista 2: Navegador del ciclo (materias y archivos) - SIN ANIMACIONES, SIN MARQUEE
+  // Vista 2: Visor de PDF (con iframe y key único)
+  if (archivoSeleccionado) {
+    return (
+      <main className="h-screen w-full flex flex-col bg-black overflow-hidden" key="visor-pdf">
+        <header className="flex justify-between p-3 bg-[#020813] border-b border-gray-800">
+          <button onClick={cerrarLector} className="px-4 py-2 bg-gray-800/50 rounded-xl text-white text-[11px] font-black hover:bg-gray-700 transition-all">
+            ← Regresar
+          </button>
+          <p className="text-[#22d3ee] text-[10px] font-bold truncate max-w-[60%]">{archivoSeleccionado.nombre}</p>
+          <a 
+            href={archivoSeleccionado.descarga} 
+            target="_blank" 
+            rel="noreferrer" 
+            className="px-4 py-2 bg-[#22d3ee] text-black rounded-xl text-[11px] font-black hover:bg-[#1bc1da] transition-all"
+          >
+            Descargar
+          </a>
+        </header>
+        <iframe 
+          key={archivoSeleccionado.viewer} 
+          src={archivoSeleccionado.viewer} 
+          className="flex-1 w-full border-none bg-white" 
+          title="PDF Viewer" 
+          sandbox="allow-scripts allow-same-origin"
+        />
+      </main>
+    );
+  }
+
+  // Vista 3: Navegador del ciclo (materias y archivos) - SIN MARQUEE
   return (
     <main className="p-4 md:p-8 max-w-full overflow-hidden">
       <header className="flex flex-col md:flex-row justify-between gap-4 mb-8">
@@ -254,7 +288,7 @@ export default function AreaDeEstudio({ temaOscuro }) {
                       
                       {esPDF(f) && (
                         <button 
-                          onClick={() => abrirPDF(f)} 
+                          onClick={() => prepararLector(f)} 
                           className="bg-[#22d3ee] text-black px-4 py-2 rounded-xl text-[10px] font-black hover:bg-[#1bc1da] transition-all"
                         >
                           LEER
