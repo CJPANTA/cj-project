@@ -11,12 +11,26 @@
   --color-cj-light-border: #e2e8f0;
 }
 
-body {
-  background-color: var(--color-cj-dark);
-  color: white;
+/* Reset y base para que la PWA ocupe todo el ancho/alto */
+* {
+  box-sizing: border-box;
+}
+html, body, #root {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh; /* Para dispositivos modernos */
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
+  background-color: var(--color-cj-dark);
+  color: white;
   transition: background-color 0.3s, color 0.3s;
+}
+
+/* Asegurar que los contenedores principales no tengan max-width fijo */
+.min-h-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* Estilos base para el contenido de la IA */
@@ -60,11 +74,11 @@ body {
 }
 
 .prose td {
-  background-color: #ffffff !important;  /* Fondo blanco para legibilidad */
+  background-color: #ffffff !important;
   color: #1f2937 !important;
 }
 
-/* Tablas en modo oscuro (cuando .prose-invert está presente) */
+/* Tablas en modo oscuro */
 .prose-invert table {
   border-color: #4a5568;
 }
@@ -84,7 +98,6 @@ body {
   color: #e2e8f0 !important;
 }
 
-/* Para pantallas pequeñas, permitir scroll horizontal */
 @media (max-width: 640px) {
   .prose table,
   .prose-invert table {
@@ -92,7 +105,6 @@ body {
   }
 }
 
-/* Estilos adicionales para el contenido de las respuestas (pre) */
 .prose pre,
 .prose-invert pre {
   background-color: transparent;
@@ -111,9 +123,8 @@ body {
   color: #e2e8f0;
 }
 
-/* Ajustes para orientación horizontal (landscape) */
+/* Ajustes para orientación horizontal en PWA */
 @media (orientation: landscape) and (max-height: 600px) {
-  /* Reducir padding y tamaños de fuente en pantallas horizontales pequeñas */
   .p-4.md\:p-8 {
     padding: 0.5rem !important;
   }
@@ -129,13 +140,8 @@ body {
   .text-xl {
     font-size: 1.2rem !important;
   }
-  /* Ajustar sidebar en horizontal */
-  .sidebar-container {
-    max-width: 60px !important;
-  }
 }
 
-/* Ajustes para orientación horizontal en tabletas */
 @media (orientation: landscape) and (min-width: 768px) {
   .prose table {
     font-size: 0.9rem !important;
@@ -143,4 +149,10 @@ body {
   .grid-cols-1.md\:grid-cols-3 {
     grid-template-columns: repeat(3, 1fr) !important;
   }
+}
+
+/* Forzar que el contenido principal ocupe todo el ancho en PWA */
+.flex-1 {
+  flex: 1 1 0%;
+  min-width: 0;
 }
