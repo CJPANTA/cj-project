@@ -28,7 +28,7 @@ function LayoutConSidebar({ children, temaOscuro, setTemaOscuro }) {
   const location = useLocation();
   const esRutaLogin = location.pathname === '/login';
   const [menuAbierto, setMenuAbierto] = useState(false);
-  // Detectar si es móvil (menor a 768px) para controlar el sidebar
+  // Definir móvil como < 768px (tablets y superiores se consideran "grandes")
   const [esMovil, setEsMovil] = useState(window.innerWidth < 768);
 
   useEffect(() => {
@@ -44,29 +44,26 @@ function LayoutConSidebar({ children, temaOscuro, setTemaOscuro }) {
 
   if (esRutaLogin) return <div className={`min-h-screen ${bgPrincipal}`}>{children}</div>;
 
-  // Determinar si el sidebar debe estar visible (siempre visible en tablet/desktop, oculto en móvil)
-  const sidebarVisible = !esMovil || (esMovil && menuAbierto);
-
   return (
     <div className={`min-h-screen ${bgPrincipal} flex flex-col md:flex-row relative overflow-hidden transition-colors duration-500`}>
-      {/* Overlay para móvil */}
+      {/* Overlay solo en móvil */}
       {esMovil && menuAbierto && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90]" onClick={() => setMenuAbierto(false)} />
       )}
 
-      {/* Sidebar: siempre en el DOM, se oculta/muestra con transform y opacidad */}
+      {/* Sidebar: en móvil se desliza, en tablet/desktop siempre visible */}
       <aside 
         className={`
-          fixed inset-y-0 left-0 z-[100] w-72 transition-all duration-300 ease-in-out
-          md:relative md:translate-x-0 md:opacity-100 md:flex md:shrink-0
-          ${sidebarVisible ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0 pointer-events-none'}
+          fixed inset-y-0 left-0 z-[100] w-72 transition-transform duration-300 ease-in-out
+          md:relative md:translate-x-0 md:flex md:shrink-0
+          ${esMovil ? (menuAbierto ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}
         `}
-        style={{ transition: 'transform 0.3s ease, opacity 0.3s ease' }}
+        style={{ transition: 'transform 0.3s ease' }}
       >
         <Sidebar temaOscuro={temaOscuro} alClickLink={() => esMovil && setMenuAbierto(false)} />
       </aside>
 
-      {/* Contenido principal: siempre visible */}
+      {/* Contenido principal */}
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden p-4 md:p-6 relative z-20">
         <header className="flex justify-between items-center mb-4 shrink-0">
           {/* Botón hamburguesa: solo en móvil */}
@@ -82,7 +79,7 @@ function LayoutConSidebar({ children, temaOscuro, setTemaOscuro }) {
               </svg>
             </button>
           )}
-          {/* Espaciador en tablet/desktop para mantener el header alineado */}
+          {/* Espaciador en tablet/desktop */}
           {!esMovil && <div className="w-10" />}
 
           <div className="flex items-center gap-3 ml-auto">
@@ -97,8 +94,8 @@ function LayoutConSidebar({ children, temaOscuro, setTemaOscuro }) {
             </button>
           </div>
         </header>
-        {/* Contenedor del contenido con key para forzar estabilidad */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar pb-10" key="main-content">
+        {/* Contenedor del contenido SIN key para evitar re-renderizados innecesarios */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar pb-10">
           {children}
         </div>
       </div>
