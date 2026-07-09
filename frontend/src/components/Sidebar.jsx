@@ -10,6 +10,7 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
 
   const [rolUsuario, setRolUsuario] = useState(null);
   const [nombreUsuario, setNombreUsuario] = useState('');
+  const [centroId, setCentroId] = useState(null);
   const [modoNavegacion, setModoNavegacion] = useState('academia');
   const [cargando, setCargando] = useState(true);
 
@@ -20,12 +21,13 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
         if (user) {
           const { data: perfil } = await supabase
             .from('profiles')
-            .select('rol, nombre_completo')
+            .select('rol, nombre_completo, centro_id')
             .eq('id', user.id)
             .single();
           if (perfil) {
             setRolUsuario(perfil.rol);
             setNombreUsuario(perfil.nombre_completo || 'Usuario');
+            setCentroId(perfil.centro_id || null);
             // Forzar modo clínica para ciertos roles, pero Director ve todo
             if (perfil.rol === 3 || perfil.rol === 5 || perfil.rol === 6 || perfil.rol === 7) {
               setModoNavegacion('clinica');
@@ -228,6 +230,10 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
             <div>
               <p className={`text-[11px] font-bold ${textoPrincipal} uppercase leading-none`}>{nombreUsuario || 'Usuario'}</p>
               <p className="text-[8px] text-[#10b981] font-black uppercase tracking-widest">{getRolLabel(rolUsuario)}</p>
+              {/* Mostrar centro si existe */}
+              {centroId && (
+                <p className="text-[7px] text-gray-400 font-mono uppercase tracking-wider mt-0.5">Centro: {centroId}</p>
+              )}
             </div>
           </div>
           <button onClick={handleLogout} className="text-red-500 hover:text-red-400 transition-colors p-2 rounded-full hover:bg-red-500/10">

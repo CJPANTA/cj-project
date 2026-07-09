@@ -26,12 +26,58 @@ export default function Dashboard({ temaOscuro }) {
   const [audioPausado, setAudioPausado] = useState(false);
   const [nombreUsuario, setNombreUsuario] = useState('');
   const [rolUsuario, setRolUsuario] = useState(null);
+  const [centroId, setCentroId] = useState(null);
+  const [kpisClinicos, setKpisClinicos] = useState({ pacientesActivos: 0, evaluacionesPendientes: 0, citasHoy: 0 });
   const recognitionRef = useRef(null);
   const navigate = useNavigate();
   const { contexto } = useAura();
 
   const [panelTutorAbierto, setPanelTutorAbierto] = useState(false);
   const [panelNotasAbierto, setPanelNotasAbierto] = useState(false);
+
+  // ========== CARGAR DATOS DE PERFIL Y KPIs ==========
+  const cargarPerfil = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data: perfil } = await supabase
+      .from('profiles')
+      .select('nombre_completo, rol, centro_id')
+      .eq('id', user.id)
+      .single();
+    if (perfil) {
+      setNombreUsuario(perfil.nombre_completo || 'Usuario');
+      setRolUsuario(perfil.rol);
+      setCentroId(perfil.centro_id || null);
+      // Si tiene centro, cargar KPIs clínicos
+      if (perfil.centro_id) {
+        cargarKPIsClinicos(perfil.centro_id);
+      }
+    }
+  };
+
+  const cargarKPIsClinicos = async (centro) => {
+    try {
+      // Pacientes activos del centro
+      const { count: pacientesActivos, error: errPac } = await supabase
+        .from('pacientes')
+        .select('*', { count: 'exact', head: true })
+        .eq('centro_id', centro)
+        .eq('estado', 'Activo');
+
+      if (!errPac) {
+        setKpisClinicos(prev => ({ ...prev, pacientesActivos: pacientesActivos || 0 }));
+      }
+
+      // Evaluaciones pendientes (simulado, cuando tengamos la tabla)
+      // Por ahora, valor mock
+      setKpisClinicos(prev => ({ ...prev, evaluacionesPendientes: 0 }));
+
+      // Citas hoy (simulado, cuando tengamos la tabla)
+      setKpisClinicos(prev => ({ ...prev, citasHoy: 0 }));
+    } catch (error) {
+      console.error('Error cargando KPIs:', error);
+    }
+  };
 
   // ========== CONVERSIÓN DE TABLAS ==========
   const convertirTablasHTML = (texto) => {
@@ -155,20 +201,6 @@ export default function Dashboard({ temaOscuro }) {
     cargarPerfil();
     return () => { window.speechSynthesis.cancel(); };
   }, [navigate]);
-
-  const cargarPerfil = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { data: perfil } = await supabase
-      .from('profiles')
-      .select('nombre_completo, rol')
-      .eq('id', user.id)
-      .single();
-    if (perfil) {
-      setNombreUsuario(perfil.nombre_completo || 'Usuario');
-      setRolUsuario(perfil.rol);
-    }
-  };
 
   const cargarProgresoExamenes = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -318,7 +350,7 @@ export default function Dashboard({ temaOscuro }) {
     );
   }
 
-  // CASO 2: LICENCIADO (rol 3), DEMO (rol 6) y ADMIN CENTRO (rol 7) → Dashboard Clínico
+  // CASO 2: LICENCIADO (rol 3), DEMO (rol 6) y ADMIN CENTRO (rol 7) → Dashboard Clínico con KPIs
   if (rolUsuario === 3 || rolUsuario === 6 || rolUsuario === 7) {
     return (
       <main className="flex flex-col gap-8 p-4 md:p-8 max-w-7xl mx-auto w-full">
@@ -327,6 +359,9 @@ export default function Dashboard({ temaOscuro }) {
             <div>
               <h1 className={`text-4xl font-black tracking-tighter ${textoColor}`}>{saludo}, <span className="text-[#22d3ee]">{nombreUsuario || 'Usuario'}</span></h1>
               <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Dashboard Clínico</p>
+              {centroId && (
+                <p className="text-[10px] text-emerald-400 font-mono font-bold">Centro: {centroId}</p>
+              )}
             </div>
             <div className="flex items-center gap-2 max-w-xs text-right bg-black/10 rounded-full px-3 py-1">
               <p className="text-[11px] italic text-[#22d3ee]/80 truncate">{fraseMotivacional}</p>
@@ -335,27 +370,27 @@ export default function Dashboard({ temaOscuro }) {
           </div>
         </header>
 
-        {/* KPIs Clínicos */}
+        {/* KPIs Clínicos con datos reales del centro */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className={`${bgTarjeta} p-4 rounded-2xl border flex items-center gap-4`}>
             <div className="text-4xl">👥</div>
             <div>
               <h3 className={`text-xs font-bold ${textoColor}`}>Pacientes activos</h3>
-              <p className="text-2xl font-black text-[#22d3ee]">0</p>
+              <p className="text-2xl font-black text-[#22d3ee]">{kpisClinicos.pacientesActivos}</p>
             </div>
           </div>
           <div className={`${bgTarjeta} p-4 rounded-2xl border flex items-center gap-4`}>
             <div className="text-4xl">📋</div>
             <div>
               <h3 className={`text-xs font-bold ${textoColor}`}>Evaluaciones pendientes</h3>
-              <p className="text-2xl font-black text-[#22d3ee]">0</p>
+              <p className="text-2xl font-black text-[#22d3ee]">{kpisClinicos.evaluacionesPendientes}</p>
             </div>
           </div>
           <div className={`${bgTarjeta} p-4 rounded-2xl border flex items-center gap-4`}>
             <div className="text-4xl">📅</div>
             <div>
               <h3 className={`text-xs font-bold ${textoColor}`}>Citas hoy</h3>
-              <p className="text-2xl font-black text-[#22d3ee]">0</p>
+              <p className="text-2xl font-black text-[#22d3ee]">{kpisClinicos.citasHoy}</p>
             </div>
           </div>
         </div>
@@ -438,6 +473,9 @@ export default function Dashboard({ temaOscuro }) {
           <div>
             <h1 className={`text-4xl font-black tracking-tighter ${textoColor}`}>{saludo}, <span className="text-[#22d3ee]">{nombreUsuario || 'Usuario'}</span></h1>
             <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Proyecto CJ</p>
+            {centroId && (
+              <p className="text-[10px] text-emerald-400 font-mono font-bold">Centro: {centroId}</p>
+            )}
           </div>
           <div className="flex items-center gap-2 max-w-xs text-right bg-black/10 rounded-full px-3 py-1">
             <p className="text-[11px] italic text-[#22d3ee]/80 truncate">{fraseMotivacional}</p>
