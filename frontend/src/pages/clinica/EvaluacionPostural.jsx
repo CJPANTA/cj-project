@@ -3,19 +3,37 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 
 // =============================================
+// RANGOS NORMALES POR REGIÓN (ROM)
+// =============================================
+const RANGOS_ROM = {
+  hombro: { flexión: '0-180°', abducción: '0-180°', rot_ext: '0-90°', rot_int: '0-90°' },
+  hombro_izq: { flexión: '0-180°', abducción: '0-180°', rot_ext: '0-90°', rot_int: '0-90°' },
+  hombro_der: { flexión: '0-180°', abducción: '0-180°', rot_ext: '0-90°', rot_int: '0-90°' },
+  cuello: { flexión: '0-45°', extensión: '0-45°', rotación: '0-80°', lateral: '0-40°' },
+  columna: { flexión: '0-90°', extensión: '0-30°', lateral: '0-40°' },
+  cadera: { flexión: '0-120°', extensión: '0-30°', abducción: '0-45°' },
+  rodilla: { flexión: '0-135°', extensión: '0-10°' },
+  rodilla_izq: { flexión: '0-135°', extensión: '0-10°' },
+  rodilla_der: { flexión: '0-135°', extensión: '0-10°' },
+  tobillo: { dorsiflexión: '0-20°', flexión_plantar: '0-50°' },
+  tobillo_izq: { dorsiflexión: '0-20°', flexión_plantar: '0-50°' },
+  tobillo_der: { dorsiflexión: '0-20°', flexión_plantar: '0-50°' },
+};
+
+// =============================================
 // TESTS ESPECÍFICOS POR REGIÓN
 // =============================================
 const TESTS_POR_REGION = {
   hombro: ['Test de Neer', 'Hawkins-Kennedy', 'Jobe', 'Aprehensión Anterior', 'Sulcus'],
+  hombro_izq: ['Test de Neer', 'Hawkins-Kennedy', 'Jobe', 'Aprehensión Anterior'],
+  hombro_der: ['Test de Neer', 'Hawkins-Kennedy', 'Jobe', 'Aprehensión Anterior'],
   cuello: ['Spurling', 'Distracción', 'Valsalva', 'Test de Adams'],
   columna: ['Schober', 'Lasegue', 'Bragard', 'Compresión', 'Milgram'],
   cadera: ['Thomas', 'Ober', 'Trendelenburg', 'FABER', 'Patrick'],
   rodilla: ['Lachman', 'Drawer Anterior', 'Drawer Posterior', 'Apley', 'McMurray'],
-  tobillo: ['Thompson', 'Drawer Anterior', 'Inversión', 'Eversión'],
-  hombro_izq: ['Test de Neer', 'Hawkins-Kennedy', 'Jobe', 'Aprehensión Anterior'],
-  hombro_der: ['Test de Neer', 'Hawkins-Kennedy', 'Jobe', 'Aprehensión Anterior'],
   rodilla_izq: ['Lachman', 'Drawer Anterior', 'Drawer Posterior', 'Apley'],
   rodilla_der: ['Lachman', 'Drawer Anterior', 'Drawer Posterior', 'Apley'],
+  tobillo: ['Thompson', 'Drawer Anterior', 'Inversión', 'Eversión'],
   tobillo_izq: ['Thompson', 'Drawer Anterior', 'Inversión', 'Eversión'],
   tobillo_der: ['Thompson', 'Drawer Anterior', 'Inversión', 'Eversión'],
 };
@@ -30,6 +48,7 @@ export default function EvaluacionPostural({ temaOscuro }) {
   const [loading, setLoading] = useState(true);
   const [paso, setPaso] = useState(1);
   const [guardando, setGuardando] = useState(false);
+  const [microfonoActivo, setMicrofonoActivo] = useState(false);
 
   const [evaluacion, setEvaluacion] = useState({
     paciente_id: pacienteId,
@@ -43,13 +62,26 @@ export default function EvaluacionPostural({ temaOscuro }) {
     analisis_ia: '',
   });
 
-  // ========== DICTADO DE VOZ ==========
+  // ========== DICTADO DE VOZ (mejorado) ==========
   const [escuchando, setEscuchando] = useState(false);
   const [campoActivo, setCampoActivo] = useState(null);
   const recognitionRef = useRef(null);
   const inputRefs = useRef({});
 
+  // Solicitar permiso de micrófono al montar
   useEffect(() => {
+    const pedirPermiso = async () => {
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        setMicrofonoActivo(true);
+      } catch (err) {
+        console.warn('Permiso de micrófono denegado:', err);
+        setMicrofonoActivo(false);
+      }
+    };
+    pedirPermiso();
+
+    // Inicializar reconocimiento de voz
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
       const recognition = new SpeechRecognition();
@@ -63,7 +95,7 @@ export default function EvaluacionPostural({ temaOscuro }) {
         console.error(event.error);
         setEscuchando(false);
         if (event.error !== 'not-allowed') {
-          alert('Error al escuchar: ' + event.error);
+          alert('Error al escuchar: ' + event.error + '. Intenta de nuevo.');
         }
       };
       recognition.onresult = (event) => {
@@ -77,6 +109,8 @@ export default function EvaluacionPostural({ temaOscuro }) {
         setEscuchando(false);
       };
       recognitionRef.current = recognition;
+    } else {
+      alert('Reconocimiento de voz no disponible. Usa Chrome o Edge.');
     }
 
     return () => {
@@ -87,8 +121,12 @@ export default function EvaluacionPostural({ temaOscuro }) {
   }, []);
 
   const iniciarDictado = (campo) => {
+    if (!microfonoActivo) {
+      alert('Haz clic en "Activar micrófono" primero.');
+      return;
+    }
     if (!recognitionRef.current) {
-      alert('Reconocimiento de voz no disponible en este navegador. Usa Chrome.');
+      alert('Reconocimiento de voz no disponible.');
       return;
     }
     if (escuchando) {
@@ -98,6 +136,16 @@ export default function EvaluacionPostural({ temaOscuro }) {
     }
     setCampoActivo(campo);
     recognitionRef.current.start();
+  };
+
+  const activarMicrofono = async () => {
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      setMicrofonoActivo(true);
+      alert('✅ Micrófono activado. Ahora puedes dictar.');
+    } catch (err) {
+      alert('❌ No se pudo acceder al micrófono. Verifica los permisos.');
+    }
   };
 
   // ========== CARGAR PACIENTE ==========
@@ -167,7 +215,6 @@ export default function EvaluacionPostural({ temaOscuro }) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuario no autenticado');
 
-      // Obtener centro_id del usuario
       const { data: perfil } = await supabase
         .from('profiles')
         .select('centro_id')
@@ -213,7 +260,7 @@ export default function EvaluacionPostural({ temaOscuro }) {
     return temaOscuro ? 'bg-white/5 border-gray-700 text-gray-300 hover:bg-white/10' : 'bg-gray-100 border-gray-200 text-gray-700 hover:bg-gray-200';
   };
 
-  // ========== SVG DEL CUERPO HUMANO (MEJORADO) ==========
+  // ========== SVG DEL CUERPO HUMANO ==========
   const BodyChartSVG = () => {
     const regiones = [
       { id: 'cuello', x: 50, y: 12, label: 'Cuello' },
@@ -230,28 +277,19 @@ export default function EvaluacionPostural({ temaOscuro }) {
     return (
       <div className="relative w-full max-w-md mx-auto">
         <svg viewBox="0 0 100 100" className="w-full aspect-square">
-          {/* Silueta humana mejorada */}
           <defs>
             <radialGradient id="bodyGrad" cx="50%" cy="40%" r="50%">
               <stop offset="0%" stopColor="#4a6a8a" stopOpacity="0.4" />
               <stop offset="100%" stopColor="#2d3748" stopOpacity="0.6" />
             </radialGradient>
           </defs>
-
-          {/* Cabeza */}
           <circle cx="50" cy="10" r="8" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.5" />
-          {/* Tronco */}
           <rect x="38" y="16" width="24" height="30" rx="4" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.5" />
-          {/* Brazo izquierdo */}
           <path d="M38 22 L20 16 L15 24 L35 28" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.5" />
-          {/* Brazo derecho */}
           <path d="M62 22 L80 16 L85 24 L65 28" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.5" />
-          {/* Pierna izquierda */}
           <path d="M42 46 L30 60 L25 72 L35 74 L42 60" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.5" />
-          {/* Pierna derecha */}
           <path d="M58 46 L70 60 L75 72 L65 74 L58 60" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.5" />
 
-          {/* Puntos cliqueables con efecto glow */}
           {regiones.map((r) => {
             const selected = evaluacion.regiones.includes(r.id);
             return (
@@ -263,17 +301,10 @@ export default function EvaluacionPostural({ temaOscuro }) {
                   fill={selected ? '#22d3ee' : '#94a3b8'}
                   stroke={selected ? '#22d3ee' : '#64748b'}
                   strokeWidth="2.5"
-                  className="transition-all duration-200 hover:scale-125 hover:shadow-lg"
+                  className="transition-all duration-200 hover:scale-125"
                   style={{ filter: selected ? 'drop-shadow(0 0 8px #22d3ee)' : 'none' }}
                 />
-                <text
-                  x={r.x}
-                  y={r.y + 16}
-                  textAnchor="middle"
-                  fontSize="3.5"
-                  fill={selected ? '#22d3ee' : '#94a3b8'}
-                  className="font-bold"
-                >
+                <text x={r.x} y={r.y + 16} textAnchor="middle" fontSize="3.5" fill={selected ? '#22d3ee' : '#94a3b8'} className="font-bold">
                   {r.label}
                 </text>
               </g>
@@ -302,9 +333,15 @@ export default function EvaluacionPostural({ temaOscuro }) {
         <h1 className={`text-3xl font-black tracking-tight ${textoPrincipal} mb-2`}>
           {paciente ? `Evaluación Postural - ${paciente.nombre} ${paciente.apellidos}` : 'Nueva Evaluación'}
         </h1>
-        <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-6">
-          Paso {paso} de 3
-        </p>
+        <div className="flex justify-between items-center mb-4">
+          <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Paso {paso} de 3</p>
+          <button
+            onClick={activarMicrofono}
+            className={`px-3 py-1 rounded-xl text-xs font-black uppercase transition-all ${microfonoActivo ? 'bg-green-500 text-white' : 'bg-yellow-500 text-black'}`}
+          >
+            {microfonoActivo ? '🎤 Micrófono activo' : '🔇 Activar micrófono'}
+          </button>
+        </div>
 
         <div className="w-full h-2 bg-gray-700 rounded-full mb-6">
           <div className="h-full bg-[#22d3ee] rounded-full transition-all duration-500" style={{ width: `${(paso / 3) * 100}%` }} />
@@ -468,7 +505,7 @@ export default function EvaluacionPostural({ temaOscuro }) {
         )}
 
         {/* ============================================================ */}
-        {/* PASO 3: EVALUACIÓN POR REGIÓN */}
+        {/* PASO 3: EVALUACIÓN POR REGIÓN (CON RANGOS Y MEJOR VISTA) */}
         {/* ============================================================ */}
         {paso === 3 && (
           <div className={`${bgTarjeta} p-6 rounded-3xl border`}>
@@ -480,28 +517,31 @@ export default function EvaluacionPostural({ temaOscuro }) {
                 {evaluacion.regiones.map((region) => {
                   const data = evaluacion.datos_regiones[region] || {};
                   const tests = TESTS_POR_REGION[region] || ['Test no específico'];
+                  const rangos = RANGOS_ROM[region] || {};
+
                   return (
                     <div key={region} className={`p-4 rounded-2xl border ${temaOscuro ? 'border-gray-700' : 'border-gray-200'}`}>
                       <h3 className={`text-lg font-bold ${textoPrincipal} capitalize mb-3`}>
                         {region.replace('_', ' ')}
                       </h3>
 
-                      {/* EVA */}
+                      {/* EVA - MEJORADO (números cliqueables) */}
                       <div className="mb-4">
                         <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Dolor (EVA 0-10)</label>
-                        <div className="flex items-center gap-4">
-                          <input
-                            type="range"
-                            min="0"
-                            max="10"
-                            step="1"
-                            value={data.eva || 0}
-                            onChange={(e) => handleRegionDataChange(region, 'eva', parseInt(e.target.value))}
-                            className="flex-1 h-2 rounded-lg appearance-none cursor-pointer bg-gray-300 dark:bg-gray-700 accent-[#22d3ee]"
-                          />
-                          <span className={`text-2xl font-black ${textoPrincipal} min-w-[2.5rem] text-center`}>
-                            {data.eva || 0}
-                          </span>
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                            <button
+                              key={num}
+                              onClick={() => handleRegionDataChange(region, 'eva', num)}
+                              className={`w-8 h-8 rounded-full text-xs font-bold transition-all ${
+                                data.eva === num
+                                  ? 'bg-[#22d3ee] text-black scale-110 shadow-lg shadow-[#22d3ee]/30'
+                                  : `${temaOscuro ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'} hover:scale-110`
+                              }`}
+                            >
+                              {num}
+                            </button>
+                          ))}
                         </div>
                         <div className="flex justify-between text-xs text-gray-400">
                           <span>Sin dolor</span>
@@ -509,19 +549,31 @@ export default function EvaluacionPostural({ temaOscuro }) {
                         </div>
                       </div>
 
-                      {/* ROM */}
+                      {/* ROM - CON RANGOS DE REFERENCIA */}
                       <div className="mb-4">
                         <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>ROM (grados)</label>
-                        <input
-                          type="number"
-                          value={data.rom || ''}
-                          onChange={(e) => handleRegionDataChange(region, 'rom', e.target.value)}
-                          className={`w-full ${bgInput} border p-2 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`}
-                          placeholder="Ej: 120°"
-                        />
+                        <div className="relative">
+                          <input
+                            type="number"
+                            value={data.rom || ''}
+                            onChange={(e) => handleRegionDataChange(region, 'rom', e.target.value)}
+                            className={`w-full ${bgInput} border p-2 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`}
+                            placeholder="Ej: 120°"
+                          />
+                        </div>
+                        {Object.keys(rangos).length > 0 && (
+                          <div className="mt-2 text-xs text-gray-400 flex flex-wrap gap-2">
+                            <span className="font-bold">Rango normal:</span>
+                            {Object.entries(rangos).map(([mov, rango]) => (
+                              <span key={mov} className="bg-black/10 px-2 py-0.5 rounded-full">
+                                {mov.replace('_', ' ')}: {rango}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
-                      {/* TESTS ESPECÍFICOS POR REGIÓN */}
+                      {/* TESTS - MEJORADOS */}
                       <div className="mb-4">
                         <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Tests especiales</label>
                         <div className="grid grid-cols-2 gap-2">
@@ -546,7 +598,7 @@ export default function EvaluacionPostural({ temaOscuro }) {
                         <div className="relative mt-2">
                           <input
                             type="text"
-                            placeholder="Observaciones del test"
+                            placeholder="Observaciones del test..."
                             value={data.observaciones || ''}
                             onChange={(e) => handleRegionDataChange(region, 'observaciones', e.target.value)}
                             className={`w-full ${bgInput} border p-2 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm pr-10`}
