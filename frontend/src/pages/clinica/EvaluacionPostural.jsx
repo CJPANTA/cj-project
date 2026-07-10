@@ -28,10 +28,15 @@ const RANGOS_ROM = {
   muslo_izq: { flexión_cadera: '0-120°', extension_cadera: '0-30°' },
   muslo_der: { flexión_cadera: '0-120°', extension_cadera: '0-30°' },
   espalda: { flexión: '0-90°', extensión: '0-30°', lateral: '0-40°' },
+  cabeza: { flexión: '0-45°', extensión: '0-45°', rotación: '0-80°', lateral: '0-40°' },
+  cara: { flexión: '0-45°', extensión: '0-45°', rotación: '0-80°', lateral: '0-40°' },
+  gluteo: { flexión_cadera: '0-120°', extension_cadera: '0-30°' },
+  gluteo_izq: { flexión_cadera: '0-120°', extension_cadera: '0-30°' },
+  gluteo_der: { flexión_cadera: '0-120°', extension_cadera: '0-30°' },
 };
 
 // ============================================================
-// TESTS ESPECÍFICOS POR REGIÓN (ampliado)
+// TESTS ESPECÍFICOS POR REGIÓN
 // ============================================================
 const TESTS_POR_REGION = {
   hombro: ['Test de Neer', 'Hawkins-Kennedy', 'Jobe', 'Aprehensión Anterior', 'Sulcus'],
@@ -56,6 +61,62 @@ const TESTS_POR_REGION = {
   muslo_izq: ['Test de Thomas', 'Test de Ober', 'Prueba de fuerza cuádriceps'],
   muslo_der: ['Test de Thomas', 'Test de Ober', 'Prueba de fuerza cuádriceps'],
   espalda: ['Schober', 'Lasegue', 'Bragard', 'Compresión'],
+  cabeza: ['Test de Adams', 'Spurling', 'Distracción'],
+  cara: ['Test de Adams', 'Spurling', 'Distracción'],
+  gluteo: ['Thomas', 'Ober', 'Trendelenburg'],
+  gluteo_izq: ['Thomas', 'Ober', 'Trendelenburg'],
+  gluteo_der: ['Thomas', 'Ober', 'Trendelenburg'],
+};
+
+// ============================================================
+// REGIONES POR VISTA DEL BODY CHART
+// ============================================================
+const REGIONES_POR_VISTA = {
+  frente: [
+    { id: 'cara', x: 50, y: 10, label: 'Cara' },
+    { id: 'cuello', x: 50, y: 18, label: 'Cuello' },
+    { id: 'hombro_izq', x: 25, y: 26, label: 'Hombro I' },
+    { id: 'hombro_der', x: 75, y: 26, label: 'Hombro D' },
+    { id: 'codo_izq', x: 18, y: 38, label: 'Codo I' },
+    { id: 'codo_der', x: 82, y: 38, label: 'Codo D' },
+    { id: 'muneca_izq', x: 14, y: 50, label: 'Muñeca I' },
+    { id: 'muneca_der', x: 86, y: 50, label: 'Muñeca D' },
+    { id: 'columna', x: 50, y: 35, label: 'Tronco' },
+    { id: 'cadera', x: 50, y: 55, label: 'Cadera' },
+    { id: 'muslo_izq', x: 30, y: 65, label: 'Muslo I' },
+    { id: 'muslo_der', x: 70, y: 65, label: 'Muslo D' },
+    { id: 'rodilla_izq', x: 30, y: 78, label: 'Rodilla I' },
+    { id: 'rodilla_der', x: 70, y: 78, label: 'Rodilla D' },
+    { id: 'tobillo_izq', x: 30, y: 90, label: 'Tobillo I' },
+    { id: 'tobillo_der', x: 70, y: 90, label: 'Tobillo D' },
+  ],
+  espalda: [
+    { id: 'cabeza', x: 50, y: 10, label: 'Cabeza' },
+    { id: 'cuello', x: 50, y: 18, label: 'Cuello' },
+    { id: 'hombro_izq', x: 25, y: 26, label: 'Hombro I' },
+    { id: 'hombro_der', x: 75, y: 26, label: 'Hombro D' },
+    { id: 'espalda', x: 50, y: 35, label: 'Espalda' },
+    { id: 'columna', x: 50, y: 45, label: 'Columna' },
+    { id: 'gluteo_izq', x: 30, y: 60, label: 'Glúteo I' },
+    { id: 'gluteo_der', x: 70, y: 60, label: 'Glúteo D' },
+    { id: 'muslo_izq', x: 30, y: 72, label: 'Muslo I' },
+    { id: 'muslo_der', x: 70, y: 72, label: 'Muslo D' },
+    { id: 'rodilla_izq', x: 30, y: 85, label: 'Rodilla I' },
+    { id: 'rodilla_der', x: 70, y: 85, label: 'Rodilla D' },
+    { id: 'tobillo_izq', x: 30, y: 94, label: 'Tobillo I' },
+    { id: 'tobillo_der', x: 70, y: 94, label: 'Tobillo D' },
+  ],
+  lateral: [
+    { id: 'cabeza', x: 50, y: 10, label: 'Cabeza' },
+    { id: 'cuello', x: 50, y: 18, label: 'Cuello' },
+    { id: 'hombro', x: 50, y: 26, label: 'Hombro' },
+    { id: 'espalda', x: 35, y: 38, label: 'Espalda' },
+    { id: 'columna', x: 50, y: 45, label: 'Columna' },
+    { id: 'cadera', x: 50, y: 58, label: 'Cadera' },
+    { id: 'muslo', x: 50, y: 70, label: 'Muslo' },
+    { id: 'rodilla', x: 50, y: 82, label: 'Rodilla' },
+    { id: 'tobillo', x: 50, y: 93, label: 'Tobillo' },
+  ],
 };
 
 // ============================================================
@@ -69,8 +130,9 @@ export default function EvaluacionPostural({ temaOscuro }) {
   const [paso, setPaso] = useState(1);
   const [guardando, setGuardando] = useState(false);
   const [microfonoActivo, setMicrofonoActivo] = useState(false);
+  const [vistaActual, setVistaActual] = useState('frente'); // 'frente', 'espalda', 'lateral'
 
-  // Estado de la evaluación con anamnesis completa
+  // Estado de la evaluación
   const [evaluacion, setEvaluacion] = useState({
     paciente_id: pacienteId,
     edad: '',
@@ -97,14 +159,13 @@ export default function EvaluacionPostural({ temaOscuro }) {
     analisis_ia: '',
   });
 
-  // ========== DICTADO DE VOZ (mejorado para móvil) ==========
+  // ========== DICTADO DE VOZ ==========
   const [escuchando, setEscuchando] = useState(false);
   const [campoActivo, setCampoActivo] = useState(null);
   const recognitionRef = useRef(null);
   const inputRefs = useRef({});
 
   useEffect(() => {
-    // Solicitar permiso de micrófono al montar
     const pedirPermiso = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -117,7 +178,6 @@ export default function EvaluacionPostural({ temaOscuro }) {
     };
     pedirPermiso();
 
-    // Inicializar reconocimiento de voz
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
       const recognition = new SpeechRecognition();
@@ -132,10 +192,7 @@ export default function EvaluacionPostural({ temaOscuro }) {
         setEscuchando(false);
         if (event.error === 'not-allowed') {
           alert('Por favor, permite el acceso al micrófono en la configuración del navegador.');
-        } else if (event.error === 'no-speech') {
-          // No mostrar alerta, solo silencio
-          console.log('No se detectó voz.');
-        } else {
+        } else if (event.error !== 'no-speech') {
           alert('Error al escuchar: ' + event.error + '. Intenta de nuevo.');
         }
       };
@@ -162,16 +219,14 @@ export default function EvaluacionPostural({ temaOscuro }) {
   }, []);
 
   const iniciarDictado = (campo) => {
-    // Si no hay permisos, solicitarlos
     if (!microfonoActivo) {
       navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
           stream.getTracks().forEach(track => track.stop());
           setMicrofonoActivo(true);
-          // Iniciar dictado después de obtener permisos
           iniciarDictado(campo);
         })
-        .catch(err => {
+        .catch(() => {
           alert('No se pudo acceder al micrófono. Por favor, permite el acceso en la configuración del navegador.');
         });
       return;
@@ -231,13 +286,15 @@ export default function EvaluacionPostural({ temaOscuro }) {
     }));
   };
 
-  const toggleRegion = (region) => {
+  const toggleRegion = (regionId) => {
     setEvaluacion(prev => {
-      const nuevasRegiones = prev.regiones.includes(region)
-        ? prev.regiones.filter(r => r !== region)
-        : [...prev.regiones, region];
+      const nuevasRegiones = prev.regiones.includes(regionId)
+        ? prev.regiones.filter(r => r !== regionId)
+        : [...prev.regiones, regionId];
       const nuevosDatos = { ...prev.datos_regiones };
-      if (!nuevasRegiones.includes(region)) delete nuevosDatos[region];
+      if (!nuevasRegiones.includes(regionId)) {
+        delete nuevosDatos[regionId];
+      }
       return { ...prev, regiones: nuevasRegiones, datos_regiones: nuevosDatos };
     });
   };
@@ -258,7 +315,6 @@ export default function EvaluacionPostural({ temaOscuro }) {
         .eq('id', user.id)
         .single();
 
-      // Preparar datos para inserción
       const datos = {
         paciente_id: pacienteId,
         user_id: user.id,
@@ -307,70 +363,116 @@ export default function EvaluacionPostural({ temaOscuro }) {
   const textoPrincipal = temaOscuro ? 'text-white' : 'text-[#0f172a]';
   const bgTarjeta = temaOscuro ? 'bg-[#0a141d] border-gray-800' : 'bg-white border-gray-200';
   const bgInput = temaOscuro ? 'bg-black/20 border-white/10 text-white' : 'bg-gray-100 border-gray-300 text-[#0f172a]';
-  const bgRegionBtn = (region) => {
-    const selected = evaluacion.regiones.includes(region);
-    if (selected) return 'bg-[#22d3ee] text-black border-[#22d3ee]';
-    return temaOscuro ? 'bg-white/5 border-gray-700 text-gray-300 hover:bg-white/10' : 'bg-gray-100 border-gray-200 text-gray-700 hover:bg-gray-200';
+  const bgRegionBtn = (regionId) => {
+    const selected = evaluacion.regiones.includes(regionId);
+    if (selected) return 'bg-[#22d3ee] text-black border-[#22d3ee] shadow-lg shadow-[#22d3ee]/30';
+    return temaOscuro ? 'bg-white/5 border-gray-700 text-gray-300 hover:bg-white/10 hover:border-[#22d3ee]/30' : 'bg-gray-100 border-gray-200 text-gray-700 hover:bg-gray-200';
   };
 
-  // ========== SVG DEL CUERPO HUMANO (DETALLADO Y CON MÁS REGIONES) ==========
+  // ========== BODY CHART CON 3 VISTAS (FRENTE, ESPALDA, LATERAL) ==========
   const BodyChartSVG = () => {
-    const regiones = [
-      // Cabeza y cuello
-      { id: 'cuello', x: 50, y: 15, label: 'Cuello' },
-      // Hombros
-      { id: 'hombro_izq', x: 25, y: 25, label: 'Hombro I' },
-      { id: 'hombro_der', x: 75, y: 25, label: 'Hombro D' },
-      // Codos
-      { id: 'codo_izq', x: 18, y: 40, label: 'Codo I' },
-      { id: 'codo_der', x: 82, y: 40, label: 'Codo D' },
-      // Muñecas
-      { id: 'muneca_izq', x: 15, y: 55, label: 'Muñeca I' },
-      { id: 'muneca_der', x: 85, y: 55, label: 'Muñeca D' },
-      // Columna / Espalda
-      { id: 'columna', x: 50, y: 38, label: 'Columna' },
-      { id: 'espalda', x: 50, y: 48, label: 'Espalda' },
-      // Cadera
-      { id: 'cadera', x: 50, y: 62, label: 'Cadera' },
-      // Muslos (cuádriceps)
-      { id: 'muslo_izq', x: 28, y: 72, label: 'Muslo I' },
-      { id: 'muslo_der', x: 72, y: 72, label: 'Muslo D' },
-      // Rodillas
-      { id: 'rodilla_izq', x: 28, y: 82, label: 'Rodilla I' },
-      { id: 'rodilla_der', x: 72, y: 82, label: 'Rodilla D' },
-      // Tobillos
-      { id: 'tobillo_izq', x: 28, y: 94, label: 'Tobillo I' },
-      { id: 'tobillo_der', x: 72, y: 94, label: 'Tobillo D' },
-    ];
+    const regiones = REGIONES_POR_VISTA[vistaActual] || REGIONES_POR_VISTA.frente;
+    const labelVista = { frente: 'Vista Frontal', espalda: 'Vista Posterior', lateral: 'Vista Lateral' };
+
+    // Construir la silueta según la vista
+    const renderSilueta = () => {
+      if (vistaActual === 'frente') {
+        return (
+          <>
+            {/* Cabeza */}
+            <circle cx="50" cy="10" r="7" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
+            {/* Cuello */}
+            <rect x="46" y="16" width="8" height="5" rx="2" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
+            {/* Tronco */}
+            <path d="M42 21 Q35 33 38 48 Q40 60 47 62 L53 62 Q60 60 62 48 Q65 33 58 21 Z" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
+            {/* Brazos */}
+            <path d="M42 23 L22 20 L14 30 L18 36 L38 29" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
+            <path d="M58 23 L78 20 L86 30 L82 36 L62 29" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
+            <path d="M18 36 L10 48 L15 52 L22 42" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
+            <path d="M82 36 L90 48 L85 52 L78 42" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
+            {/* Piernas */}
+            <path d="M43 62 L33 72 L28 84 L36 88 L40 76" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
+            <path d="M57 62 L67 72 L72 84 L64 88 L60 76" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
+            {/* Pies */}
+            <rect x="24" y="88" width="12" height="5" rx="2" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1" />
+            <rect x="64" y="88" width="12" height="5" rx="2" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1" />
+          </>
+        );
+      } else if (vistaActual === 'espalda') {
+        return (
+          <>
+            {/* Cabeza (vista posterior) */}
+            <circle cx="50" cy="10" r="7" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
+            {/* Cuello */}
+            <rect x="46" y="16" width="8" height="5" rx="2" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
+            {/* Tronco (más ancho en espalda) */}
+            <path d="M40 21 Q32 35 36 50 Q38 62 46 64 L54 64 Q62 62 64 50 Q68 35 60 21 Z" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
+            {/* Brazos (similares) */}
+            <path d="M40 23 L20 20 L12 32 L16 38 L36 29" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
+            <path d="M60 23 L80 20 L88 32 L84 38 L64 29" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
+            <path d="M16 38 L8 50 L13 54 L20 44" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
+            <path d="M84 38 L92 50 L87 54 L80 44" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
+            {/* Piernas */}
+            <path d="M42 64 L32 74 L28 86 L36 90 L40 78" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
+            <path d="M58 64 L68 74 L72 86 L64 90 L60 78" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
+            <rect x="24" y="90" width="12" height="5" rx="2" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1" />
+            <rect x="64" y="90" width="12" height="5" rx="2" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1" />
+          </>
+        );
+      } else {
+        // Vista lateral
+        return (
+          <>
+            {/* Cabeza (perfil) */}
+            <circle cx="50" cy="10" r="7" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
+            {/* Cuello */}
+            <rect x="47" y="16" width="6" height="5" rx="2" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
+            {/* Tronco (perfil) */}
+            <path d="M43 21 Q38 32 40 45 Q42 58 48 60 L55 60 Q58 58 60 45 Q62 32 55 21 Z" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
+            {/* Brazo (solo uno en perfil) */}
+            <path d="M43 25 L30 22 L24 32 L28 36 L42 30" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
+            <path d="M28 36 L22 46 L26 50 L32 42" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
+            {/* Pierna (perfil) */}
+            <path d="M46 60 L38 70 L34 82 L42 86 L46 74" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
+            <rect x="30" y="86" width="12" height="5" rx="2" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1" />
+          </>
+        );
+      }
+    };
 
     return (
       <div className="relative w-full max-w-md mx-auto">
+        <div className="flex justify-center gap-2 mb-4">
+          {['frente', 'espalda', 'lateral'].map((v) => (
+            <button
+              key={v}
+              onClick={() => setVistaActual(v)}
+              className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all ${
+                vistaActual === v
+                  ? 'bg-[#22d3ee] text-black shadow-lg shadow-[#22d3ee]/30'
+                  : temaOscuro
+                    ? 'bg-white/5 text-gray-400 hover:bg-white/10'
+                    : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+              }`}
+            >
+              {v === 'frente' ? '👤 Frente' : v === 'espalda' ? '🔙 Espalda' : '👤 Lateral'}
+            </button>
+          ))}
+        </div>
+
         <svg viewBox="0 0 100 100" className="w-full aspect-square">
           <defs>
             <radialGradient id="bodyGrad" cx="50%" cy="40%" r="50%">
-              <stop offset="0%" stopColor="#4a6a8a" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="#2d3748" stopOpacity="0.5" />
+              <stop offset="0%" stopColor="#4a6a8a" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#2d3748" stopOpacity="0.4" />
             </radialGradient>
+            <filter id="glow">
+              <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#22d3ee" floodOpacity="0.6" />
+            </filter>
           </defs>
-          {/* Silueta humana más detallada y fina */}
-          {/* Cabeza */}
-          <circle cx="50" cy="10" r="7" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
-          {/* Cuello */}
-          <rect x="45" y="16" width="10" height="6" rx="2" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
-          {/* Tronco (más estilizado) */}
-          <path d="M42 22 Q35 35 38 50 Q40 65 48 68 L52 68 Q60 65 62 50 Q65 35 58 22 Z" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
-          {/* Brazos (más finos) */}
-          <path d="M42 24 L22 20 L14 32 L18 38 L38 30" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
-          <path d="M58 24 L78 20 L86 32 L82 38 L62 30" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
-          {/* Antebrazos y muñecas */}
-          <path d="M18 38 L10 52 L16 56 L22 44" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
-          <path d="M82 38 L90 52 L84 56 L78 44" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
-          {/* Piernas (más delgadas) */}
-          <path d="M42 68 L32 76 L28 88 L36 92 L40 80" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
-          <path d="M58 68 L68 76 L72 88 L64 92 L60 80" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
-          {/* Pies */}
-          <rect x="24" y="92" width="12" height="5" rx="2" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1" />
-          <rect x="64" y="92" width="12" height="5" rx="2" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1" />
+
+          {/* Silueta */}
+          <g opacity="0.7">{renderSilueta()}</g>
 
           {/* Puntos cliqueables */}
           {regiones.map((r) => {
@@ -380,16 +482,16 @@ export default function EvaluacionPostural({ temaOscuro }) {
                 <circle
                   cx={r.x}
                   cy={r.y}
-                  r="5"
+                  r="5.5"
                   fill={selected ? '#22d3ee' : '#94a3b8'}
                   stroke={selected ? '#22d3ee' : '#64748b'}
-                  strokeWidth="2"
+                  strokeWidth="2.5"
                   className="transition-all duration-200 hover:scale-125"
-                  style={{ filter: selected ? 'drop-shadow(0 0 6px #22d3ee)' : 'none' }}
+                  style={{ filter: selected ? 'url(#glow)' : 'none' }}
                 />
                 <text
                   x={r.x}
-                  y={r.y + 14}
+                  y={r.y + 15}
                   textAnchor="middle"
                   fontSize="3.2"
                   fill={selected ? '#22d3ee' : '#94a3b8'}
@@ -404,6 +506,17 @@ export default function EvaluacionPostural({ temaOscuro }) {
         <p className="text-center text-[10px] text-gray-400 mt-2 font-bold uppercase tracking-wider">
           Haz clic en las zonas de dolor
         </p>
+        <div className="flex flex-wrap gap-1 justify-center mt-3">
+          {regiones.map((r) => (
+            <button
+              key={r.id}
+              onClick={() => toggleRegion(r.id)}
+              className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase transition-all ${bgRegionBtn(r.id)}`}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
       </div>
     );
   };
@@ -413,7 +526,7 @@ export default function EvaluacionPostural({ temaOscuro }) {
     return <div className={`min-h-screen ${bgPrincipal} flex items-center justify-center`}><div className="animate-spin rounded-full h-10 w-10 border-4 border-[#22d3ee] border-t-transparent"></div></div>;
   }
 
-  // ---------- BLOQUES DE PREGUNTAS PARA ANAMNESIS ----------
+  // ---------- ANAMNESIS (4 bloques) ----------
   const renderAnamnesis = () => (
     <div className={`${bgTarjeta} p-6 rounded-3xl border`}>
       <h2 className={`text-2xl font-black ${textoPrincipal} mb-4`}>📋 Anamnesis</h2>
@@ -528,7 +641,7 @@ export default function EvaluacionPostural({ temaOscuro }) {
         </div>
       </div>
 
-      {/* Bloque 4: Evaluación del Dolor (adaptado de McGill) */}
+      {/* Bloque 4: Evaluación del Dolor */}
       <div className="mb-6">
         <h3 className={`text-sm font-bold ${textoPrincipal} uppercase tracking-wider border-b border-gray-600 pb-2 mb-3`}>4. Evaluación del Dolor</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -607,19 +720,14 @@ export default function EvaluacionPostural({ temaOscuro }) {
         {/* PASO 1: ANAMNESIS */}
         {paso === 1 && renderAnamnesis()}
 
-        {/* PASO 2: BODY CHART */}
+        {/* PASO 2: BODY CHART CON 3 VISTAS */}
         {paso === 2 && (
           <div className={`${bgTarjeta} p-6 rounded-3xl border`}>
             <h2 className={`text-xl font-black ${textoPrincipal} mb-4`}>📍 Selecciona las regiones afectadas</h2>
-            <p className={`text-sm ${textoPrincipal} opacity-70 mb-6`}>Haz clic en el cuerpo para marcar las zonas donde el paciente refiere dolor.</p>
+            <p className={`text-sm ${textoPrincipal} opacity-70 mb-4`}>
+              Cambia de vista (Frente / Espalda / Lateral) y haz clic en las zonas de dolor.
+            </p>
             <BodyChartSVG />
-            <div className="flex flex-wrap gap-2 justify-center mt-4">
-              {['cuello', 'hombro_izq', 'hombro_der', 'codo_izq', 'codo_der', 'muneca_izq', 'muneca_der', 'columna', 'espalda', 'cadera', 'muslo_izq', 'muslo_der', 'rodilla_izq', 'rodilla_der', 'tobillo_izq', 'tobillo_der'].map((r) => (
-                <button key={r} onClick={() => toggleRegion(r)} className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase border transition-all ${bgRegionBtn(r)}`}>
-                  {r.replace('_', ' ')}
-                </button>
-              ))}
-            </div>
             <div className="flex justify-between mt-6">
               <button onClick={() => setPaso(1)} className="px-6 py-3 bg-gray-600 text-white font-black rounded-xl text-sm hover:opacity-80 transition-all">← Anterior</button>
               <button onClick={() => { if (evaluacion.regiones.length === 0) { alert('Selecciona al menos una región afectada.'); return; } setPaso(3); }} className="px-6 py-3 bg-[#22d3ee] text-black font-black rounded-xl text-sm hover:scale-105 transition-all">Siguiente →</button>
@@ -634,7 +742,7 @@ export default function EvaluacionPostural({ temaOscuro }) {
             {evaluacion.regiones.length === 0 ? (
               <p className="text-gray-400 text-center py-8">No hay regiones seleccionadas.</p>
             ) : (
-              <div className="space-y-8">
+              <div className="space-y-8 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
                 {evaluacion.regiones.map((region) => {
                   const data = evaluacion.datos_regiones[region] || {};
                   const tests = TESTS_POR_REGION[region] || ['Test no específico'];

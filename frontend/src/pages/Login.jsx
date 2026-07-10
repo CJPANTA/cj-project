@@ -60,20 +60,26 @@ export default function Login() {
     navigate('/');
   };
 
+  // ============================================================
+  // handleRegister ACTUALIZADO (siguiendo la auditoría)
+  // ============================================================
   const handleRegister = async (e) => {
     e.preventDefault();
     setCargando(true);
     setError('');
 
-    // 1. Crear el usuario en auth.users (el trigger creará el perfil automáticamente)
+    // Enviar todos los datos complementarios empaquetados en los metadatos de Auth
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
-          name: nombreCompleto,
-        },
-      },
+          name: nombreCompleto,           // Nombre completo
+          telefono: telefono || '',        // Teléfono (opcional)
+          rol: Number(rolDeseado),         // Rol seleccionado en el formulario
+          estado: 'pendiente'              // Estado inicial para aprobación
+        }
+      }
     });
 
     if (signUpError) {
@@ -82,26 +88,15 @@ export default function Login() {
       return;
     }
 
-    // 2. El trigger ya creó el perfil con rol 2 y estado 'pendiente'
-    // Solo necesitamos verificar que se haya creado correctamente
-    // y actualizar el teléfono si se proporcionó
-    if (telefono) {
-      try {
-        await supabase
-          .from('profiles')
-          .update({ telefono })
-          .eq('id', data.user.id);
-      } catch (e) {
-        console.warn('No se pudo actualizar el teléfono:', e);
-      }
-    }
+    mostrarMensaje('Registro solicitado con éxito. Espera la aprobación del Director.');
 
-    mostrarMensaje('Registro exitoso. Espera la aprobación del Director.');
+    // Limpiar el formulario después del registro
     setEsRegistro(false);
     setEmail('');
     setPassword('');
     setNombreCompleto('');
     setTelefono('');
+    setRolDeseado(2);
     setCargando(false);
   };
 
