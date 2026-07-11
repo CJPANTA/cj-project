@@ -3,6 +3,102 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 
 // ============================================================
+// RANGOS NORMALES POR REGIÓN (ROM)
+// ============================================================
+const RANGOS_ROM = {
+  hombro: { flexión: '0-180°', abducción: '0-180°', rot_ext: '0-90°', rot_int: '0-90°' },
+  hombro_izq: { flexión: '0-180°', abducción: '0-180°', rot_ext: '0-90°', rot_int: '0-90°' },
+  hombro_der: { flexión: '0-180°', abducción: '0-180°', rot_ext: '0-90°', rot_int: '0-90°' },
+  cuello: { flexión: '0-45°', extensión: '0-45°', rotación: '0-80°', lateral: '0-40°' },
+  columna: { flexión: '0-90°', extensión: '0-30°', lateral: '0-40°' },
+  cadera: { flexión: '0-120°', extensión: '0-30°', abducción: '0-45°' },
+  rodilla: { flexión: '0-135°', extensión: '0-10°' },
+  rodilla_izq: { flexión: '0-135°', extensión: '0-10°' },
+  rodilla_der: { flexión: '0-135°', extensión: '0-10°' },
+  tobillo: { dorsiflexión: '0-20°', flexión_plantar: '0-50°' },
+  tobillo_izq: { dorsiflexión: '0-20°', flexión_plantar: '0-50°' },
+  tobillo_der: { dorsiflexión: '0-20°', flexión_plantar: '0-50°' },
+  codo: { flexión: '0-145°', extensión: '0-10°' },
+  codo_izq: { flexión: '0-145°', extensión: '0-10°' },
+  codo_der: { flexión: '0-145°', extensión: '0-10°' },
+  muneca: { flexión: '0-85°', extensión: '0-70°', desv_radial: '0-20°', desv_cubital: '0-30°' },
+  muneca_izq: { flexión: '0-85°', extensión: '0-70°', desv_radial: '0-20°', desv_cubital: '0-30°' },
+  muneca_der: { flexión: '0-85°', extensión: '0-70°', desv_radial: '0-20°', desv_cubital: '0-30°' },
+  muslo: { flexión_cadera: '0-120°', extension_cadera: '0-30°' },
+  muslo_izq: { flexión_cadera: '0-120°', extension_cadera: '0-30°' },
+  muslo_der: { flexión_cadera: '0-120°', extension_cadera: '0-30°' },
+  espalda: { flexión: '0-90°', extensión: '0-30°', lateral: '0-40°' },
+  cabeza: { flexión: '0-45°', extensión: '0-45°', rotación: '0-80°', lateral: '0-40°' },
+  cara: { flexión: '0-45°', extensión: '0-45°', rotación: '0-80°', lateral: '0-40°' },
+  gluteo: { flexión_cadera: '0-120°', extension_cadera: '0-30°' },
+  gluteo_izq: { flexión_cadera: '0-120°', extension_cadera: '0-30°' },
+  gluteo_der: { flexión_cadera: '0-120°', extension_cadera: '0-30°' },
+  pecho: { flexión: '0-90°', extensión: '0-30°' },
+  abdomen: { flexión: '0-90°', extensión: '0-30°' },
+  cervical: { flexión: '0-45°', extensión: '0-45°', rotación: '0-80°', lateral: '0-40°' },
+  dorsal: { flexión: '0-45°', extensión: '0-25°', rotación: '0-30°' },
+  lumbar: { flexión: '0-90°', extensión: '0-30°', lateral: '0-40°' },
+  sacro: { flexión: '0-10°', extensión: '0-10°' },
+  mano_izq: { flexión: '0-85°', extensión: '0-70°' },
+  mano_der: { flexión: '0-85°', extensión: '0-70°' },
+  pie_izq: { dorsiflexión: '0-20°', flexión_plantar: '0-50°' },
+  pie_der: { dorsiflexión: '0-20°', flexión_plantar: '0-50°' },
+  occipital: { flexión: '0-45°', extensión: '0-45°' },
+  craneo: { flexión: '0-45°', extensión: '0-45°' },
+  cuello_ant: { flexión: '0-45°', extensión: '0-45°' },
+  cuello_post: { flexión: '0-45°', extensión: '0-45°' },
+  cuello_lat: { flexión: '0-45°', extensión: '0-45°' },
+};
+
+// ============================================================
+// TESTS ESPECÍFICOS POR REGIÓN
+// ============================================================
+const TESTS_POR_REGION = {
+  hombro: ['Test de Neer', 'Hawkins-Kennedy', 'Jobe', 'Aprehensión Anterior', 'Sulcus'],
+  hombro_izq: ['Test de Neer', 'Hawkins-Kennedy', 'Jobe', 'Aprehensión Anterior'],
+  hombro_der: ['Test de Neer', 'Hawkins-Kennedy', 'Jobe', 'Aprehensión Anterior'],
+  cuello: ['Spurling', 'Distracción', 'Valsalva', 'Test de Adams'],
+  columna: ['Schober', 'Lasegue', 'Bragard', 'Compresión', 'Milgram'],
+  cadera: ['Thomas', 'Ober', 'Trendelenburg', 'FABER', 'Patrick'],
+  rodilla: ['Lachman', 'Drawer Anterior', 'Drawer Posterior', 'Apley', 'McMurray'],
+  rodilla_izq: ['Lachman', 'Drawer Anterior', 'Drawer Posterior', 'Apley'],
+  rodilla_der: ['Lachman', 'Drawer Anterior', 'Drawer Posterior', 'Apley'],
+  tobillo: ['Thompson', 'Drawer Anterior', 'Inversión', 'Eversión'],
+  tobillo_izq: ['Thompson', 'Drawer Anterior', 'Inversión', 'Eversión'],
+  tobillo_der: ['Thompson', 'Drawer Anterior', 'Inversión', 'Eversión'],
+  codo: ['Test de Cozen', 'Test de Mills', 'Tinel Codo', 'Prueba de resistencia'],
+  codo_izq: ['Test de Cozen', 'Test de Mills', 'Tinel Codo'],
+  codo_der: ['Test de Cozen', 'Test de Mills', 'Tinel Codo'],
+  muneca: ['Tinel Muñeca', 'Phalen', 'Test de Finkelstein', 'Prueba de cajón'],
+  muneca_izq: ['Tinel Muñeca', 'Phalen', 'Test de Finkelstein'],
+  muneca_der: ['Tinel Muñeca', 'Phalen', 'Test de Finkelstein'],
+  muslo: ['Test de Thomas', 'Test de Ober', 'Prueba de fuerza cuádriceps'],
+  muslo_izq: ['Test de Thomas', 'Test de Ober', 'Prueba de fuerza cuádriceps'],
+  muslo_der: ['Test de Thomas', 'Test de Ober', 'Prueba de fuerza cuádriceps'],
+  espalda: ['Schober', 'Lasegue', 'Bragard', 'Compresión'],
+  cabeza: ['Test de Adams', 'Spurling', 'Distracción'],
+  cara: ['Test de Adams', 'Spurling', 'Distracción'],
+  gluteo: ['Thomas', 'Ober', 'Trendelenburg'],
+  gluteo_izq: ['Thomas', 'Ober', 'Trendelenburg'],
+  gluteo_der: ['Thomas', 'Ober', 'Trendelenburg'],
+  pecho: ['Schober', 'Lasegue'],
+  abdomen: ['Schober', 'Lasegue'],
+  cervical: ['Spurling', 'Distracción', 'Valsalva'],
+  dorsal: ['Schober', 'Lasegue'],
+  lumbar: ['Schober', 'Lasegue', 'Bragard'],
+  sacro: ['Schober', 'Lasegue'],
+  mano_izq: ['Tinel Muñeca', 'Phalen'],
+  mano_der: ['Tinel Muñeca', 'Phalen'],
+  pie_izq: ['Thompson', 'Drawer Anterior'],
+  pie_der: ['Thompson', 'Drawer Anterior'],
+  occipital: ['Test de Adams'],
+  craneo: ['Test de Adams'],
+  cuello_ant: ['Spurling', 'Distracción'],
+  cuello_post: ['Spurling', 'Distracción'],
+  cuello_lat: ['Spurling', 'Distracción'],
+};
+
+// ============================================================
 // CONFIGURACIÓN DE REGIONES Y SUBREGIONES (DRILL-DOWN)
 // ============================================================
 const VISTAS = {
@@ -21,7 +117,6 @@ const VISTAS = {
       { id: 'pierna_izq', x: 28, y: 70, label: 'Pierna I' },
       { id: 'pierna_der', x: 72, y: 70, label: 'Pierna D' },
     ],
-    // Mapeo de macro-regiones a vistas detalladas
     detalle: {
       brazo_izq: 'brazo_izq',
       brazo_der: 'brazo_der',
@@ -114,99 +209,6 @@ const VISTAS = {
 };
 
 // ============================================================
-// RANGOS ROM Y TESTS (se mantienen igual)
-// ============================================================
-const RANGOS_ROM = {
-  hombro: { flexión: '0-180°', abducción: '0-180°', rot_ext: '0-90°', rot_int: '0-90°' },
-  hombro_izq: { flexión: '0-180°', abducción: '0-180°', rot_ext: '0-90°', rot_int: '0-90°' },
-  hombro_der: { flexión: '0-180°', abducción: '0-180°', rot_ext: '0-90°', rot_int: '0-90°' },
-  cuello: { flexión: '0-45°', extensión: '0-45°', rotación: '0-80°', lateral: '0-40°' },
-  columna: { flexión: '0-90°', extensión: '0-30°', lateral: '0-40°' },
-  cadera: { flexión: '0-120°', extensión: '0-30°', abducción: '0-45°' },
-  rodilla: { flexión: '0-135°', extensión: '0-10°' },
-  rodilla_izq: { flexión: '0-135°', extensión: '0-10°' },
-  rodilla_der: { flexión: '0-135°', extensión: '0-10°' },
-  tobillo: { dorsiflexión: '0-20°', flexión_plantar: '0-50°' },
-  tobillo_izq: { dorsiflexión: '0-20°', flexión_plantar: '0-50°' },
-  tobillo_der: { dorsiflexión: '0-20°', flexión_plantar: '0-50°' },
-  codo: { flexión: '0-145°', extensión: '0-10°' },
-  codo_izq: { flexión: '0-145°', extensión: '0-10°' },
-  codo_der: { flexión: '0-145°', extensión: '0-10°' },
-  muneca: { flexión: '0-85°', extensión: '0-70°', desv_radial: '0-20°', desv_cubital: '0-30°' },
-  muneca_izq: { flexión: '0-85°', extensión: '0-70°', desv_radial: '0-20°', desv_cubital: '0-30°' },
-  muneca_der: { flexión: '0-85°', extensión: '0-70°', desv_radial: '0-20°', desv_cubital: '0-30°' },
-  muslo: { flexión_cadera: '0-120°', extension_cadera: '0-30°' },
-  muslo_izq: { flexión_cadera: '0-120°', extension_cadera: '0-30°' },
-  muslo_der: { flexión_cadera: '0-120°', extension_cadera: '0-30°' },
-  espalda: { flexión: '0-90°', extensión: '0-30°', lateral: '0-40°' },
-  cabeza: { flexión: '0-45°', extensión: '0-45°', rotación: '0-80°', lateral: '0-40°' },
-  cara: { flexión: '0-45°', extensión: '0-45°', rotación: '0-80°', lateral: '0-40°' },
-  gluteo: { flexión_cadera: '0-120°', extension_cadera: '0-30°' },
-  gluteo_izq: { flexión_cadera: '0-120°', extension_cadera: '0-30°' },
-  gluteo_der: { flexión_cadera: '0-120°', extension_cadera: '0-30°' },
-  pecho: { flexión: '0-90°', extensión: '0-30°' },
-  abdomen: { flexión: '0-90°', extensión: '0-30°' },
-  cervical: { flexión: '0-45°', extensión: '0-45°', rotación: '0-80°', lateral: '0-40°' },
-  dorsal: { flexión: '0-45°', extensión: '0-25°', rotación: '0-30°' },
-  lumbar: { flexión: '0-90°', extensión: '0-30°', lateral: '0-40°' },
-  sacro: { flexión: '0-10°', extensión: '0-10°' },
-  mano_izq: { flexión: '0-85°', extensión: '0-70°' },
-  mano_der: { flexión: '0-85°', extensión: '0-70°' },
-  pie_izq: { dorsiflexión: '0-20°', flexión_plantar: '0-50°' },
-  pie_der: { dorsiflexión: '0-20°', flexión_plantar: '0-50°' },
-  occipital: { flexión: '0-45°', extensión: '0-45°' },
-  craneo: { flexión: '0-45°', extensión: '0-45°' },
-  cuello_ant: { flexión: '0-45°', extensión: '0-45°' },
-  cuello_post: { flexión: '0-45°', extensión: '0-45°' },
-  cuello_lat: { flexión: '0-45°', extensión: '0-45°' },
-};
-
-const TESTS_POR_REGION = {
-  hombro: ['Test de Neer', 'Hawkins-Kennedy', 'Jobe', 'Aprehensión Anterior', 'Sulcus'],
-  hombro_izq: ['Test de Neer', 'Hawkins-Kennedy', 'Jobe', 'Aprehensión Anterior'],
-  hombro_der: ['Test de Neer', 'Hawkins-Kennedy', 'Jobe', 'Aprehensión Anterior'],
-  cuello: ['Spurling', 'Distracción', 'Valsalva', 'Test de Adams'],
-  columna: ['Schober', 'Lasegue', 'Bragard', 'Compresión', 'Milgram'],
-  cadera: ['Thomas', 'Ober', 'Trendelenburg', 'FABER', 'Patrick'],
-  rodilla: ['Lachman', 'Drawer Anterior', 'Drawer Posterior', 'Apley', 'McMurray'],
-  rodilla_izq: ['Lachman', 'Drawer Anterior', 'Drawer Posterior', 'Apley'],
-  rodilla_der: ['Lachman', 'Drawer Anterior', 'Drawer Posterior', 'Apley'],
-  tobillo: ['Thompson', 'Drawer Anterior', 'Inversión', 'Eversión'],
-  tobillo_izq: ['Thompson', 'Drawer Anterior', 'Inversión', 'Eversión'],
-  tobillo_der: ['Thompson', 'Drawer Anterior', 'Inversión', 'Eversión'],
-  codo: ['Test de Cozen', 'Test de Mills', 'Tinel Codo', 'Prueba de resistencia'],
-  codo_izq: ['Test de Cozen', 'Test de Mills', 'Tinel Codo'],
-  codo_der: ['Test de Cozen', 'Test de Mills', 'Tinel Codo'],
-  muneca: ['Tinel Muñeca', 'Phalen', 'Test de Finkelstein', 'Prueba de cajón'],
-  muneca_izq: ['Tinel Muñeca', 'Phalen', 'Test de Finkelstein'],
-  muneca_der: ['Tinel Muñeca', 'Phalen', 'Test de Finkelstein'],
-  muslo: ['Test de Thomas', 'Test de Ober', 'Prueba de fuerza cuádriceps'],
-  muslo_izq: ['Test de Thomas', 'Test de Ober', 'Prueba de fuerza cuádriceps'],
-  muslo_der: ['Test de Thomas', 'Test de Ober', 'Prueba de fuerza cuádriceps'],
-  espalda: ['Schober', 'Lasegue', 'Bragard', 'Compresión'],
-  cabeza: ['Test de Adams', 'Spurling', 'Distracción'],
-  cara: ['Test de Adams', 'Spurling', 'Distracción'],
-  gluteo: ['Thomas', 'Ober', 'Trendelenburg'],
-  gluteo_izq: ['Thomas', 'Ober', 'Trendelenburg'],
-  gluteo_der: ['Thomas', 'Ober', 'Trendelenburg'],
-  pecho: ['Schober', 'Lasegue'],
-  abdomen: ['Schober', 'Lasegue'],
-  cervical: ['Spurling', 'Distracción', 'Valsalva'],
-  dorsal: ['Schober', 'Lasegue'],
-  lumbar: ['Schober', 'Lasegue', 'Bragard'],
-  sacro: ['Schober', 'Lasegue'],
-  mano_izq: ['Tinel Muñeca', 'Phalen'],
-  mano_der: ['Tinel Muñeca', 'Phalen'],
-  pie_izq: ['Thompson', 'Drawer Anterior'],
-  pie_der: ['Thompson', 'Drawer Anterior'],
-  occipital: ['Test de Adams'],
-  craneo: ['Test de Adams'],
-  cuello_ant: ['Spurling', 'Distracción'],
-  cuello_post: ['Spurling', 'Distracción'],
-  cuello_lat: ['Spurling', 'Distracción'],
-};
-
-// ============================================================
 // COMPONENTE PRINCIPAL
 // ============================================================
 export default function EvaluacionPostural({ temaOscuro }) {
@@ -217,9 +219,8 @@ export default function EvaluacionPostural({ temaOscuro }) {
   const [paso, setPaso] = useState(1);
   const [guardando, setGuardando] = useState(false);
   const [microfonoActivo, setMicrofonoActivo] = useState(false);
-  const [vistaDetalle, setVistaDetalle] = useState(null); // null = cuerpo entero
+  const [vistaDetalle, setVistaDetalle] = useState(null);
 
-  // Estado de la evaluación
   const [evaluacion, setEvaluacion] = useState({
     paciente_id: pacienteId,
     edad: '',
@@ -239,14 +240,14 @@ export default function EvaluacionPostural({ temaOscuro }) {
     intensidad_reposo: 0,
     intensidad_actividad: 0,
     factores_agravantes: '',
-    factores_atenuantes: '',
+    fatores_atenuantes: '',
     sintomas_asociados: '',
     regiones: [],
     datos_regiones: {},
     analisis_ia: '',
   });
 
-  // ========== DICTADO DE VOZ (CORREGIDO SEGÚN PDF) ==========
+  // ========== DICTADO DE VOZ ==========
   const [escuchando, setEscuchando] = useState(false);
   const [campoActivo, setCampoActivo] = useState(null);
   const recognitionRef = useRef(null);
@@ -284,25 +285,18 @@ export default function EvaluacionPostural({ temaOscuro }) {
         }
       };
 
-      // ============================================================
-      // CORRECCIÓN DEL MICRÓFONO: NO MANIPULAR DOM, USAR FUNCIONES DE ESTADO
-      // ============================================================
       recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
         if (campoActivo) {
-          // Detectar si es un campo de una región específica (ej. obs_hombro_izq)
           if (campoActivo.startsWith('obs_') || campoActivo.startsWith('notas_')) {
             const partes = campoActivo.split('_');
-            const tipo = partes[0]; // 'obs' o 'notas'
-            const region = partes.slice(1).join('_'); // 'hombro_izq'
+            const tipo = partes[0];
+            const region = partes.slice(1).join('_');
             const campoReal = tipo === 'obs' ? 'observaciones' : 'notas';
-            // Llamar a la función de estado de React, NO manipular el DOM
             handleRegionDataChange(region, campoReal, transcript);
           } else {
-            // Es un campo general de texto plano (ej. motivo_consulta)
             handleInputChange(campoActivo, transcript);
           }
-          // Apagar el estado visual de escucha
           setEscuchando(false);
           setCampoActivo(null);
         }
@@ -401,7 +395,7 @@ export default function EvaluacionPostural({ temaOscuro }) {
     });
   };
 
-  // ========== FUNCIONES PARA DRILL-DOWN ==========
+  // ========== DRILL-DOWN ==========
   const abrirDetalle = (regionId) => {
     const vista = VISTAS.cuerpo_entero.detalle?.[regionId];
     if (vista && VISTAS[vista]) {
@@ -483,18 +477,14 @@ export default function EvaluacionPostural({ temaOscuro }) {
     return temaOscuro ? 'bg-white/5 border-gray-700 text-gray-300 hover:bg-white/10 hover:border-[#22d3ee]/30' : 'bg-gray-100 border-gray-200 text-gray-700 hover:bg-gray-200';
   };
 
-  // ========== BODY CHART CON DRILL-DOWN Y UI PROFESIONAL ==========
+  // ========== BODY CHART CON DRILL-DOWN ==========
   const BodyChartSVG = () => {
-    // Obtener la vista actual (cuerpo entero o detalle)
     const vistaActual = vistaDetalle ? VISTAS[vistaDetalle] : VISTAS.cuerpo_entero;
     const regiones = vistaActual.regiones;
-
-    // Determinar si estamos en detalle
     const esDetalle = vistaDetalle !== null;
 
     return (
       <div className="relative w-full max-w-md mx-auto">
-        {/* Barra de navegación con botón Volver si estamos en detalle */}
         {esDetalle && (
           <button
             onClick={volverCuerpoEntero}
@@ -515,29 +505,20 @@ export default function EvaluacionPostural({ temaOscuro }) {
             </filter>
           </defs>
 
-          {/* FONDO: Imagen de anatomía base (silueta) usando un SVG inline simple */}
-          {/* Usamos un SVG con formas básicas pero mejor estilizado */}
           <g opacity="0.6">
-            {/* Cabeza */}
             <circle cx="50" cy="10" r="7" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
-            {/* Cuello */}
             <rect x="47" y="16" width="6" height="5" rx="2" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
-            {/* Tronco */}
             <path d="M42 21 Q35 33 38 48 Q40 60 47 62 L53 62 Q60 60 62 48 Q65 33 58 21 Z" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
-            {/* Brazos */}
             <path d="M42 23 L22 20 L14 32 L18 38 L38 30" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
             <path d="M58 23 L78 20 L86 32 L82 38 L62 30" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
             <path d="M18 38 L10 50 L15 54 L22 44" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
             <path d="M82 38 L90 50 L85 54 L78 44" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
-            {/* Piernas */}
             <path d="M43 62 L33 72 L28 84 L36 88 L40 76" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
             <path d="M57 62 L67 72 L72 84 L64 88 L60 76" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1.2" />
-            {/* Pies */}
             <rect x="24" y="88" width="12" height="5" rx="2" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1" />
             <rect x="64" y="88" width="12" height="5" rx="2" fill="url(#bodyGrad)" stroke="#4a6a8a" strokeWidth="1" />
           </g>
 
-          {/* PUNTOS INTERACTIVOS (con hitbox grande, anillo y punto central) */}
           {regiones.map((r) => {
             const selected = evaluacion.regiones.includes(r.id);
             const isMacro = !esDetalle && VISTAS.cuerpo_entero.detalle?.[r.id] !== undefined;
@@ -547,19 +528,14 @@ export default function EvaluacionPostural({ temaOscuro }) {
                 key={r.id}
                 onClick={() => {
                   if (isMacro) {
-                    // Si es una macro-región, hacer drill-down
                     abrirDetalle(r.id);
                   } else {
-                    // Si es una región seleccionable, toggle
                     toggleRegion(r.id);
                   }
                 }}
                 className="cursor-pointer group"
               >
-                {/* 1. HitBox invisible grande (ideal para móviles) */}
                 <circle cx={r.x} cy={r.y} r="14" fill="transparent" />
-
-                {/* 2. Anillo exterior animado (Glow effect) */}
                 <circle
                   cx={r.x}
                   cy={r.y}
@@ -570,16 +546,12 @@ export default function EvaluacionPostural({ temaOscuro }) {
                   className="group-hover:stroke-[#38bdf8] transition-all duration-300"
                   opacity={selected ? "1" : (isMacro ? "0.8" : "0.5")}
                 />
-
-                {/* 3. Punto central fino */}
                 <circle
                   cx={r.x}
                   cy={r.y}
                   r="3"
                   fill={selected ? '#38bdf8' : (isMacro ? '#facc15' : '#94a3b8')}
                 />
-
-                {/* Etiqueta */}
                 <text
                   x={r.x}
                   y={r.y + (selected ? 18 : 15)}
@@ -590,8 +562,6 @@ export default function EvaluacionPostural({ temaOscuro }) {
                 >
                   {r.label}
                 </text>
-
-                {/* Indicador de macro-región (flecha hacia abajo) */}
                 {isMacro && (
                   <text x={r.x} y={r.y + 10} textAnchor="middle" fontSize="3" fill="#facc15" className="font-bold">
                     ▼
@@ -601,7 +571,6 @@ export default function EvaluacionPostural({ temaOscuro }) {
             );
           })}
 
-          {/* Si estamos en detalle, mostramos un texto indicando la vista actual */}
           {esDetalle && (
             <text x="50" y="98" textAnchor="middle" fontSize="3.5" fill="#94a3b8" className="font-bold">
               Vista: {vistaActual.nombre}
@@ -613,7 +582,6 @@ export default function EvaluacionPostural({ temaOscuro }) {
           {esDetalle ? 'Haz clic en las subregiones para seleccionar' : 'Haz clic en una zona para ampliar o seleccionar'}
         </p>
 
-        {/* Botones rápidos de regiones (texto) */}
         <div className="flex flex-wrap gap-1 justify-center mt-3">
           {regiones.map((r) => {
             const isMacro = !esDetalle && VISTAS.cuerpo_entero.detalle?.[r.id] !== undefined;
@@ -638,23 +606,183 @@ export default function EvaluacionPostural({ temaOscuro }) {
     );
   };
 
-  // ========== RENDER ==========
+  // ========== RENDER ANAMNESIS (COMPLETO) ==========
+  const renderAnamnesis = () => (
+    <div className={`${bgTarjeta} p-6 rounded-3xl border`}>
+      <h2 className={`text-2xl font-black ${textoPrincipal} mb-4`}>📋 Anamnesis</h2>
+
+      {/* Bloque 1: Datos Personales */}
+      <div className="mb-6">
+        <h3 className={`text-sm font-bold ${textoPrincipal} uppercase tracking-wider border-b border-gray-600 pb-2 mb-3`}>1. Datos Personales</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Edad</label>
+            <div className="relative">
+              <input type="number" value={evaluacion.edad} onChange={(e) => handleInputChange('edad', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} placeholder="Ej: 45" ref={(el) => (inputRefs.current['edad'] = el)} />
+              <button onClick={() => iniciarDictado('edad')} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === 'edad' ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}>🎙️</button>
+            </div>
+          </div>
+          <div>
+            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Sexo</label>
+            <select value={evaluacion.sexo} onChange={(e) => handleInputChange('sexo', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`}>
+              <option value="">Seleccionar</option>
+              <option value="Masculino">Masculino</option>
+              <option value="Femenino">Femenino</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </div>
+          <div>
+            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Estado Civil</label>
+            <select value={evaluacion.estado_civil} onChange={(e) => handleInputChange('estado_civil', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`}>
+              <option value="">Seleccionar</option>
+              <option value="Soltero/a">Soltero/a</option>
+              <option value="Casado/a">Casado/a</option>
+              <option value="Divorciado/a">Divorciado/a</option>
+              <option value="Viudo/a">Viudo/a</option>
+            </select>
+          </div>
+          <div>
+            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Teléfono</label>
+            <div className="relative">
+              <input type="text" value={evaluacion.telefono} onChange={(e) => handleInputChange('telefono', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} placeholder="Ej: 987654321" ref={(el) => (inputRefs.current['telefono'] = el)} />
+              <button onClick={() => iniciarDictado('telefono')} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === 'telefono' ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}>🎙️</button>
+            </div>
+          </div>
+          <div className="md:col-span-2">
+            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Dirección</label>
+            <div className="relative">
+              <input type="text" value={evaluacion.direccion} onChange={(e) => handleInputChange('direccion', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} placeholder="Calle, número, ciudad..." ref={(el) => (inputRefs.current['direccion'] = el)} />
+              <button onClick={() => iniciarDictado('direccion')} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === 'direccion' ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}>🎙️</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bloque 2: Motivo de consulta */}
+      <div className="mb-6">
+        <h3 className={`text-sm font-bold ${textoPrincipal} uppercase tracking-wider border-b border-gray-600 pb-2 mb-3`}>2. Motivo de Consulta</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="md:col-span-2">
+            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Motivo principal</label>
+            <div className="relative">
+              <textarea value={evaluacion.motivo_consulta} onChange={(e) => handleInputChange('motivo_consulta', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm resize-none min-h-[60px]`} placeholder="Describe el motivo de la consulta..." ref={(el) => (inputRefs.current['motivo_consulta'] = el)} />
+              <button onClick={() => iniciarDictado('motivo_consulta')} className={`absolute right-2 top-2 p-1.5 rounded-full ${escuchando && campoActivo === 'motivo_consulta' ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}>🎙️</button>
+            </div>
+          </div>
+          <div>
+            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Tiempo de evolución</label>
+            <div className="relative">
+              <input type="text" value={evaluacion.tiempo_evolucion} onChange={(e) => handleInputChange('tiempo_evolucion', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} placeholder="Ej: 2 semanas" ref={(el) => (inputRefs.current['tiempo_evolucion'] = el)} />
+              <button onClick={() => iniciarDictado('tiempo_evolucion')} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === 'tiempo_evolucion' ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}>🎙️</button>
+            </div>
+          </div>
+          <div>
+            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Mecanismo de lesión</label>
+            <div className="relative">
+              <input type="text" value={evaluacion.mecanismo_lesion} onChange={(e) => handleInputChange('mecanismo_lesion', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} placeholder="Caída, sobrecarga, etc." ref={(el) => (inputRefs.current['mecanismo_lesion'] = el)} />
+              <button onClick={() => iniciarDictado('mecanismo_lesion')} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === 'mecanismo_lesion' ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}>🎙️</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bloque 3: Antecedentes */}
+      <div className="mb-6">
+        <h3 className={`text-sm font-bold ${textoPrincipal} uppercase tracking-wider border-b border-gray-600 pb-2 mb-3`}>3. Antecedentes</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Antecedentes médicos</label>
+            <div className="relative">
+              <input type="text" value={evaluacion.antecedentes_medicos} onChange={(e) => handleInputChange('antecedentes_medicos', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} placeholder="Diabetes, hipertensión, etc." ref={(el) => (inputRefs.current['antecedentes_medicos'] = el)} />
+              <button onClick={() => iniciarDictado('antecedentes_medicos')} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === 'antecedentes_medicos' ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}>🎙️</button>
+            </div>
+          </div>
+          <div>
+            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Alergias</label>
+            <div className="relative">
+              <input type="text" value={evaluacion.alergias} onChange={(e) => handleInputChange('alergias', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} placeholder="Medicamentos, alimentos, etc." ref={(el) => (inputRefs.current['alergias'] = el)} />
+              <button onClick={() => iniciarDictado('alergias')} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === 'alergias' ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}>🎙️</button>
+            </div>
+          </div>
+          <div>
+            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Medicamentos actuales</label>
+            <div className="relative">
+              <input type="text" value={evaluacion.medicamentos} onChange={(e) => handleInputChange('medicamentos', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} placeholder="Ibuprofeno, etc." ref={(el) => (inputRefs.current['medicamentos'] = el)} />
+              <button onClick={() => iniciarDictado('medicamentos')} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === 'medicamentos' ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}>🎙️</button>
+            </div>
+          </div>
+          <div>
+            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Cirugías previas</label>
+            <div className="relative">
+              <input type="text" value={evaluacion.cirugias_previas} onChange={(e) => handleInputChange('cirugias_previas', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} placeholder="Tipo y año" ref={(el) => (inputRefs.current['cirugias_previas'] = el)} />
+              <button onClick={() => iniciarDictado('cirugias_previas')} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === 'cirugias_previas' ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}>🎙️</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bloque 4: Evaluación del Dolor */}
+      <div className="mb-6">
+        <h3 className={`text-sm font-bold ${textoPrincipal} uppercase tracking-wider border-b border-gray-600 pb-2 mb-3`}>4. Evaluación del Dolor</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="md:col-span-2">
+            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Tipo de dolor</label>
+            <div className="flex flex-wrap gap-2">
+              {['Latido', 'Destello', 'Lanciante', 'Cortante', 'Calambre', 'Quema', 'Hormigueo', 'Sordo', 'Pesado'].map((tipo) => (
+                <label key={tipo} className="flex items-center gap-1 text-xs">
+                  <input type="checkbox" checked={(evaluacion.tipo_dolor || []).includes(tipo)} onChange={(e) => {
+                    const current = evaluacion.tipo_dolor || [];
+                    const nuevos = e.target.checked ? [...current, tipo] : current.filter(t => t !== tipo);
+                    handleInputChange('tipo_dolor', nuevos);
+                  }} className="accent-[#22d3ee]" />
+                  {tipo}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Intensidad (EVA) en reposo</label>
+            <input type="number" min="0" max="10" value={evaluacion.intensidad_reposo} onChange={(e) => handleInputChange('intensidad_reposo', parseInt(e.target.value) || 0)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} />
+          </div>
+          <div>
+            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Intensidad (EVA) en actividad</label>
+            <input type="number" min="0" max="10" value={evaluacion.intensidad_actividad} onChange={(e) => handleInputChange('intensidad_actividad', parseInt(e.target.value) || 0)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} />
+          </div>
+          <div className="md:col-span-2">
+            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Factores agravantes</label>
+            <div className="relative">
+              <input type="text" value={evaluacion.factores_agravantes} onChange={(e) => handleInputChange('factores_agravantes', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} placeholder="¿Qué empeora el dolor?" ref={(el) => (inputRefs.current['factores_agravantes'] = el)} />
+              <button onClick={() => iniciarDictado('factores_agravantes')} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === 'factores_agravantes' ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}>🎙️</button>
+            </div>
+          </div>
+          <div className="md:col-span-2">
+            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Factores atenuantes</label>
+            <div className="relative">
+              <input type="text" value={evaluacion.factores_atenuantes} onChange={(e) => handleInputChange('factores_atenuantes', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} placeholder="¿Qué alivia el dolor?" ref={(el) => (inputRefs.current['factores_atenuantes'] = el)} />
+              <button onClick={() => iniciarDictado('factores_atenuantes')} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === 'factores_atenuantes' ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}>🎙️</button>
+            </div>
+          </div>
+          <div className="md:col-span-2">
+            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Síntomas asociados</label>
+            <div className="relative">
+              <input type="text" value={evaluacion.sintomas_asociados} onChange={(e) => handleInputChange('sintomas_asociados', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} placeholder="Hormigueo, debilidad, mareos..." ref={(el) => (inputRefs.current['sintomas_asociados'] = el)} />
+              <button onClick={() => iniciarDictado('sintomas_asociados')} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === 'sintomas_asociados' ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}>🎙️</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-end mt-6">
+        <button onClick={() => setPaso(2)} className="px-6 py-3 bg-[#22d3ee] text-black font-black rounded-xl text-sm hover:scale-105 transition-all">Siguiente →</button>
+      </div>
+    </div>
+  );
+
+  // ========== RENDER PRINCIPAL ==========
   if (loading) {
     return <div className={`min-h-screen ${bgPrincipal} flex items-center justify-center`}><div className="animate-spin rounded-full h-10 w-10 border-4 border-[#22d3ee] border-t-transparent"></div></div>;
   }
 
-  // ---------- ANAMNESIS (sin cambios, solo para referencia) ----------
-  const renderAnamnesis = () => (
-    <div className={`${bgTarjeta} p-6 rounded-3xl border`}>
-      <h2 className={`text-2xl font-black ${textoPrincipal} mb-4`}>📋 Anamnesis</h2>
-      {/* ... (código de anamnesis igual al anterior, no lo repito para no alargar) ... */}
-      {/* El resto del código de anamnesis es el mismo que ya tenías, puedes mantenerlo */}
-      {/* Por brevedad, aquí iría todo el bloque de anamnesis (4 bloques) */}
-      {/* Como es muy extenso, asegúrate de reutilizar el código que ya tenías para la anamnesis */}
-    </div>
-  );
-
-  // ---------- RENDER PRINCIPAL ----------
   return (
     <div className={`min-h-screen ${bgPrincipal} p-4 md:p-8 transition-colors duration-500`}>
       <div className="max-w-5xl mx-auto">
@@ -673,10 +801,8 @@ export default function EvaluacionPostural({ temaOscuro }) {
           <div className="h-full bg-[#22d3ee] rounded-full transition-all duration-500" style={{ width: `${(paso / 3) * 100}%` }} />
         </div>
 
-        {/* PASO 1: ANAMNESIS */}
         {paso === 1 && renderAnamnesis()}
 
-        {/* PASO 2: BODY CHART CON DRILL-DOWN */}
         {paso === 2 && (
           <div className={`${bgTarjeta} p-6 rounded-3xl border`}>
             <h2 className={`text-xl font-black ${textoPrincipal} mb-4`}>📍 Selecciona las regiones afectadas</h2>
@@ -691,7 +817,6 @@ export default function EvaluacionPostural({ temaOscuro }) {
           </div>
         )}
 
-        {/* PASO 3: EVALUACIÓN POR REGIÓN (igual que antes) */}
         {paso === 3 && (
           <div className={`${bgTarjeta} p-6 rounded-3xl border`}>
             <h2 className={`text-xl font-black ${textoPrincipal} mb-4`}>📊 Evaluación por región</h2>
@@ -707,7 +832,6 @@ export default function EvaluacionPostural({ temaOscuro }) {
                     <div key={region} className={`p-5 rounded-2xl border ${temaOscuro ? 'border-gray-700' : 'border-gray-200'} shadow-sm`}>
                       <h3 className={`text-lg font-bold ${textoPrincipal} capitalize mb-3`}>{region.replace('_', ' ')}</h3>
 
-                      {/* EVA con números cliqueables */}
                       <div className="mb-4">
                         <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Dolor (EVA 0-10)</label>
                         <div className="flex flex-wrap gap-1 mb-1">
@@ -718,7 +842,6 @@ export default function EvaluacionPostural({ temaOscuro }) {
                         <div className="flex justify-between text-xs text-gray-400"><span>Sin dolor</span><span>Máximo dolor</span></div>
                       </div>
 
-                      {/* ROM con rangos de referencia */}
                       <div className="mb-4">
                         <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>ROM (grados)</label>
                         <div className="relative">
@@ -734,7 +857,6 @@ export default function EvaluacionPostural({ temaOscuro }) {
                         )}
                       </div>
 
-                      {/* Tests especiales */}
                       <div className="mb-4">
                         <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Tests especiales</label>
                         <div className="grid grid-cols-2 gap-2">
@@ -755,7 +877,6 @@ export default function EvaluacionPostural({ temaOscuro }) {
                         </div>
                       </div>
 
-                      {/* Notas adicionales */}
                       <div className="relative">
                         <input type="text" placeholder="Notas adicionales..." value={data.notas || ''} onChange={(e) => handleRegionDataChange(region, 'notas', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm pr-10`} ref={(el) => { if (el) inputRefs.current[`notas_${region}`] = el; }} />
                         <button onClick={() => iniciarDictado(`notas_${region}`)} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === `notas_${region}` ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}>🎙️</button>
