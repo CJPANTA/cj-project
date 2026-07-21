@@ -1,4 +1,4 @@
-// Este es un Service Worker básico para tu PWA
+// Service Worker básico para PWA
 self.addEventListener('install', event => {
   event.waitUntil(self.skipWaiting());
 });
