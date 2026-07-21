@@ -1,3 +1,4 @@
+// FORZANDO REDEPLOY CON NUEVAS VARIABLES DE ENTORNO - 20/07/2026
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
