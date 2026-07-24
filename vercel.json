@@ -3,12 +3,6 @@
   "outputDirectory": "frontend/dist",
   "installCommand": "cd frontend && npm install",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/frontend/index.html" }
-  ],
-  "routes": [
-    {
-      "src": "/sw.js",
-      "dest": "/frontend/dist/sw.js"
-    }
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
