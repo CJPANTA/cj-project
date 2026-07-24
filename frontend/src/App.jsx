@@ -1,4 +1,9 @@
-// FORZANDO REDEPLOY CON NUEVAS VARIABLES DE ENTORNO - 20/07/2026
+// ============================================================
+// DIAGNÓSTICO: Verificar URL de Supabase en producción
+// ============================================================
+console.log('🔍 [App.jsx] VITE_SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL);
+console.log('🔍 [App.jsx] VITE_SUPABASE_ANON_KEY:', import.meta.env.VITE_SUPABASE_ANON_KEY ? '✅ OK (no se muestra por seguridad)' : '❌ FALTA');
+
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
@@ -30,7 +35,6 @@ function LayoutConSidebar({ children, temaOscuro, setTemaOscuro }) {
   const location = useLocation();
   const esRutaLogin = location.pathname === '/login';
   const [menuAbierto, setMenuAbierto] = useState(false);
-  // Definir móvil como < 768px (tablets y superiores se consideran "grandes")
   const [esMovil, setEsMovil] = useState(window.innerWidth < 768);
 
   useEffect(() => {
@@ -48,12 +52,10 @@ function LayoutConSidebar({ children, temaOscuro, setTemaOscuro }) {
 
   return (
     <div className={`min-h-screen ${bgPrincipal} flex flex-col md:flex-row relative overflow-hidden transition-colors duration-500`}>
-      {/* Overlay solo en móvil */}
       {esMovil && menuAbierto && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90]" onClick={() => setMenuAbierto(false)} />
       )}
 
-      {/* Sidebar: en móvil se desliza, en tablet/desktop siempre visible */}
       <aside 
         className={`
           fixed inset-y-0 left-0 z-[100] w-72 transition-transform duration-300 ease-in-out
@@ -65,10 +67,8 @@ function LayoutConSidebar({ children, temaOscuro, setTemaOscuro }) {
         <Sidebar temaOscuro={temaOscuro} alClickLink={() => esMovil && setMenuAbierto(false)} />
       </aside>
 
-      {/* Contenido principal */}
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden p-4 md:p-6 relative z-20">
         <header className="flex justify-between items-center mb-4 shrink-0">
-          {/* Botón hamburguesa: solo en móvil */}
           {esMovil && (
             <button 
               onClick={() => setMenuAbierto(!menuAbierto)} 
@@ -81,7 +81,6 @@ function LayoutConSidebar({ children, temaOscuro, setTemaOscuro }) {
               </svg>
             </button>
           )}
-          {/* Espaciador en tablet/desktop */}
           {!esMovil && <div className="w-10" />}
 
           <div className="flex items-center gap-3 ml-auto">
@@ -96,7 +95,6 @@ function LayoutConSidebar({ children, temaOscuro, setTemaOscuro }) {
             </button>
           </div>
         </header>
-        {/* Contenedor del contenido SIN key para evitar re-renderizados innecesarios */}
         <div className="flex-1 overflow-y-auto custom-scrollbar pb-10">
           {children}
         </div>
@@ -107,16 +105,21 @@ function LayoutConSidebar({ children, temaOscuro, setTemaOscuro }) {
 
 function App() {
   const [temaOscuro, setTemaOscuro] = useState(true);
-  useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then(registration => {
-        registration.update();
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-          window.location.reload();
-        });
-      });
-    }
-  }, []);
+
+  // ============================================================
+  // SERVICE WORKER DESACTIVADO TEMPORALMENTE PARA DIAGNÓSTICO
+  // ============================================================
+  // useEffect(() => {
+  //   if ('serviceWorker' in navigator) {
+  //     navigator.serviceWorker.ready.then(registration => {
+  //       registration.update();
+  //       navigator.serviceWorker.addEventListener('controllerchange', () => {
+  //         window.location.reload();
+  //       });
+  //     });
+  //   }
+  // }, []);
+
   return (
     <ErrorBoundary>
       <AuraProvider>
