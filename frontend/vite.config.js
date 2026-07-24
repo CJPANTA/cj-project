@@ -27,8 +27,9 @@ export default defineConfig({
         ]
       },
       workbox: {
+        // Eliminamos 'cleanUrls' y otras opciones problemáticas
+        // Simplificamos al máximo
         navigateFallback: 'index.html',
-        cleanUrls: false,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,json,woff2}'],
         runtimeCaching: [
           {
