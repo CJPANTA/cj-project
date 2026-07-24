@@ -10,12 +10,12 @@ export default function PanelDirector({ temaOscuro }) {
   const [mostrarCentros, setMostrarCentros] = useState(false);
   const [nuevoCentro, setNuevoCentro] = useState({ id: '', nombre: '', direccion: '', telefono: '' });
   const [guardandoCentro, setGuardandoCentro] = useState(false);
+  const [subiendoLogo, setSubiendoLogo] = useState(false);
 
   const bgPrincipal = temaOscuro ? 'bg-[#0a141d]' : 'bg-[#e2e8f0]';
   const textoPrincipal = temaOscuro ? 'text-white' : 'text-[#0f172a]';
   const bgTarjeta = temaOscuro ? 'bg-[#0a141d] border-gray-800' : 'bg-white border-gray-200';
 
-  // Cargar todos los datos al montar
   useEffect(() => {
     cargarDatos();
   }, []);
@@ -23,14 +23,12 @@ export default function PanelDirector({ temaOscuro }) {
   const cargarDatos = async () => {
     setLoading(true);
     try {
-      // Cargar perfiles
       const { data: perfiles, error: errPerfiles } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
       if (errPerfiles) throw errPerfiles;
 
-      // Cargar centros
       const { data: centrosData, error: errCentros } = await supabase
         .from('centros')
         .select('*')
@@ -91,10 +89,8 @@ export default function PanelDirector({ temaOscuro }) {
   const eliminarCentro = async (centroId) => {
     if (!confirm('¿Seguro que quieres eliminar este centro? Los usuarios asociados perderán su centro.')) return;
     try {
-      // Primero desasociar usuarios
       await supabase.from('profiles').update({ centro_id: null }).eq('centro_id', centroId);
       await supabase.from('pacientes').update({ centro_id: null }).eq('centro_id', centroId);
-      
       const { error } = await supabase.from('centros').delete().eq('id', centroId);
       if (error) throw error;
       alert('✅ Centro eliminado correctamente.');
@@ -104,7 +100,51 @@ export default function PanelDirector({ temaOscuro }) {
     }
   };
 
-  // ========== APROBAR USUARIO CON CENTRO ==========
+  // ========== SUBIR LOGO DEL CENTRO ==========
+  const subirLogo = async (centroId, file) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Por favor, selecciona una imagen (PNG, JPG, etc.)');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      alert('La imagen no debe superar los 2MB');
+      return;
+    }
+
+    setSubiendoLogo(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${centroId}_logo.${fileExt}`;
+      const filePath = `logos_centros/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('logos_centros')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('logos_centros')
+        .getPublicUrl(filePath);
+
+      const { error: updateError } = await supabase
+        .from('centros')
+        .update({ logo_url: publicUrl })
+        .eq('id', centroId);
+
+      if (updateError) throw updateError;
+
+      alert('✅ Logo actualizado correctamente.');
+      cargarDatos();
+    } catch (err) {
+      console.error(err);
+      alert('Error al subir el logo: ' + err.message);
+    } finally {
+      setSubiendoLogo(false);
+    }
+  };
+
   const aprobarUsuario = async (userId, nuevoRol, centroId) => {
     if (!nuevoRol) {
       alert('Selecciona un rol para aprobar.');
@@ -211,7 +251,7 @@ export default function PanelDirector({ temaOscuro }) {
         {mostrarCentros && (
           <div className={`${bgTarjeta} p-6 rounded-2xl border mb-8`}>
             <h2 className={`text-xl font-bold ${textoPrincipal} mb-4`}>📋 Gestión de Centros</h2>
-            
+
             {/* Formulario para crear centro */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               <input
@@ -251,7 +291,7 @@ export default function PanelDirector({ temaOscuro }) {
               </button>
             </div>
 
-            {/* Lista de centros */}
+            {/* Lista de centros con opción de subir logo */}
             {centros.length === 0 ? (
               <p className="text-gray-400 text-center py-4">No hay centros creados.</p>
             ) : (
@@ -261,7 +301,7 @@ export default function PanelDirector({ temaOscuro }) {
                     <tr>
                       <th className="px-4 py-2 text-left font-bold text-xs uppercase text-gray-400">Código</th>
                       <th className="px-4 py-2 text-left font-bold text-xs uppercase text-gray-400">Nombre</th>
-                      <th className="px-4 py-2 text-left font-bold text-xs uppercase text-gray-400">Dirección</th>
+                      <th className="px-4 py-2 text-left font-bold text-xs uppercase text-gray-400">Logo</th>
                       <th className="px-4 py-2 text-center font-bold text-xs uppercase text-gray-400">Acciones</th>
                     </tr>
                   </thead>
@@ -270,7 +310,25 @@ export default function PanelDirector({ temaOscuro }) {
                       <tr key={c.id} className={`border-b border-gray-700 hover:bg-[#22d3ee]/5 transition-colors`}>
                         <td className="px-4 py-2 font-mono font-bold">{c.id}</td>
                         <td className="px-4 py-2">{c.nombre}</td>
-                        <td className="px-4 py-2 text-xs text-gray-400">{c.direccion || '—'}</td>
+                        <td className="px-4 py-2">
+                          <div className="flex items-center gap-2">
+                            {c.logo_url ? (
+                              <img src={c.logo_url} alt="Logo" className="h-8 w-auto object-contain" />
+                            ) : (
+                              <span className="text-xs text-gray-400">Sin logo</span>
+                            )}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files[0];
+                                if (file) subirLogo(c.id, file);
+                              }}
+                              disabled={subiendoLogo}
+                              className="text-xs text-gray-400 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#22d3ee] file:text-black hover:file:opacity-80"
+                            />
+                          </div>
+                        </td>
                         <td className="px-4 py-2 text-center">
                           <button
                             onClick={() => eliminarCentro(c.id)}
@@ -288,7 +346,7 @@ export default function PanelDirector({ temaOscuro }) {
           </div>
         )}
 
-        {/* Resto del panel (solicitudes y usuarios activos) - igual que antes pero con centro en el selector */}
+        {/* Resto del panel (solicitudes y usuarios activos) */}
         {loading ? (
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-10 w-10 border-4 border-[#22d3ee] border-t-transparent"></div>
