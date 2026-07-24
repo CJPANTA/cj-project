@@ -1,8 +1,7 @@
 // ============================================================
 // DIAGNÓSTICO: Verificar URL de Supabase en producción
 // ============================================================
-console.log('🔍 [App.jsx] VITE_SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL);
-console.log('🔍 [App.jsx] VITE_SUPABASE_ANON_KEY:', import.meta.env.VITE_SUPABASE_ANON_KEY ? '✅ OK (no se muestra por seguridad)' : '❌ FALTA');
+console.log('🔍 [App.jsx] VITE_SUPABASE_URL (desde env):', import.meta.env.VITE_SUPABASE_URL);
 
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
@@ -57,11 +56,7 @@ function LayoutConSidebar({ children, temaOscuro, setTemaOscuro }) {
       )}
 
       <aside 
-        className={`
-          fixed inset-y-0 left-0 z-[100] w-72 transition-transform duration-300 ease-in-out
-          md:relative md:translate-x-0 md:flex md:shrink-0
-          ${esMovil ? (menuAbierto ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}
-        `}
+        className={`fixed inset-y-0 left-0 z-[100] w-72 transition-transform duration-300 ease-in-out md:relative md:translate-x-0 md:flex md:shrink-0 ${esMovil ? (menuAbierto ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}`}
         style={{ transition: 'transform 0.3s ease' }}
       >
         <Sidebar temaOscuro={temaOscuro} alClickLink={() => esMovil && setMenuAbierto(false)} />
@@ -105,20 +100,12 @@ function LayoutConSidebar({ children, temaOscuro, setTemaOscuro }) {
 
 function App() {
   const [temaOscuro, setTemaOscuro] = useState(true);
-
-  // ============================================================
-  // SERVICE WORKER DESACTIVADO TEMPORALMENTE PARA DIAGNÓSTICO
-  // ============================================================
-  // useEffect(() => {
-  //   if ('serviceWorker' in navigator) {
-  //     navigator.serviceWorker.ready.then(registration => {
-  //       registration.update();
-  //       navigator.serviceWorker.addEventListener('controllerchange', () => {
-  //         window.location.reload();
-  //       });
-  //     });
-  //   }
-  // }, []);
+  
+  // Service Worker completamente desactivado para diagnóstico
+  useEffect(() => {
+    // Bloque vacío (SW desactivado)
+    console.log('🔧 [App] Service Worker desactivado para diagnóstico');
+  }, []);
 
   return (
     <ErrorBoundary>
