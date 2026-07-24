@@ -1,38 +1,49 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
   plugins: [
     react(),
-    // Plugin para copiar sw.js al dist (solución manual)
-    {
-      name: 'copy-sw',
-      generateBundle() {
-        // Este plugin copia sw.js desde public/ a dist/
-        // La copia se hace automáticamente porque public/ ya se copia
-        // Pero por si acaso, forzamos la copia
-        console.log('🔧 [vite.config.js] sw.js se copiará automáticamente desde public/');
-      }
-    }
-  ],
-  // Asegurar que los archivos de public/ se copien al dist
-  publicDir: 'public',
-  build: {
-    // Asegurar que sw.js no se procese como módulo
-    rollupOptions: {
-      input: {
-        main: 'index.html',
-      },
-      output: {
-        // Mantener sw.js como archivo separado
-        manualChunks: undefined,
-        assetFileNames: (assetInfo) => {
-          if (assetInfo.name === 'sw.js') {
-            return 'sw.js';
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['logos_cj_circular.png'],
+      manifest: {
+        name: 'CJ Fisioterapia',
+        short_name: 'CJ',
+        description: 'Ecosistema de Salud - Academia y Clínica',
+        theme_color: '#0a141d',
+        background_color: '#0a141d',
+        display: 'standalone',
+        orientation: 'portrait-primary',
+        start_url: '/',
+        icons: [
+          {
+            src: '/logos_cj_circular.png',
+            sizes: '144x144',
+            type: 'image/png',
+            purpose: 'any maskable'
           }
-          return 'assets/[name]-[hash][extname]';
-        }
+        ]
+      },
+      workbox: {
+        navigateFallback: 'index.html',
+        cleanUrls: false,
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,json,woff2}'],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/raw\.githubusercontent\.com\/CJPANTA\/cj-project\/main\/BASE_DATOS\/03_CONFIG\/mapa_carrion\.json/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'data-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 7
+              }
+            }
+          }
+        ]
       }
-    }
-  }
+    })
+  ]
 });
