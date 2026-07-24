@@ -220,6 +220,7 @@ export default function EvaluacionPostural({ temaOscuro }) {
   const [guardando, setGuardando] = useState(false);
   const [microfonoActivo, setMicrofonoActivo] = useState(false);
   const [vistaDetalle, setVistaDetalle] = useState(null);
+  const [generandoInforme, setGenerandoInforme] = useState(false);
 
   const [evaluacion, setEvaluacion] = useState({
     paciente_id: pacienteId,
@@ -240,7 +241,7 @@ export default function EvaluacionPostural({ temaOscuro }) {
     intensidad_reposo: 0,
     intensidad_actividad: 0,
     factores_agravantes: '',
-    fatores_atenuantes: '',
+    factores_atenuantes: '',
     sintomas_asociados: '',
     regiones: [],
     datos_regiones: {},
@@ -407,62 +408,356 @@ export default function EvaluacionPostural({ temaOscuro }) {
     setVistaDetalle(null);
   };
 
-  // ========== GUARDAR EVALUACIÓN ==========
-  const guardarEvaluacion = async () => {
+  // ============================================================
+  // FUNCIÓN PARA GENERAR INFORME CLÍNICO
+  // ============================================================
+  const generarInforme = async () => {
     if (evaluacion.regiones.length === 0) {
-      alert('Selecciona al menos una región afectada.');
+      alert('No hay regiones seleccionadas para generar el informe.');
       return;
     }
-    setGuardando(true);
+
+    setGenerandoInforme(true);
     try {
+      // Obtener información del paciente y del centro
+      const { data: pacienteData } = await supabase
+        .from('pacientes')
+        .select('*')
+        .eq('id', pacienteId)
+        .single();
+
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuario no autenticado');
       const { data: perfil } = await supabase
         .from('profiles')
-        .select('centro_id')
+        .select('nombre_completo, centro_id')
         .eq('id', user.id)
         .single();
 
-      const datos = {
-        paciente_id: pacienteId,
-        user_id: user.id,
-        centro_id: perfil?.centro_id || null,
-        edad: evaluacion.edad ? parseInt(evaluacion.edad) : null,
-        ocupacion: evaluacion.ocupacion,
-        sexo: evaluacion.sexo,
-        estado_civil: evaluacion.estado_civil,
-        telefono: evaluacion.telefono,
-        direccion: evaluacion.direccion,
-        motivo_consulta: evaluacion.motivo_consulta,
-        tiempo_evolucion: evaluacion.tiempo_evolucion,
-        mecanismo_lesion: evaluacion.mecanismo_lesion,
-        antecedentes_medicos: evaluacion.antecedentes_medicos,
-        alergias: evaluacion.alergias,
-        medicamentos: evaluacion.medicamentos,
-        cirugias_previas: evaluacion.cirugias_previas,
-        tipo_dolor: evaluacion.tipo_dolor,
-        intensidad_reposo: evaluacion.intensidad_reposo,
-        intensidad_actividad: evaluacion.intensidad_actividad,
-        factores_agravantes: evaluacion.factores_agravantes,
-        factores_atenuantes: evaluacion.factores_atenuantes,
-        sintomas_asociados: evaluacion.sintomas_asociados,
-        regiones: evaluacion.regiones,
-        datos_regiones: evaluacion.datos_regiones,
-        analisis_ia: evaluacion.analisis_ia || null,
-      };
+      let centroNombre = 'Centro CJ';
+      let logoUrl = '';
+      if (perfil?.centro_id) {
+        const { data: centro } = await supabase
+          .from('centros')
+          .select('nombre, logo_url')
+          .eq('id', perfil.centro_id)
+          .single();
+        if (centro) {
+          centroNombre = centro.nombre || 'Centro CJ';
+          logoUrl = centro.logo_url || '';
+        }
+      }
 
-      const { error } = await supabase
-        .from('evaluaciones')
-        .insert([datos]);
+      // Construir el contenido del informe
+      const nombrePaciente = pacienteData ? `${pacienteData.nombre} ${pacienteData.apellidos}` : 'Paciente';
+      const fecha = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const hora = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+      const usuario = perfil?.nombre_completo || 'Usuario';
 
-      if (error) throw error;
-      alert('✅ Evaluación guardada correctamente.');
-      navigate(`/clinica/pacientes/${pacienteId}`);
+      // Generar HTML del informe
+      const contenidoHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Informe Clínico - ${nombrePaciente}</title>
+          <style>
+            @page {
+              size: A4;
+              margin: 2.54cm;
+            }
+            body {
+              font-family: 'Calibri', 'Roboto', Arial, sans-serif;
+              font-size: 11pt;
+              line-height: 1.5;
+              color: #1e293b;
+              background: white;
+              margin: 0;
+              padding: 0;
+            }
+            .pagina {
+              page-break-after: always;
+              padding: 0;
+              min-height: 100vh;
+              position: relative;
+            }
+            .pagina:last-child {
+              page-break-after: avoid;
+            }
+            .encabezado {
+              text-align: center;
+              border-bottom: 2px solid #22d3ee;
+              padding-bottom: 10px;
+              margin-bottom: 20px;
+              position: relative;
+            }
+            .encabezado .logo {
+              max-width: 80px;
+              max-height: 80px;
+              float: left;
+            }
+            .encabezado .titulo {
+              font-size: 18pt;
+              font-weight: 700;
+              color: #0f172a;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+            }
+            .encabezado .subtitulo {
+              font-size: 10pt;
+              color: #64748b;
+            }
+            .encabezado .datos {
+              font-size: 9pt;
+              color: #475569;
+              margin-top: 5px;
+            }
+            .pie {
+              position: absolute;
+              bottom: 0;
+              left: 0;
+              right: 0;
+              text-align: center;
+              font-size: 8pt;
+              color: #94a3b8;
+              border-top: 1px solid #e2e8f0;
+              padding-top: 8px;
+              margin-top: 20px;
+            }
+            .marca-agua {
+              position: fixed;
+              top: 0;
+              left: 0;
+              right: 0;
+              bottom: 0;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              pointer-events: none;
+              z-index: 1000;
+              opacity: 0.08;
+              font-size: 80pt;
+              font-weight: 900;
+              color: #22d3ee;
+              transform: rotate(-30deg);
+              text-transform: uppercase;
+              letter-spacing: 20px;
+              user-select: none;
+            }
+            .marca-agua img {
+              max-width: 300px;
+              opacity: 0.15;
+            }
+            h1 {
+              font-size: 16pt;
+              font-weight: 700;
+              color: #0f172a;
+              border-left: 6px solid #22d3ee;
+              padding-left: 12px;
+              margin-top: 24px;
+              margin-bottom: 12px;
+              text-transform: uppercase;
+            }
+            h2 {
+              font-size: 13pt;
+              font-weight: 700;
+              color: #1e293b;
+              margin-top: 16px;
+              margin-bottom: 8px;
+            }
+            h3 {
+              font-size: 11pt;
+              font-weight: 700;
+              color: #334155;
+              margin-top: 12px;
+              margin-bottom: 6px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 12px 0;
+              font-size: 10pt;
+            }
+            th, td {
+              border: 1px solid #cbd5e1;
+              padding: 6px 8px;
+              text-align: left;
+              vertical-align: top;
+            }
+            th {
+              background-color: #f1f5f9;
+              font-weight: 700;
+            }
+            ul, ol {
+              padding-left: 20px;
+              margin: 6px 0;
+            }
+            li {
+              margin-bottom: 2px;
+            }
+            .alerta {
+              background-color: #fee2e2;
+              border-left: 4px solid #ef4444;
+              padding: 10px 14px;
+              margin: 12px 0;
+              border-radius: 4px;
+              font-weight: 600;
+            }
+            .seccion {
+              margin-bottom: 16px;
+            }
+            .clearfix::after {
+              content: "";
+              clear: both;
+              display: table;
+            }
+            @media print {
+              .marca-agua {
+                opacity: 0.06;
+              }
+              .pagina {
+                min-height: auto;
+                page-break-after: always;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <!-- MARCA DE AGUA -->
+          <div class="marca-agua">
+            ${logoUrl ? `<img src="${logoUrl}" alt="Logo" />` : 'CONFIDENCIAL'}
+          </div>
+
+          <!-- PÁGINA 1: PORTADA Y DATOS GENERALES -->
+          <div class="pagina">
+            <div class="encabezado clearfix">
+              ${logoUrl ? `<img src="${logoUrl}" class="logo" alt="Logo Centro" />` : ''}
+              <div>
+                <div class="titulo">Informe de Evaluación Clínica</div>
+                <div class="subtitulo">${centroNombre}</div>
+                <div class="datos">
+                  Paciente: ${nombrePaciente} &nbsp;|&nbsp; Fecha: ${fecha} &nbsp;|&nbsp; ID: ${pacienteId}
+                </div>
+              </div>
+            </div>
+
+            <h1>1. Datos Generales</h1>
+            <table>
+              <tr><th>Campo</th><th>Valor</th></tr>
+              <tr><td>Edad</td><td>${evaluacion.edad || 'No registrado'}</td></tr>
+              <tr><td>Sexo</td><td>${evaluacion.sexo || 'No registrado'}</td></tr>
+              <tr><td>Ocupación</td><td>${evaluacion.ocupacion || 'No registrado'}</td></tr>
+              <tr><td>Teléfono</td><td>${evaluacion.telefono || 'No registrado'}</td></tr>
+              <tr><td>Dirección</td><td>${evaluacion.direccion || 'No registrado'}</td></tr>
+            </table>
+
+            <h1>2. Motivo de Consulta</h1>
+            <p><strong>Motivo principal:</strong> ${evaluacion.motivo_consulta || 'No registrado'}</p>
+            <p><strong>Tiempo de evolución:</strong> ${evaluacion.tiempo_evolucion || 'No registrado'}</p>
+            <p><strong>Mecanismo de lesión:</strong> ${evaluacion.mecanismo_lesion || 'No registrado'}</p>
+
+            <h1>3. Antecedentes</h1>
+            <table>
+              <tr><th>Antecedentes médicos</th><td>${evaluacion.antecedentes_medicos || 'No registrado'}</td></tr>
+              <tr><th>Alergias</th><td>${evaluacion.alergias || 'No registrado'}</td></tr>
+              <tr><th>Medicamentos actuales</th><td>${evaluacion.medicamentos || 'No registrado'}</td></tr>
+              <tr><th>Cirugías previas</th><td>${evaluacion.cirugias_previas || 'No registrado'}</td></tr>
+            </table>
+
+            <div class="pie">
+              Documento Clínico Confidencial - ${centroNombre} - Pág. 1
+            </div>
+          </div>
+
+          <!-- PÁGINA 2: EVALUACIÓN DEL DOLOR Y REGIONES -->
+          <div class="pagina">
+            <h1>4. Evaluación del Dolor</h1>
+            <p><strong>Tipo de dolor:</strong> ${(evaluacion.tipo_dolor || []).join(', ') || 'No registrado'}</p>
+            <table>
+              <tr><th>Intensidad en reposo (EVA)</th><td>${evaluacion.intensidad_reposo || 0} / 10</td></tr>
+              <tr><th>Intensidad en actividad (EVA)</th><td>${evaluacion.intensidad_actividad || 0} / 10</td></tr>
+              <tr><th>Factores agravantes</th><td>${evaluacion.factores_agravantes || 'No registrado'}</td></tr>
+              <tr><th>Factores atenuantes</th><td>${evaluacion.factores_atenuantes || 'No registrado'}</td></tr>
+              <tr><th>Síntomas asociados</th><td>${evaluacion.sintomas_asociados || 'No registrado'}</td></tr>
+            </table>
+
+            <h1>5. Regiones Afectadas</h1>
+            <ul>
+              ${evaluacion.regiones.map(r => `<li>${r.replace('_', ' ')}</li>`).join('')}
+            </ul>
+
+            <h1>6. Evaluación por Región</h1>
+            ${evaluacion.regiones.map(region => {
+              const data = evaluacion.datos_regiones[region] || {};
+              const tests = TESTS_POR_REGION[region] || [];
+              const rangos = RANGOS_ROM[region] || {};
+              return `
+                <div class="seccion">
+                  <h2>${region.replace('_', ' ')}</h2>
+                  <table>
+                    <tr><th>EVA</th><td>${data.eva !== undefined ? data.eva + '/10' : 'No registrado'}</td></tr>
+                    <tr><th>ROM (grados)</th><td>${data.rom || 'No registrado'}</td></tr>
+                    <tr><th>Tests realizados</th><td>${(data.tests || []).join(', ') || 'Ninguno'}</td></tr>
+                    <tr><th>Observaciones</th><td>${data.observaciones || 'Ninguna'}</td></tr>
+                    <tr><th>Notas adicionales</th><td>${data.notas || 'Ninguna'}</td></tr>
+                  </table>
+                  ${Object.keys(rangos).length > 0 ? `
+                    <p><strong>Rangos normales de ROM:</strong> ${Object.entries(rangos).map(([mov, rango]) => `${mov.replace('_', ' ')}: ${rango}`).join('; ')}</p>
+                  ` : ''}
+                </div>
+              `;
+            }).join('')}
+
+            <div class="pie">
+              Documento Clínico Confidencial - ${centroNombre} - Pág. 2
+            </div>
+          </div>
+
+          <!-- PÁGINA 3: ANÁLISIS Y CIERRE -->
+          <div class="pagina">
+            <h1>7. Análisis Clínico (IA)</h1>
+            ${evaluacion.analisis_ia ? `<p>${evaluacion.analisis_ia}</p>` : '<p>No se generó análisis con IA.</p>'}
+
+            <h1>8. Alerta de Seguridad</h1>
+            <div class="alerta">
+              ⚠️ Este informe contiene información confidencial del paciente. Solo debe ser utilizado por personal autorizado.
+            </div>
+
+            <h1>9. Datos de Generación</h1>
+            <table>
+              <tr><th>Informe generado por</th><td>${usuario}</td></tr>
+              <tr><th>Fecha de generación</th><td>${fecha}</td></tr>
+              <tr><th>Hora de generación</th><td>${hora}</td></tr>
+              <tr><th>Centro</th><td>${centroNombre}</td></tr>
+            </table>
+
+            <div style="text-align: center; margin-top: 40px; font-size: 10pt; color: #64748b;">
+              --- Fin del informe ---
+            </div>
+
+            <div class="pie">
+              Documento Clínico Confidencial - ${centroNombre} - Pág. 3
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      // Abrir el informe en una nueva ventana para impresión
+      const ventana = window.open('', '_blank', 'width=800,height=600,scrollbars=yes');
+      if (ventana) {
+        ventana.document.write(contenidoHTML);
+        ventana.document.close();
+        setTimeout(() => {
+          ventana.print();
+        }, 500);
+      } else {
+        alert('Por favor, permite las ventanas emergentes para generar el informe.');
+      }
     } catch (error) {
-      console.error(error);
-      alert('Error al guardar: ' + error.message);
+      console.error('Error al generar informe:', error);
+      alert('Error al generar el informe: ' + error.message);
     } finally {
-      setGuardando(false);
+      setGenerandoInforme(false);
     }
   };
 
@@ -611,7 +906,6 @@ export default function EvaluacionPostural({ temaOscuro }) {
     <div className={`${bgTarjeta} p-6 rounded-3xl border`}>
       <h2 className={`text-2xl font-black ${textoPrincipal} mb-4`}>📋 Anamnesis</h2>
 
-      {/* Bloque 1: Datos Personales */}
       <div className="mb-6">
         <h3 className={`text-sm font-bold ${textoPrincipal} uppercase tracking-wider border-b border-gray-600 pb-2 mb-3`}>1. Datos Personales</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -658,7 +952,6 @@ export default function EvaluacionPostural({ temaOscuro }) {
         </div>
       </div>
 
-      {/* Bloque 2: Motivo de consulta */}
       <div className="mb-6">
         <h3 className={`text-sm font-bold ${textoPrincipal} uppercase tracking-wider border-b border-gray-600 pb-2 mb-3`}>2. Motivo de Consulta</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -686,7 +979,6 @@ export default function EvaluacionPostural({ temaOscuro }) {
         </div>
       </div>
 
-      {/* Bloque 3: Antecedentes */}
       <div className="mb-6">
         <h3 className={`text-sm font-bold ${textoPrincipal} uppercase tracking-wider border-b border-gray-600 pb-2 mb-3`}>3. Antecedentes</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -721,7 +1013,6 @@ export default function EvaluacionPostural({ temaOscuro }) {
         </div>
       </div>
 
-      {/* Bloque 4: Evaluación del Dolor */}
       <div className="mb-6">
         <h3 className={`text-sm font-bold ${textoPrincipal} uppercase tracking-wider border-b border-gray-600 pb-2 mb-3`}>4. Evaluación del Dolor</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -888,7 +1179,14 @@ export default function EvaluacionPostural({ temaOscuro }) {
             )}
             <div className="flex justify-between mt-6">
               <button onClick={() => setPaso(2)} className="px-6 py-3 bg-gray-600 text-white font-black rounded-xl text-sm hover:opacity-80 transition-all">← Anterior</button>
-              <button onClick={guardarEvaluacion} disabled={guardando} className="px-6 py-3 bg-green-500 text-white font-black rounded-xl text-sm hover:scale-105 transition-all disabled:opacity-50">{guardando ? 'Guardando...' : '💾 Guardar Evaluación'}</button>
+              <div className="flex gap-3">
+                <button onClick={generarInforme} disabled={generandoInforme} className="px-6 py-3 bg-blue-500 text-white font-black rounded-xl text-sm hover:scale-105 transition-all disabled:opacity-50">
+                  {generandoInforme ? 'Generando...' : '📄 Generar Informe'}
+                </button>
+                <button onClick={guardarEvaluacion} disabled={guardando} className="px-6 py-3 bg-green-500 text-white font-black rounded-xl text-sm hover:scale-105 transition-all disabled:opacity-50">
+                  {guardando ? 'Guardando...' : '💾 Guardar Evaluación'}
+                </button>
+              </div>
             </div>
           </div>
         )}
