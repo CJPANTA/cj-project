@@ -2,31 +2,25 @@
 import { createClient } from '@supabase/supabase-js';
 
 // ============================================================
-// LECTURA DE VARIABLES DE ENTORNO
+// CONFIGURACIÓN FORZADA (HARDCODEADA) PARA PRODUCCIÓN
 // ============================================================
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Esta configuración se usa para forzar la conexión al nuevo proyecto
+// mientras se soluciona el problema de las variables de entorno en Vercel.
+// ============================================================
+const SUPABASE_URL = 'https://xjxsuxtehkdtphvgkvbd.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqeHN1eHRlaGtkdHBodmdrdmJkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1MzcyMjUsImV4cCI6MjA5OTExMzIyNX0.edTjIYg8HNlIzA8XPruUl1olk5vn6lvSjKPC8HUzVeA';
 
 // ============================================================
-// DIAGNÓSTICO EN CONSOLA (para verificar en producción)
+// DIAGNÓSTICO: Verificar configuración
 // ============================================================
-console.log('🔍 [supabaseClient] VITE_SUPABASE_URL:', supabaseUrl);
-console.log('🔍 [supabaseClient] VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? '✅ OK (oculto por seguridad)' : '❌ FALTA');
-
-// ============================================================
-// VALIDACIÓN DE CREDENCIALES
-// ============================================================
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('❌ [supabaseClient] Faltan credenciales de Supabase en el archivo .env');
-  console.error('   → Revisa que el archivo .env tenga:');
-  console.error('   - VITE_SUPABASE_URL');
-  console.error('   - VITE_SUPABASE_ANON_KEY');
-}
+console.log('🔍 [supabaseClient] Configuración FORZADA:');
+console.log('   URL:', SUPABASE_URL);
+console.log('   ANON KEY:', SUPABASE_ANON_KEY ? '✅ OK (No se muestra por seguridad)' : '❌ FALTA');
 
 // ============================================================
 // CREACIÓN DEL CLIENTE DE SUPABASE
 // ============================================================
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
