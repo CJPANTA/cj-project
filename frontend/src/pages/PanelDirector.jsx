@@ -56,7 +56,6 @@ export default function PanelDirector({ temaOscuro }) {
     }
   };
 
-  // ========== GESTIÓN DE CENTROS ==========
   const crearCentro = async () => {
     if (!nuevoCentro.id || !nuevoCentro.nombre) {
       alert('Código y nombre del centro son obligatorios.');
@@ -65,9 +64,10 @@ export default function PanelDirector({ temaOscuro }) {
     setGuardandoCentro(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      // Generar URL del logo desde GitHub (basada en el código del centro)
-      const logoUrl = `https://raw.githubusercontent.com/CJPANTA/cj-project/main/frontend/public/logos_centros/${nuevoCentro.id.toUpperCase()}.png`;
       
+      // ✅ CORREGIDO: logo_centros (sin 's')
+      const logoUrl = `https://raw.githubusercontent.com/CJPANTA/cj-project/main/frontend/public/logo_centros/${nuevoCentro.id.toUpperCase()}.png`;
+
       const { error } = await supabase
         .from('centros')
         .insert([{
@@ -75,8 +75,8 @@ export default function PanelDirector({ temaOscuro }) {
           nombre: nuevoCentro.nombre.trim(),
           direccion: nuevoCentro.direccion || null,
           telefono: nuevoCentro.telefono || null,
-          created_by: user?.id || null,
-          logo_url: logoUrl // Guardar URL de GitHub
+          logo_url: logoUrl,
+          created_by: user?.id || null
         }]);
       if (error) throw error;
       alert('✅ Centro creado correctamente.');
@@ -104,7 +104,6 @@ export default function PanelDirector({ temaOscuro }) {
     }
   };
 
-  // ========== APROBAR USUARIO CON CENTRO ==========
   const aprobarUsuario = async (userId, nuevoRol, centroId) => {
     if (!nuevoRol) {
       alert('Selecciona un rol para aprobar.');
@@ -206,7 +205,6 @@ export default function PanelDirector({ temaOscuro }) {
           </div>
         </div>
 
-        {/* Sección de Gestión de Centros */}
         {mostrarCentros && (
           <div className={`${bgTarjeta} p-6 rounded-2xl border mb-8`}>
             <h2 className={`text-xl font-bold ${textoPrincipal} mb-4`}>📋 Gestión de Centros</h2>
@@ -263,27 +261,34 @@ export default function PanelDirector({ temaOscuro }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {centros.map(c => (
-                      <tr key={c.id} className={`border-b border-gray-700 hover:bg-[#22d3ee]/5 transition-colors`}>
-                        <td className="px-4 py-2 font-mono font-bold">{c.id}</td>
-                        <td className="px-4 py-2">{c.nombre}</td>
-                        <td className="px-4 py-2">
-                          {c.logo_url ? (
-                            <img src={c.logo_url} alt={c.nombre} className="h-8 w-auto object-contain" />
-                          ) : (
-                            <span className="text-xs text-gray-400">Sin logo</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-2 text-center">
-                          <button
-                            onClick={() => eliminarCentro(c.id)}
-                            className="px-3 py-1 bg-red-500/20 text-red-400 font-bold rounded-lg text-xs hover:bg-red-500 hover:text-white transition-all"
-                          >
-                            Eliminar
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {centros.map(c => {
+                      const logoUrl = `https://raw.githubusercontent.com/CJPANTA/cj-project/main/frontend/public/logo_centros/${c.id}.png`;
+                      return (
+                        <tr key={c.id} className={`border-b border-gray-700 hover:bg-[#22d3ee]/5 transition-colors`}>
+                          <td className="px-4 py-2 font-mono font-bold">{c.id}</td>
+                          <td className="px-4 py-2">{c.nombre}</td>
+                          <td className="px-4 py-2">
+                            <img 
+                              src={logoUrl} 
+                              alt={`Logo ${c.nombre}`} 
+                              className="h-8 w-auto object-contain"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.parentElement.innerHTML = '<span class="text-xs text-gray-400">Sin logo</span>';
+                              }}
+                            />
+                          </td>
+                          <td className="px-4 py-2 text-center">
+                            <button
+                              onClick={() => eliminarCentro(c.id)}
+                              className="px-3 py-1 bg-red-500/20 text-red-400 font-bold rounded-lg text-xs hover:bg-red-500 hover:text-white transition-all"
+                            >
+                              Eliminar
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -291,7 +296,6 @@ export default function PanelDirector({ temaOscuro }) {
           </div>
         )}
 
-        {/* Resto del panel (solicitudes y usuarios activos) */}
         {loading ? (
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-10 w-10 border-4 border-[#22d3ee] border-t-transparent"></div>
