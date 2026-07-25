@@ -409,6 +409,67 @@ export default function EvaluacionPostural({ temaOscuro }) {
   };
 
   // ============================================================
+  // FUNCIÓN PARA GUARDAR EVALUACIÓN (DEFINIDA ANTES DEL RENDER)
+  // ============================================================
+  const guardarEvaluacion = async () => {
+    if (evaluacion.regiones.length === 0) {
+      alert('Selecciona al menos una región afectada.');
+      return;
+    }
+    setGuardando(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuario no autenticado');
+      const { data: perfil } = await supabase
+        .from('profiles')
+        .select('centro_id')
+        .eq('id', user.id)
+        .single();
+
+      const datos = {
+        paciente_id: pacienteId,
+        user_id: user.id,
+        centro_id: perfil?.centro_id || null,
+        edad: evaluacion.edad ? parseInt(evaluacion.edad) : null,
+        ocupacion: evaluacion.ocupacion,
+        sexo: evaluacion.sexo,
+        estado_civil: evaluacion.estado_civil,
+        telefono: evaluacion.telefono,
+        direccion: evaluacion.direccion,
+        motivo_consulta: evaluacion.motivo_consulta,
+        tiempo_evolucion: evaluacion.tiempo_evolucion,
+        mecanismo_lesion: evaluacion.mecanismo_lesion,
+        antecedentes_medicos: evaluacion.antecedentes_medicos,
+        alergias: evaluacion.alergias,
+        medicamentos: evaluacion.medicamentos,
+        cirugias_previas: evaluacion.cirugias_previas,
+        tipo_dolor: evaluacion.tipo_dolor,
+        intensidad_reposo: evaluacion.intensidad_reposo,
+        intensidad_actividad: evaluacion.intensidad_actividad,
+        factores_agravantes: evaluacion.factores_agravantes,
+        factores_atenuantes: evaluacion.factores_atenuantes,
+        sintomas_asociados: evaluacion.sintomas_asociados,
+        regiones: evaluacion.regiones,
+        datos_regiones: evaluacion.datos_regiones,
+        analisis_ia: evaluacion.analisis_ia || null,
+      };
+
+      const { error } = await supabase
+        .from('evaluaciones')
+        .insert([datos]);
+
+      if (error) throw error;
+      alert('✅ Evaluación guardada correctamente.');
+      navigate(`/clinica/pacientes/${pacienteId}`);
+    } catch (error) {
+      console.error(error);
+      alert('Error al guardar: ' + error.message);
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  // ============================================================
   // FUNCIÓN PARA GENERAR INFORME CLÍNICO
   // ============================================================
   const generarInforme = async () => {
@@ -434,31 +495,31 @@ export default function EvaluacionPostural({ temaOscuro }) {
         .single();
 
       let centroNombre = 'Centro CJ';
-let logoUrl = '';
-if (perfil?.centro_id) {
-  // Primero intentar con Supabase (por compatibilidad)
-  const { data: centro } = await supabase
-    .from('centros')
-    .select('nombre, logo_url')
-    .eq('id', perfil.centro_id)
-    .single();
-  if (centro) {
-    centroNombre = centro.nombre || 'Centro CJ';
-    logoUrl = centro.logo_url || '';
-  }
-  // Si no hay logo en Supabase, intentar con la carpeta pública
-  if (!logoUrl) {
-    const publicLogo = `/logo_centros/${perfil.centro_id}.png`;
-    try {
-      const response = await fetch(publicLogo);
-      if (response.ok) {
-        logoUrl = publicLogo;
+      let logoUrl = '';
+      if (perfil?.centro_id) {
+        // Primero intentar con Supabase (por compatibilidad)
+        const { data: centro } = await supabase
+          .from('centros')
+          .select('nombre, logo_url')
+          .eq('id', perfil.centro_id)
+          .single();
+        if (centro) {
+          centroNombre = centro.nombre || 'Centro CJ';
+          logoUrl = centro.logo_url || '';
+        }
+        // Si no hay logo en Supabase, intentar con la carpeta pública
+        if (!logoUrl) {
+          const publicLogo = `/logo_centros/${perfil.centro_id}.png`;
+          try {
+            const response = await fetch(publicLogo);
+            if (response.ok) {
+              logoUrl = publicLogo;
+            }
+          } catch (e) {
+            // Si falla, se queda sin logo
+          }
+        }
       }
-    } catch (e) {
-      // Si falla, se queda sin logo
-    }
-  }
-}
       // Construir el contenido del informe
       const nombrePaciente = pacienteData ? `${pacienteData.nombre} ${pacienteData.apellidos}` : 'Paciente';
       const fecha = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
