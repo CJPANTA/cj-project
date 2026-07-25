@@ -434,19 +434,31 @@ export default function EvaluacionPostural({ temaOscuro }) {
         .single();
 
       let centroNombre = 'Centro CJ';
-      let logoUrl = '';
-      if (perfil?.centro_id) {
-        const { data: centro } = await supabase
-          .from('centros')
-          .select('nombre, logo_url')
-          .eq('id', perfil.centro_id)
-          .single();
-        if (centro) {
-          centroNombre = centro.nombre || 'Centro CJ';
-          logoUrl = centro.logo_url || '';
-        }
+let logoUrl = '';
+if (perfil?.centro_id) {
+  // Primero intentar con Supabase (por compatibilidad)
+  const { data: centro } = await supabase
+    .from('centros')
+    .select('nombre, logo_url')
+    .eq('id', perfil.centro_id)
+    .single();
+  if (centro) {
+    centroNombre = centro.nombre || 'Centro CJ';
+    logoUrl = centro.logo_url || '';
+  }
+  // Si no hay logo en Supabase, intentar con la carpeta pública
+  if (!logoUrl) {
+    const publicLogo = `/logo_centros/${perfil.centro_id}.png`;
+    try {
+      const response = await fetch(publicLogo);
+      if (response.ok) {
+        logoUrl = publicLogo;
       }
-
+    } catch (e) {
+      // Si falla, se queda sin logo
+    }
+  }
+}
       // Construir el contenido del informe
       const nombrePaciente = pacienteData ? `${pacienteData.nombre} ${pacienteData.apellidos}` : 'Paciente';
       const fecha = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
