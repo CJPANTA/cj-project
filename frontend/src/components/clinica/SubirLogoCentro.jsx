@@ -4,89 +4,60 @@ import { supabase } from '../../lib/supabaseClient';
 export default function SubirLogoCentro({ centroId, onLogoActualizado }) {
   const [subiendo, setSubiendo] = useState(false);
   const [error, setError] = useState(null);
+  const [logoUrl, setLogoUrl] = useState('');
 
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    // Validar tipo de archivo
-    if (!file.type.startsWith('image/')) {
-      setError('Por favor, selecciona una imagen (PNG, JPG, etc.)');
-      return;
-    }
-
-    // Validar tamaño (máximo 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      setError('La imagen no debe superar los 2MB');
-      return;
-    }
-
-    setSubiendo(true);
-    setError(null);
-
+  // Verificar si el logo existe en la carpeta pública
+  const verificarLogo = async () => {
+    const url = `/logo_centros/${centroId}.png`;
     try {
-      // ✅ Usar el nombre original del archivo
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${centroId}_logo.${fileExt}`; // CJ000_logo.png
-      const filePath = `logos_centros/${fileName}`;
-
-      console.log('📤 Subiendo archivo:', filePath);
-
-      // Subir a Supabase Storage
-      const { data, error: uploadError } = await supabase.storage
-        .from('logos_centros')
-        .upload(filePath, file, { 
-          upsert: true,
-          contentType: file.type 
-        });
-
-      if (uploadError) {
-        console.error('❌ Error de subida:', uploadError);
-        throw uploadError;
+      const response = await fetch(url);
+      if (response.ok) {
+        setLogoUrl(url);
+        if (onLogoActualizado) onLogoActualizado(url);
+      } else {
+        setLogoUrl('');
       }
-
-      console.log('✅ Archivo subido:', data);
-
-      // Obtener URL pública
-      const { data: { publicUrl } } = supabase.storage
-        .from('logos_centros')
-        .getPublicUrl(filePath);
-
-      console.log('🔗 URL pública:', publicUrl);
-
-      // Actualizar la tabla centros con la URL del logo
-      const { error: updateError } = await supabase
-        .from('centros')
-        .update({ logo_url: publicUrl })
-        .eq('id', centroId);
-
-      if (updateError) {
-        console.error('❌ Error al actualizar centros:', updateError);
-        throw updateError;
-      }
-
-      alert('✅ Logo actualizado correctamente.');
-      if (onLogoActualizado) onLogoActualizado(publicUrl);
-    } catch (err) {
-      console.error('❌ Error completo:', err);
-      setError('Error al subir el logo: ' + err.message);
-    } finally {
-      setSubiendo(false);
+    } catch (e) {
+      setLogoUrl('');
     }
+  };
+
+  // Al montar, verificar si ya hay logo
+  useState(() => {
+    verificarLogo();
+  }, [centroId]);
+
+  const handleSubirLogo = async () => {
+    alert(`📤 Para actualizar el logo del centro (${centroId}):
+1. Guarda la imagen en formato PNG.
+2. Nombra el archivo como ${centroId}.png.
+3. Colócalo en la carpeta: frontend/public/logo_centros/
+4. Haz commit y push a GitHub.
+5. Vuelve a cargar esta página.`);
   };
 
   return (
     <div className="p-4 rounded-xl border border-gray-700">
       <h4 className="text-sm font-bold mb-2">Logo del Centro</h4>
-      <input
-        type="file"
-        accept="image/*"
-        onChange={handleFileChange}
-        disabled={subiendo}
-        className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-[#22d3ee] file:text-black hover:file:opacity-80"
-      />
-      {subiendo && <p className="text-xs text-gray-400 mt-2">Subiendo logo...</p>}
-      {error && <p className="text-xs text-red-400 mt-2">{error}</p>}
+      
+      {logoUrl ? (
+        <div className="mb-2">
+          <img src={logoUrl} alt="Logo del centro" className="max-h-16 rounded-lg border border-gray-600" />
+          <p className="text-xs text-green-400 mt-1">✅ Logo actual</p>
+        </div>
+      ) : (
+        <p className="text-xs text-yellow-400 mb-2">⚠️ No hay logo configurado para este centro.</p>
+      )}
+      
+      <button
+        onClick={handleSubirLogo}
+        className="px-4 py-2 bg-[#22d3ee] text-black font-bold rounded-xl text-sm hover:scale-105 transition-all"
+      >
+        📤 Subir/Actualizar logo
+      </button>
+      <p className="text-xs text-gray-400 mt-2">
+        Sube el logo a la carpeta <code className="bg-gray-800 px-1 rounded">frontend/public/logo_centros/{centroId}.png</code>
+      </p>
     </div>
   );
 }
