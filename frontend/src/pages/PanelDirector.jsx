@@ -10,7 +10,6 @@ export default function PanelDirector({ temaOscuro }) {
   const [mostrarCentros, setMostrarCentros] = useState(false);
   const [nuevoCentro, setNuevoCentro] = useState({ id: '', nombre: '', direccion: '', telefono: '' });
   const [guardandoCentro, setGuardandoCentro] = useState(false);
-  const [subiendoLogo, setSubiendoLogo] = useState(false);
 
   const bgPrincipal = temaOscuro ? 'bg-[#0a141d]' : 'bg-[#e2e8f0]';
   const textoPrincipal = temaOscuro ? 'text-white' : 'text-[#0f172a]';
@@ -66,6 +65,9 @@ export default function PanelDirector({ temaOscuro }) {
     setGuardandoCentro(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      // Generar URL del logo desde GitHub (basada en el código del centro)
+      const logoUrl = `https://raw.githubusercontent.com/CJPANTA/cj-project/main/frontend/public/logos_centros/${nuevoCentro.id.toUpperCase()}.png`;
+      
       const { error } = await supabase
         .from('centros')
         .insert([{
@@ -73,7 +75,8 @@ export default function PanelDirector({ temaOscuro }) {
           nombre: nuevoCentro.nombre.trim(),
           direccion: nuevoCentro.direccion || null,
           telefono: nuevoCentro.telefono || null,
-          created_by: user?.id || null
+          created_by: user?.id || null,
+          logo_url: logoUrl // Guardar URL de GitHub
         }]);
       if (error) throw error;
       alert('✅ Centro creado correctamente.');
@@ -91,6 +94,7 @@ export default function PanelDirector({ temaOscuro }) {
     try {
       await supabase.from('profiles').update({ centro_id: null }).eq('centro_id', centroId);
       await supabase.from('pacientes').update({ centro_id: null }).eq('centro_id', centroId);
+      
       const { error } = await supabase.from('centros').delete().eq('id', centroId);
       if (error) throw error;
       alert('✅ Centro eliminado correctamente.');
@@ -100,51 +104,7 @@ export default function PanelDirector({ temaOscuro }) {
     }
   };
 
-  // ========== SUBIR LOGO DEL CENTRO ==========
-  const subirLogo = async (centroId, file) => {
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      alert('Por favor, selecciona una imagen (PNG, JPG, etc.)');
-      return;
-    }
-    if (file.size > 2 * 1024 * 1024) {
-      alert('La imagen no debe superar los 2MB');
-      return;
-    }
-
-    setSubiendoLogo(true);
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${centroId}_logo.${fileExt}`;
-      const filePath = `logos_centros/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('logos_centros')
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('logos_centros')
-        .getPublicUrl(filePath);
-
-      const { error: updateError } = await supabase
-        .from('centros')
-        .update({ logo_url: publicUrl })
-        .eq('id', centroId);
-
-      if (updateError) throw updateError;
-
-      alert('✅ Logo actualizado correctamente.');
-      cargarDatos();
-    } catch (err) {
-      console.error(err);
-      alert('Error al subir el logo: ' + err.message);
-    } finally {
-      setSubiendoLogo(false);
-    }
-  };
-
+  // ========== APROBAR USUARIO CON CENTRO ==========
   const aprobarUsuario = async (userId, nuevoRol, centroId) => {
     if (!nuevoRol) {
       alert('Selecciona un rol para aprobar.');
@@ -223,7 +183,6 @@ export default function PanelDirector({ temaOscuro }) {
       <div className="max-w-7xl mx-auto">
         <h1 className={`text-3xl font-black tracking-tight ${textoPrincipal} mb-6`}>Panel del Director</h1>
 
-        {/* Estadísticas */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           <div className={`${bgTarjeta} p-4 rounded-2xl border text-center`}>
             <p className="text-3xl font-black text-[#22d3ee]">{estadisticas.total}</p>
@@ -247,12 +206,11 @@ export default function PanelDirector({ temaOscuro }) {
           </div>
         </div>
 
-        {/* Sección de Gestión de Centros (toggle) */}
+        {/* Sección de Gestión de Centros */}
         {mostrarCentros && (
           <div className={`${bgTarjeta} p-6 rounded-2xl border mb-8`}>
             <h2 className={`text-xl font-bold ${textoPrincipal} mb-4`}>📋 Gestión de Centros</h2>
-
-            {/* Formulario para crear centro */}
+            
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               <input
                 type="text"
@@ -291,7 +249,6 @@ export default function PanelDirector({ temaOscuro }) {
               </button>
             </div>
 
-            {/* Lista de centros con opción de subir logo */}
             {centros.length === 0 ? (
               <p className="text-gray-400 text-center py-4">No hay centros creados.</p>
             ) : (
@@ -311,23 +268,11 @@ export default function PanelDirector({ temaOscuro }) {
                         <td className="px-4 py-2 font-mono font-bold">{c.id}</td>
                         <td className="px-4 py-2">{c.nombre}</td>
                         <td className="px-4 py-2">
-                          <div className="flex items-center gap-2">
-                            {c.logo_url ? (
-                              <img src={c.logo_url} alt="Logo" className="h-8 w-auto object-contain" />
-                            ) : (
-                              <span className="text-xs text-gray-400">Sin logo</span>
-                            )}
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => {
-                                const file = e.target.files[0];
-                                if (file) subirLogo(c.id, file);
-                              }}
-                              disabled={subiendoLogo}
-                              className="text-xs text-gray-400 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#22d3ee] file:text-black hover:file:opacity-80"
-                            />
-                          </div>
+                          {c.logo_url ? (
+                            <img src={c.logo_url} alt={c.nombre} className="h-8 w-auto object-contain" />
+                          ) : (
+                            <span className="text-xs text-gray-400">Sin logo</span>
+                          )}
                         </td>
                         <td className="px-4 py-2 text-center">
                           <button
@@ -353,7 +298,6 @@ export default function PanelDirector({ temaOscuro }) {
           </div>
         ) : (
           <>
-            {/* Solicitudes pendientes con selección de centro */}
             <h2 className={`text-xl font-bold ${textoPrincipal} mb-4`}>Solicitudes pendientes ({solicitudes.length})</h2>
             {solicitudes.length === 0 ? (
               <p className="text-gray-400 mb-6">No hay solicitudes pendientes.</p>
@@ -423,7 +367,6 @@ export default function PanelDirector({ temaOscuro }) {
               </div>
             )}
 
-            {/* Usuarios activos con centro */}
             <h2 className={`text-xl font-bold ${textoPrincipal} mb-4`}>Usuarios activos ({usuarios.length})</h2>
             {usuarios.length === 0 ? (
               <p className="text-gray-400">No hay usuarios activos.</p>
