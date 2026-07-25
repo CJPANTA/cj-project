@@ -25,21 +25,34 @@ export default function SubirLogoCentro({ centroId, onLogoActualizado }) {
     setError(null);
 
     try {
+      // ✅ Usar el nombre original del archivo
       const fileExt = file.name.split('.').pop();
-      const fileName = `${centroId}_logo.${fileExt}`;
+      const fileName = `${centroId}_logo.${fileExt}`; // CJ000_logo.png
       const filePath = `logos_centros/${fileName}`;
 
-      // Subir a Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from('logos_centros')
-        .upload(filePath, file, { upsert: true });
+      console.log('📤 Subiendo archivo:', filePath);
 
-      if (uploadError) throw uploadError;
+      // Subir a Supabase Storage
+      const { data, error: uploadError } = await supabase.storage
+        .from('logos_centros')
+        .upload(filePath, file, { 
+          upsert: true,
+          contentType: file.type 
+        });
+
+      if (uploadError) {
+        console.error('❌ Error de subida:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('✅ Archivo subido:', data);
 
       // Obtener URL pública
       const { data: { publicUrl } } = supabase.storage
         .from('logos_centros')
         .getPublicUrl(filePath);
+
+      console.log('🔗 URL pública:', publicUrl);
 
       // Actualizar la tabla centros con la URL del logo
       const { error: updateError } = await supabase
@@ -47,12 +60,15 @@ export default function SubirLogoCentro({ centroId, onLogoActualizado }) {
         .update({ logo_url: publicUrl })
         .eq('id', centroId);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('❌ Error al actualizar centros:', updateError);
+        throw updateError;
+      }
 
       alert('✅ Logo actualizado correctamente.');
       if (onLogoActualizado) onLogoActualizado(publicUrl);
     } catch (err) {
-      console.error(err);
+      console.error('❌ Error completo:', err);
       setError('Error al subir el logo: ' + err.message);
     } finally {
       setSubiendo(false);
