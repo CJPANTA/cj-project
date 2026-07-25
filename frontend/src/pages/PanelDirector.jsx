@@ -64,8 +64,6 @@ export default function PanelDirector({ temaOscuro }) {
     setGuardandoCentro(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
-      // ✅ CORREGIDO: logo_centros (sin 's')
       const logoUrl = `https://raw.githubusercontent.com/CJPANTA/cj-project/main/frontend/public/logo_centros/${nuevoCentro.id.toUpperCase()}.png`;
 
       const { error } = await supabase
@@ -296,6 +294,7 @@ export default function PanelDirector({ temaOscuro }) {
           </div>
         )}
 
+        {/* Resto del panel (solicitudes y usuarios activos) - sin cambios */}
         {loading ? (
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-10 w-10 border-4 border-[#22d3ee] border-t-transparent"></div>
