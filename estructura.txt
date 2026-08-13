@@ -1,0 +1,15 @@
+C:\Users\PSV-JCHIROQUE\Desktop\Proyecto_CJ_2.0
+├── BASE_DATOS
+├── frontend
+├── logos_cj_circular.png
+├── logo_carrion.png
+├── logo_cj.jpeg
+├── node_modules
+├── package-lock.json
+├── package.json
+├── requirements.txt
+├── streamlit_app.py
+└── vercel.json
+
+directory: 3 file: 8
+
