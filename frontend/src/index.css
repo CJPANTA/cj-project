@@ -18,7 +18,7 @@
 html, body, #root {
   width: 100%;
   min-height: 100vh;
-  min-height: 100dvh; /* Para dispositivos modernos */
+  min-height: 100dvh;
   margin: 0;
   padding: 0;
   overflow-x: hidden;
@@ -124,7 +124,8 @@ html, body, #root {
 }
 
 /* Ajustes para orientación horizontal en PWA */
-@media (orientation: landscape) and (max-height: 600px) {
+@media (orientation: landscape) {
+  /* Para pantallas pequeñas en horizontal (móviles) */
   .p-4.md\:p-8 {
     padding: 0.5rem !important;
   }
@@ -140,14 +141,21 @@ html, body, #root {
   .text-xl {
     font-size: 1.2rem !important;
   }
-}
-
-@media (orientation: landscape) and (min-width: 768px) {
-  .prose table {
-    font-size: 0.9rem !important;
-  }
+  /* Para tablets en horizontal */
   .grid-cols-1.md\:grid-cols-3 {
     grid-template-columns: repeat(3, 1fr) !important;
+  }
+  /* Ajuste para el contenedor principal */
+  .flex-1 {
+    max-height: 100vh;
+    overflow-y: auto;
+  }
+  /* Ajuste del sidebar para que no ocupe mucho */
+  .w-72 {
+    width: 56px !important;
+  }
+  .w-72 .sidebar-text {
+    display: none !important;
   }
 }
 
@@ -155,4 +163,9 @@ html, body, #root {
 .flex-1 {
   flex: 1 1 0%;
   min-width: 0;
+}
+
+/* Mejora para el visor de PDF en horizontal */
+.overflow-y-auto iframe {
+  min-height: 400px;
 }
