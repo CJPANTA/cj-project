@@ -16,13 +16,13 @@ export default function VistaPie({ cara, lado, regionesSeleccionadas, onRegionTo
     );
   };
 
-  const reflejar = (x) => (lado === 'derecho' ? 200 - x : x);
-  const titulo = `Pie ${lado === 'izquierdo' ? 'Izquierdo' : 'Derecho'}`;
+  const reflejar = (x) => (lado === 'derecho' ? 220 - x : x);
+  const titulo = `Pie ${lado === 'izquierdo' ? 'Izquierdo' : 'Derecho'} (${cara === 'lateral' ? 'Vista Lateral / Perfil' : 'Vista Plantar'})`;
 
   return (
     <div className="flex flex-col items-center w-full">
-      <h4 className="text-sm font-bold text-cyan-400 mb-2">{titulo} ({cara})</h4>
-      <svg viewBox="0 0 200 220" className="w-full max-w-sm drop-shadow-xl touch-manipulation">
+      <h4 className="text-sm font-bold text-cyan-400 mb-2">{titulo}</h4>
+      <svg viewBox="0 0 220 180" className="w-full max-w-sm drop-shadow-xl touch-manipulation">
         <style>{`
           .region-pie { fill: #1e293b; stroke: #64748b; stroke-width: 1.5; cursor: pointer; transition: all 0.2s; }
           .region-pie:hover { fill: #0ea5e9; stroke: #bae6fd; }
@@ -30,21 +30,29 @@ export default function VistaPie({ cara, lado, regionesSeleccionadas, onRegionTo
         `}</style>
 
         <g>
-          {cara === 'plantar' ? (
-            /* Vista Plantar / Planta del pie */
-            <path className="region-pie" onClick={() => onRegionToggle('planta_pie')}
-                  d={`M ${reflejar(75)},70 C ${reflejar(95)},60 ${reflejar(135)},60 ${reflejar(155)},75 C ${reflejar(165)},100 ${reflejar(160)},140 ${reflejar(140)},170 C ${reflejar(125)},190 ${reflejar(90)},190 ${reflejar(75)},170 C ${reflejar(60)},130 ${reflejar(60)},90 ${reflejar(75)},70 Z`} />
+          {cara === 'lateral' ? (
+            /* ZONAS PARA VISTA LATERAL (Perfil con Aquiles y Calcáneo) */
+            <>
+              <path className="region-pie" onClick={() => onRegionToggle('pie_lateral_completo')}
+                    d="M 40,30 C 35,60 30,110 50,130 C 70,150 140,150 170,130 C 190,120 195,100 180,95 C 150,90 120,85 100,70 C 80,50 60,30 40,30 Z" />
+              
+              <Hotspot x={reflejar(65)} y={115} regionId="retropie_talon" label="Retropie (Calcáneo / Tobillo)" />
+              <Hotspot x={reflejar(110)} y={100} regionId="mediopie_arco" label="Mediopie (Arco / Tarso)" />
+              <Hotspot x={reflejar(155)} y={115} regionId="antepie_metatarso" label="Antepié" />
+              <Hotspot x={reflejar(175)} y={90} regionId="falanges_pie" label="Dedos" />
+            </>
           ) : (
-            /* Vista Dorsal / Empeine y contorno anatómico real con talón y antepié */
-            <path className="region-pie" onClick={() => onRegionToggle('empeine')}
-                  d={`M ${reflejar(70)},90 L ${reflejar(110)},65 C ${reflejar(130)},65 ${reflejar(150)},75 ${reflejar(165)},95 C ${reflejar(175)},115 ${reflejar(170)},135 ${reflejar(155)},145 L ${reflejar(145)},142 C ${reflejar(140)},155 ${reflejar(120)},165 ${reflejar(95)},162 C ${reflejar(75)},158 ${reflejar(62)},130 ${reflejar(65)},110 Z`} />
-          )}
+            /* ZONAS PARA VISTA PLANTAR / SUPERIOR */
+            <>
+              <path className="region-pie" onClick={() => onRegionToggle('pie_plantar_completo')}
+                    d="M 45,70 C 35,90 45,110 70,115 C 100,120 140,110 170,90 C 190,75 190,65 170,50 C 130,30 90,30 45,50 C 40,55 42,65 45,70 Z" />
 
-          {/* HOTSPOTS ANATÓMICOS */}
-          <Hotspot x={reflejar(120)} y={85} regionId="talon" label="Talón (Calcáneo)" />
-          <Hotspot x={reflejar(95)} y={115} regionId="empeine" label="Medio pie / Empeine" />
-          <Hotspot x={reflejar(75)} y={145} regionId="metatarsos" label="Metatarsos" />
-          <Hotspot x={reflejar(65)} y={170} regionId="falanges_pie" label="Antepié / Dedos" />
+              <Hotspot x={reflejar(60)} y={80} regionId="talon_plantar" label="Talón (Plantar)" />
+              <Hotspot x={reflejar(110)} y={80} regionId="mediopie_plantar" label="Mediopie / Arco" />
+              <Hotspot x={reflejar(155)} y={80} regionId="metatarsianos" label="Metatarsianos" />
+              <Hotspot x={reflejar(185)} y={80} regionId="falanges_plantar" label="Falanges" />
+            </>
+          )}
         </g>
       </svg>
     </div>

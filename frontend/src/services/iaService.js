@@ -1,8 +1,8 @@
 // src/services/iaService.js
 
-// ✅ MIGRACIÓN: Se cambió el modelo de llama-3.3-70b-versatile a llama-3.1-70b-versatile
-// ya que Groq retirará el primero el 16 de agosto de 2026.
-// Fecha de cambio: 02/07/2026
+// ✅ MIGRACIÓN: Se cambió el modelo de llama-3.3-70b-versatile a openai/gpt-oss-120b
+// ya que Groq retiró los modelos Llama 3.1 y 3.3 el 16 de agosto de 2026.
+// Fecha de cambio: 24/08/2026
 
 export const consultarAuraIA = async (pregunta, contexto = {}, historial = [], systemPromptOverride = null) => {
   const API_KEY = (import.meta.env.VITE_GROQ_API_KEY || "").trim();
@@ -10,8 +10,8 @@ export const consultarAuraIA = async (pregunta, contexto = {}, historial = [], s
     return "❌ Error: No se encuentra la API Key de Groq. Configúrala en .env.local (VITE_GROQ_API_KEY).";
   }
 
-  // ✅ MODELO CORRECTO (activo hasta el 16/08/2026)
-  const MODELO = "llama-3.3-70b-versatile";
+  // ✅ MODELO CORRECTO (activo en el tier gratuito)
+  const MODELO = "openai/gpt-oss-120b";
   const URL = "https://api.groq.com/openai/v1/chat/completions";
 
   // System prompt por defecto (solo si no se pasa override)
@@ -35,8 +35,6 @@ Reglas:
 
 Para el resto de respuestas, usa texto claro, listas con guiones, y evita el uso de ** ** para negritas si no es necesario.`;
 
-  // Si se proporciona un systemPromptOverride, NO añadimos el contexto adicional
-  // para no mezclar instrucciones contradictorias.
   if (!systemPromptOverride) {
     if (contexto.ciclo) systemPrompt += `\nEl usuario está en ${contexto.ciclo}.`;
     if (contexto.materia) systemPrompt += `\nEstudiando: ${contexto.materia}.`;
