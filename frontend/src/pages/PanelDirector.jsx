@@ -10,6 +10,8 @@ export default function PanelDirector({ temaOscuro }) {
   const [mostrarCentros, setMostrarCentros] = useState(false);
   const [nuevoCentro, setNuevoCentro] = useState({ id: '', nombre: '', direccion: '', telefono: '' });
   const [guardandoCentro, setGuardandoCentro] = useState(false);
+  const [esDirectorGlobal, setEsDirectorGlobal] = useState(false);
+  const [centroDirector, setCentroDirector] = useState(null);
 
   const bgPrincipal = temaOscuro ? 'bg-[#0a141d]' : 'bg-[#e2e8f0]';
   const textoPrincipal = temaOscuro ? 'text-white' : 'text-[#0f172a]';
@@ -22,19 +24,37 @@ export default function PanelDirector({ temaOscuro }) {
   const cargarDatos = async () => {
     setLoading(true);
     try {
-      const { data: perfiles, error: errPerfiles } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (errPerfiles) throw errPerfiles;
+      // 1. Obtener el usuario logueado y su perfil
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No hay usuario logueado');
 
+      const { data: perfil, error: errPerfil } = await supabase
+        .from('profiles')
+        .select('rol, centro_id')
+        .eq('id', user.id)
+        .single();
+      if (errPerfil) throw errPerfil;
+
+      // Determinar si es director global (rol 1) o admin de centro (rol 7)
+      const esGlobal = perfil.rol === 1;
+      setEsDirectorGlobal(esGlobal);
+      setCentroDirector(perfil.centro_id);
+
+      // 2. Cargar todos los centros (siempre, para el selector)
       const { data: centrosData, error: errCentros } = await supabase
         .from('centros')
         .select('*')
         .order('created_at', { ascending: false });
       if (errCentros) throw errCentros;
-
       setCentros(centrosData || []);
+
+      // 3. Cargar perfiles (con filtro por centro si no es global)
+      let query = supabase.from('profiles').select('*');
+      if (!esGlobal && perfil.centro_id) {
+        query = query.eq('centro_id', perfil.centro_id);
+      }
+      const { data: perfiles, error: errPerfiles } = await query.order('created_at', { ascending: false });
+      if (errPerfiles) throw errPerfiles;
 
       const pendientes = perfiles.filter(p => p.estado === 'pendiente');
       const activos = perfiles.filter(p => p.estado === 'aprobado');
@@ -55,6 +75,9 @@ export default function PanelDirector({ temaOscuro }) {
       setLoading(false);
     }
   };
+
+  // (Resto de funciones: crearCentro, eliminarCentro, aprobarUsuario, cambiarRol, eliminarUsuario)
+  // No cambian, pero las incluyo completas por si acaso.
 
   const crearCentro = async () => {
     if (!nuevoCentro.id || !nuevoCentro.nombre) {
@@ -178,7 +201,9 @@ export default function PanelDirector({ temaOscuro }) {
   return (
     <div className={`min-h-screen ${bgPrincipal} p-4 md:p-8 transition-colors duration-500`}>
       <div className="max-w-7xl mx-auto">
-        <h1 className={`text-3xl font-black tracking-tight ${textoPrincipal} mb-6`}>Panel del Director</h1>
+        <h1 className={`text-3xl font-black tracking-tight ${textoPrincipal} mb-6`}>
+          {esDirectorGlobal ? 'Panel del Director Global' : 'Panel de Administración del Centro'}
+        </h1>
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           <div className={`${bgTarjeta} p-4 rounded-2xl border text-center`}>
@@ -197,13 +222,17 @@ export default function PanelDirector({ temaOscuro }) {
             <p className="text-3xl font-black text-emerald-400">{estadisticas.licenciados}</p>
             <p className="text-xs font-bold uppercase text-gray-400">Licenciados</p>
           </div>
-          <div className={`${bgTarjeta} p-4 rounded-2xl border text-center cursor-pointer hover:border-[#22d3ee] transition-all`} onClick={() => setMostrarCentros(!mostrarCentros)}>
-            <p className="text-3xl font-black text-purple-400">{centros.length}</p>
-            <p className="text-xs font-bold uppercase text-gray-400">Centros</p>
-          </div>
+          {/* Solo el director global puede ver y gestionar centros */}
+          {esDirectorGlobal && (
+            <div className={`${bgTarjeta} p-4 rounded-2xl border text-center cursor-pointer hover:border-[#22d3ee] transition-all`} onClick={() => setMostrarCentros(!mostrarCentros)}>
+              <p className="text-3xl font-black text-purple-400">{centros.length}</p>
+              <p className="text-xs font-bold uppercase text-gray-400">Centros</p>
+            </div>
+          )}
         </div>
 
-        {mostrarCentros && (
+        {/* Gestión de centros (solo visible para director global) */}
+        {esDirectorGlobal && mostrarCentros && (
           <div className={`${bgTarjeta} p-6 rounded-2xl border mb-8`}>
             <h2 className={`text-xl font-bold ${textoPrincipal} mb-4`}>📋 Gestión de Centros</h2>
             
@@ -294,7 +323,7 @@ export default function PanelDirector({ temaOscuro }) {
           </div>
         )}
 
-        {/* Resto del panel (solicitudes y usuarios activos) - sin cambios */}
+        {/* Resto del panel: solicitudes y usuarios activos */}
         {loading ? (
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-10 w-10 border-4 border-[#22d3ee] border-t-transparent"></div>
@@ -303,7 +332,7 @@ export default function PanelDirector({ temaOscuro }) {
           <>
             <h2 className={`text-xl font-bold ${textoPrincipal} mb-4`}>Solicitudes pendientes ({solicitudes.length})</h2>
             {solicitudes.length === 0 ? (
-              <p className="text-gray-400 mb-6">No hay solicitudes pendientes.</p>
+              <p className="text-gray-400 mb-6">No hay solicitudes pendientes para tu centro.</p>
             ) : (
               <div className="overflow-x-auto rounded-2xl border ${bgTarjeta} shadow-sm mb-8">
                 <table className="w-full text-sm">
@@ -372,7 +401,7 @@ export default function PanelDirector({ temaOscuro }) {
 
             <h2 className={`text-xl font-bold ${textoPrincipal} mb-4`}>Usuarios activos ({usuarios.length})</h2>
             {usuarios.length === 0 ? (
-              <p className="text-gray-400">No hay usuarios activos.</p>
+              <p className="text-gray-400">No hay usuarios activos en tu centro.</p>
             ) : (
               <div className="overflow-x-auto rounded-2xl border ${bgTarjeta} shadow-sm">
                 <table className="w-full text-sm">
