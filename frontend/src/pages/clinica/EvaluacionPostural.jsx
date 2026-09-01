@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import BodyChartContainer from '../../components/clinica/BodyChart/BodyChartContainer';
 import { RANGOS_ROM, TESTS_POR_REGION } from '../../components/clinica/BodyChart/regionesConfig';
+import AnamnesisForm from '../../components/clinica/Formularios/AnamnesisForm';
 
 // ============================================================
 // COMPONENTE PRINCIPAL
@@ -17,6 +18,7 @@ export default function EvaluacionPostural({ temaOscuro }) {
   const [microfonoActivo, setMicrofonoActivo] = useState(false);
   const [vistaDetalle, setVistaDetalle] = useState(null);
   const [generandoInforme, setGenerandoInforme] = useState(false);
+  const [tipoFormulario, setTipoFormulario] = useState(['general']);
 
   const [evaluacion, setEvaluacion] = useState({
     paciente_id: pacienteId,
@@ -85,7 +87,9 @@ export default function EvaluacionPostural({ temaOscuro }) {
       recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
         if (campoActivo) {
-          if (campoActivo.startsWith('obs_') || campoActivo.startsWith('notas_')) {
+          if (campoActivo.startsWith('especial_')) {
+            handleInputChange(campoActivo, transcript);
+          } else if (campoActivo.startsWith('obs_') || campoActivo.startsWith('notas_')) {
             const partes = campoActivo.split('_');
             const tipo = partes[0];
             const region = partes.slice(1).join('_');
@@ -193,7 +197,7 @@ export default function EvaluacionPostural({ temaOscuro }) {
   };
 
   // ============================================================
-  // FUNCIÓN PARA GUARDAR EVALUACIÓN
+  // GUARDAR EVALUACIÓN (con campos extra)
   // ============================================================
   const guardarEvaluacion = async () => {
     if (evaluacion.regiones.length === 0) {
@@ -209,6 +213,13 @@ export default function EvaluacionPostural({ temaOscuro }) {
         .select('centro_id')
         .eq('id', user.id)
         .single();
+
+      const camposEspeciales = {};
+      Object.keys(evaluacion).forEach(key => {
+        if (key.startsWith('especial_')) {
+          camposEspeciales[key] = evaluacion[key];
+        }
+      });
 
       const datos = {
         paciente_id: pacienteId,
@@ -236,6 +247,8 @@ export default function EvaluacionPostural({ temaOscuro }) {
         regiones: evaluacion.regiones,
         datos_regiones: evaluacion.datos_regiones,
         analisis_ia: evaluacion.analisis_ia || null,
+        campos_extra: camposEspeciales,
+        tipo_formulario: tipoFormulario.join(','),
       };
 
       const { error } = await supabase
@@ -254,7 +267,31 @@ export default function EvaluacionPostural({ temaOscuro }) {
   };
 
   // ============================================================
-  // FUNCIÓN PARA GENERAR INFORME CLÍNICO (se mantiene igual)
+  // FUNCIÓN PARA FORMATEAR NOMBRES DE REGIONES
+  // ============================================================
+  const formatearNombreRegion = (nombre) => {
+    const map = {
+      'izq': 'Izquierda',
+      'der': 'Derecha',
+      'ant': 'Anterior',
+      'post': 'Posterior',
+      'inf': 'Inferior',
+      'sup': 'Superior',
+      'med': 'Medial',
+      'lat': 'Lateral',
+      'prox': 'Proximal',
+      'dist': 'Distal'
+    };
+    let palabras = nombre.split('_');
+    let resultado = palabras.map(p => {
+      if (map[p]) return map[p];
+      return p.charAt(0).toUpperCase() + p.slice(1);
+    }).join(' ');
+    return resultado;
+  };
+
+  // ============================================================
+  // GENERAR INFORME (VERSIÓN DEFINITIVA CORREGIDA)
   // ============================================================
   const generarInforme = async () => {
     if (evaluacion.regiones.length === 0) {
@@ -290,13 +327,7 @@ export default function EvaluacionPostural({ temaOscuro }) {
           logoUrl = centro.logo_url || '';
         }
         if (!logoUrl) {
-          const publicLogo = `/logo_centros/${perfil.centro_id}.png`;
-          try {
-            const response = await fetch(publicLogo);
-            if (response.ok) {
-              logoUrl = publicLogo;
-            }
-          } catch (e) {}
+          logoUrl = `/logo_centros/${perfil.centro_id}.png`;
         }
       }
 
@@ -307,18 +338,365 @@ export default function EvaluacionPostural({ temaOscuro }) {
       const regiones = evaluacion.regiones || [];
       const datosRegiones = evaluacion.datos_regiones || {};
 
-      // El contenido HTML del informe es muy extenso, se mantiene igual que antes.
-      // Para no repetir 500 líneas, mantengo la misma lógica que ya tenías.
-      // (El código del informe es el mismo que en tu archivo original)
-      // Por brevedad, aquí iría todo el HTML del informe.
-      // Como es muy largo, lo he omitido pero lo mantienes igual.
+      // ----- MAPEO DE REGIONES A CENTROIDES PARA PUNTOS ROJOS -----
+      const centroides = {
+        cabeza: { cx: 100, cy: 30 }, cuello: { cx: 100, cy: 50 }, nuca: { cx: 100, cy: 50 },
+        torax: { cx: 100, cy: 85 }, pecho: { cx: 100, cy: 85 }, espalda: { cx: 100, cy: 85 },
+        hombro_izq: { cx: 75, cy: 45 }, hombro_der: { cx: 125, cy: 45 },
+        brazo_izq: { cx: 60, cy: 80 }, brazo_der: { cx: 140, cy: 80 },
+        biceps: { cx: 60, cy: 80 }, biceps_izq: { cx: 60, cy: 80 }, biceps_der: { cx: 140, cy: 80 },
+        codo: { cx: 60, cy: 105 }, codo_izq: { cx: 60, cy: 105 }, codo_der: { cx: 140, cy: 105 },
+        antebrazo: { cx: 60, cy: 125 }, antebrazo_izq: { cx: 60, cy: 125 }, antebrazo_der: { cx: 140, cy: 125 },
+        muneca: { cx: 60, cy: 145 }, muneca_izq: { cx: 60, cy: 145 }, muneca_der: { cx: 140, cy: 145 },
+        mano: { cx: 60, cy: 155 }, mano_izq: { cx: 60, cy: 155 }, mano_der: { cx: 140, cy: 155 },
+        pelvis: { cx: 100, cy: 145 }, cadera: { cx: 100, cy: 145 },
+        sacro: { cx: 100, cy: 145 }, pubis: { cx: 100, cy: 155 },
+        pierna_izq: { cx: 80, cy: 200 }, pierna_der: { cx: 120, cy: 200 },
+        cuadriceps: { cx: 80, cy: 200 }, cuadriceps_izq: { cx: 80, cy: 200 }, cuadriceps_der: { cx: 120, cy: 200 },
+        isquiotibial: { cx: 80, cy: 200 }, isquiotibiales: { cx: 80, cy: 200 },
+        rodilla_izq: { cx: 80, cy: 235 }, rodilla_der: { cx: 120, cy: 235 },
+        rotula: { cx: 80, cy: 235 }, rotula_izq: { cx: 80, cy: 235 }, rotula_der: { cx: 120, cy: 235 },
+        gemelo: { cx: 80, cy: 260 }, gemelo_izq: { cx: 80, cy: 260 }, gemelo_der: { cx: 120, cy: 260 },
+        tobillo: { cx: 80, cy: 280 }, tobillo_izq: { cx: 80, cy: 280 }, tobillo_der: { cx: 120, cy: 280 },
+        pie_izq: { cx: 75, cy: 295 }, pie_der: { cx: 125, cy: 295 },
+        acromion: { cx: 75, cy: 45 }, acromion_izq: { cx: 75, cy: 45 }, acromion_der: { cx: 125, cy: 45 },
+        deltoides: { cx: 75, cy: 55 }, deltoides_ant: { cx: 75, cy: 55 }, deltoides_post: { cx: 75, cy: 55 },
+        manguito: { cx: 75, cy: 60 }, manguito_ant: { cx: 75, cy: 60 }, manguito_post: { cx: 75, cy: 60 },
+        clavicula_izq: { cx: 90, cy: 40 }, clavicula_der: { cx: 110, cy: 40 },
+        trapecio_izq: { cx: 90, cy: 45 }, trapecio_der: { cx: 110, cy: 45 },
+        escapula_izq: { cx: 90, cy: 55 }, escapula_der: { cx: 110, cy: 55 },
+        lumbar: { cx: 100, cy: 100 }, cervical: { cx: 100, cy: 30 }, dorsal: { cx: 100, cy: 50 },
+        poplitea_izq: { cx: 80, cy: 195 }, poplitea_der: { cx: 120, cy: 195 },
+        lca: { cx: 80, cy: 195 }, lcp: { cx: 80, cy: 195 },
+        menisco_med: { cx: 80, cy: 195 }, menisco_lat: { cx: 120, cy: 195 },
+      };
+
+      // ----- GENERACIÓN DE PUNTOS ROJOS -----
+      const puntosHTML = regiones.map(r => {
+        let coords = centroides[r];
+        if (!coords) {
+          const baseKey = r.split('_')[0];
+          coords = centroides[baseKey];
+        }
+        if (!coords) coords = { cx: 100, cy: 100 };
+        return `<circle cx="${coords.cx}" cy="${coords.cy}" r="5" fill="#ef4444" stroke="#fff" stroke-width="1.5"/>`;
+      }).join('');
+
+      // ----- SILUETA ANATÓMICA (path de VistaGeneral) -----
+      const siluetaPaths = `
+        <path d="M 87,22 C 87,7 113,7 113,22 C 113,34 107,42 105,46 C 106,50 112,52 115,55 L 85,55 C 88,52 94,50 95,46 C 93,42 87,34 87,22 Z"/>
+        <path d="M 85,55 C 98,58 115,55 115,55 C 122,68 118,98 112,120 L 88,120 C 82,98 78,68 85,55 Z"/>
+        <path d="M 115,55 C 126,55 132,60 129,71 C 123,73 117,67 115,55 Z"/>
+        <path d="M 85,55 C 74,55 68,60 71,71 C 77,73 83,67 85,55 Z"/>
+        <path d="M 129,71 C 138,83 134,112 130,142 C 128,154 123,154 120,142 C 118,112 121,88 116,73 C 119,69 125,69 129,71 Z"/>
+        <path d="M 71,71 C 62,83 66,112 70,142 C 72,154 77,154 80,142 C 82,112 79,88 84,73 C 81,69 75,69 71,71 Z"/>
+        <path d="M 120,142 L 130,142 C 131,148 133,156 131,163 C 129,167 124,167 121,160 C 119,152 119,146 120,142 Z"/>
+        <path d="M 80,142 L 70,142 C 69,148 67,156 69,163 C 71,167 76,167 79,160 C 81,152 81,146 80,142 Z"/>
+        <path d="M 88,120 L 112,120 C 116,136 114,154 106,168 L 100,172 L 94,168 C 86,154 84,136 88,120 Z"/>
+        <path d="M 103,172 L 108,168 C 120,185 121,210 114,235 C 111,245 113,268 111,288 L 103,288 C 104,268 107,245 105,235 C 107,210 105,185 103,172 Z"/>
+        <path d="M 97,172 L 92,168 C 80,185 79,210 86,235 C 89,245 87,268 89,288 L 97,288 C 96,268 93,245 95,235 C 93,210 95,185 97,172 Z"/>
+        <path d="M 103,288 L 111,288 C 115,294 119,303 113,308 C 107,311 101,304 103,288 Z"/>
+        <path d="M 97,288 L 89,288 C 85,294 81,303 87,308 C 93,311 99,304 97,288 Z"/>
+      `;
+
+      const stickmanSVG = `
+        <svg viewBox="0 0 200 320" width="180" height="288" xmlns="http://www.w3.org/2000/svg" style="max-width:200px; height:auto;">
+          <defs>
+            <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#f8fafc"/>
+              <stop offset="100%" stopColor="#e2e8f0"/>
+            </linearGradient>
+          </defs>
+          <g fill="url(#bodyGrad)" stroke="#94a3b8" stroke-width="1.2" opacity="0.8">
+            ${siluetaPaths}
+          </g>
+          ${puntosHTML}
+        </svg>
+      `;
+
+      // ===== CONTENIDO HTML DEL INFORME =====
+      const contenidoHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Informe Clínico - ${nombrePaciente}</title>
+          <style>
+            @page { size: A4; margin: 2.54cm 2.54cm 1.5cm 2.54cm; }
+            * { box-sizing: border-box; }
+            body {
+              font-family: 'Calibri', 'Roboto', Arial, sans-serif;
+              font-size: 11pt;
+              line-height: 1.5;
+              color: #1e293b;
+              background: white;
+              margin: 0;
+              padding: 0;
+            }
+            .pagina {
+              display: flex;
+              flex-direction: column;
+              height: 100vh;
+              padding: 0;
+              page-break-after: always;
+              position: relative;
+            }
+            .pagina:last-child { page-break-after: avoid; }
+            .contenido {
+              flex: 1;
+              padding-bottom: 30px;
+            }
+            .encabezado {
+              text-align: center;
+              border-bottom: 2px solid #22d3ee;
+              padding-bottom: 10px;
+              margin-bottom: 20px;
+              position: relative;
+              min-height: 80px;
+            }
+            .encabezado .logo {
+              max-width: 70px;
+              max-height: 70px;
+              float: left;
+              margin-right: 15px;
+            }
+            .encabezado .logo-derecho {
+              max-width: 60px;
+              max-height: 60px;
+              float: right;
+              margin-left: 15px;
+            }
+            .encabezado .titulo {
+              font-size: 18pt;
+              font-weight: 700;
+              color: #0f172a;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+            }
+            .encabezado .subtitulo {
+              font-size: 10pt;
+              color: #64748b;
+            }
+            .encabezado .datos {
+              font-size: 9pt;
+              color: #475569;
+              margin-top: 5px;
+            }
+            .pie {
+              text-align: center;
+              font-size: 8pt;
+              color: #94a3b8;
+              border-top: 1px solid #e2e8f0;
+              padding-top: 8px;
+              margin-top: auto;
+              width: 100%;
+            }
+            .marca-agua {
+              position: fixed;
+              top: 0; left: 0; right: 0; bottom: 0;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              pointer-events: none;
+              z-index: 1000;
+              opacity: 0.05;
+              font-size: 80pt;
+              font-weight: 900;
+              color: #22d3ee;
+              transform: rotate(-30deg);
+              text-transform: uppercase;
+              letter-spacing: 20px;
+              user-select: none;
+            }
+            .marca-agua img { max-width: 300px; opacity: 0.10; }
+            h1 {
+              font-size: 16pt;
+              font-weight: 700;
+              color: #0f172a;
+              border-left: 6px solid #22d3ee;
+              padding-left: 12px;
+              margin-top: 24px;
+              margin-bottom: 12px;
+              text-transform: uppercase;
+              page-break-after: avoid;
+            }
+            h2 {
+              font-size: 13pt;
+              font-weight: 700;
+              color: #1e293b;
+              margin-top: 16px;
+              margin-bottom: 8px;
+              page-break-after: avoid;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 12px 0;
+              font-size: 10pt;
+              page-break-inside: avoid;
+            }
+            th, td {
+              border: 1px solid #cbd5e1;
+              padding: 6px 8px;
+              text-align: left;
+              vertical-align: top;
+            }
+            th { background-color: #f1f5f9; font-weight: 700; }
+            ul, ol { padding-left: 20px; margin: 6px 0; page-break-inside: avoid; }
+            li { margin-bottom: 2px; }
+            .alerta {
+              background-color: #fee2e2;
+              border-left: 4px solid #ef4444;
+              padding: 10px 14px;
+              margin: 12px 0;
+              border-radius: 4px;
+              font-weight: 600;
+            }
+            .seccion { margin-bottom: 16px; }
+            .clearfix::after { content: ""; clear: both; display: table; }
+            .stickman-container {
+              text-align: center;
+              margin: 15px 0;
+            }
+            .stickman-container svg {
+              max-width: 200px;
+              height: auto;
+            }
+            @media print {
+              .marca-agua { opacity: 0.04; }
+              .pagina { height: auto; min-height: 100vh; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="marca-agua">CONFIDENCIAL</div>
+
+          <!-- PÁGINA 1 -->
+          <div class="pagina">
+            <div class="contenido">
+              <div class="encabezado clearfix">
+                ${logoUrl ? `<img src="${logoUrl}" class="logo" alt="Logo Centro" onerror="this.style.display='none'" />` : ''}
+                <img src="/logos_cj_circular.png" class="logo-derecho" alt="CJ Fisioterapia" onerror="this.style.display='none'" />
+                <div>
+                  <div class="titulo">Informe de Evaluación Clínica</div>
+                  <div class="subtitulo">${centroNombre}</div>
+                  <div class="datos">
+                    Paciente: ${nombrePaciente} &nbsp;|&nbsp; Fecha: ${fecha} &nbsp;|&nbsp; ID: ${evaluacion.paciente_id}
+                  </div>
+                </div>
+              </div>
+
+              <h1>1. Datos Generales</h1>
+              <table>
+                <tr><th>Campo</th><th>Valor</th></tr>
+                <tr><td>Edad</td><td>${evaluacion.edad || 'No registrado'}</td></tr>
+                <tr><td>Sexo</td><td>${evaluacion.sexo || 'No registrado'}</td></tr>
+                <tr><td>Ocupación</td><td>${evaluacion.ocupacion || 'No registrado'}</td></tr>
+                <tr><td>Teléfono</td><td>${evaluacion.telefono || 'No registrado'}</td></tr>
+                <tr><td>Dirección</td><td>${evaluacion.direccion || 'No registrado'}</td></tr>
+              </table>
+
+              <h1>2. Motivo de Consulta</h1>
+              <p><strong>Motivo principal:</strong> ${evaluacion.motivo_consulta || 'No registrado'}</p>
+              <p><strong>Tiempo de evolución:</strong> ${evaluacion.tiempo_evolucion || 'No registrado'}</p>
+              <p><strong>Mecanismo de lesión:</strong> ${evaluacion.mecanismo_lesion || 'No registrado'}</p>
+
+              <h1>3. Antecedentes</h1>
+              <table>
+                <tr><th>Antecedentes médicos</th><td>${evaluacion.antecedentes_medicos || 'No registrado'}</td></tr>
+                <tr><th>Alergias</th><td>${evaluacion.alergias || 'No registrado'}</td></tr>
+                <tr><th>Medicamentos actuales</th><td>${evaluacion.medicamentos || 'No registrado'}</td></tr>
+                <tr><th>Cirugías previas</th><td>${evaluacion.cirugias_previas || 'No registrado'}</td></tr>
+              </table>
+            </div>
+            <div class="pie">
+              Documento Clínico Confidencial - ${centroNombre} - Pág. 1
+            </div>
+          </div>
+
+          <!-- PÁGINA 2 -->
+          <div class="pagina">
+            <div class="contenido">
+              <h1>4. Evaluación del Dolor</h1>
+              <p><strong>Tipo de dolor:</strong> ${(evaluacion.tipo_dolor || []).join(', ') || 'No registrado'}</p>
+              <table>
+                <tr><th>Intensidad en reposo (EVA)</th><td>${evaluacion.intensidad_reposo || 0} / 10</td></tr>
+                <tr><th>Intensidad en actividad (EVA)</th><td>${evaluacion.intensidad_actividad || 0} / 10</td></tr>
+                <tr><th>Factores agravantes</th><td>${evaluacion.factores_agravantes || 'No registrado'}</td></tr>
+                <tr><th>Factores atenuantes</th><td>${evaluacion.factores_atenuantes || 'No registrado'}</td></tr>
+                <tr><th>Síntomas asociados</th><td>${evaluacion.sintomas_asociados || 'No registrado'}</td></tr>
+              </table>
+
+              <h1>5. Regiones Afectadas</h1>
+              <ul>
+                ${regiones.map(r => `<li>${formatearNombreRegion(r)}</li>`).join('')}
+              </ul>
+
+              <div class="stickman-container">
+                <h2>Mapa corporal del dolor</h2>
+                ${stickmanSVG}
+                <p style="font-size: 8pt; color: #64748b;">Las zonas en rojo indican las regiones afectadas</p>
+              </div>
+
+              <h1>6. Evaluación por Región</h1>
+              ${regiones.map(region => {
+                const data = datosRegiones[region] || {};
+                return `
+                  <div class="seccion">
+                    <h2>${formatearNombreRegion(region)}</h2>
+                    <table>
+                      <tr><th>EVA</th><td>${data.eva !== undefined ? data.eva + '/10' : 'No registrado'}</td></tr>
+                      <tr><th>ROM (grados)</th><td>${data.rom || 'No registrado'}</td></tr>
+                      <tr><th>Tests realizados</th><td>${(data.tests || []).join(', ') || 'Ninguno'}</td></tr>
+                      <tr><th>Observaciones</th><td>${data.observaciones || 'Ninguna'}</td></tr>
+                      <tr><th>Notas adicionales</th><td>${data.notas || 'Ninguna'}</td></tr>
+                    </table>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+            <div class="pie">
+              Documento Clínico Confidencial - ${centroNombre} - Pág. 2
+            </div>
+          </div>
+
+          <!-- PÁGINA 3 -->
+          <div class="pagina">
+            <div class="contenido">
+              <h1>7. Análisis Clínico (IA)</h1>
+              ${evaluacion.analisis_ia ? `<p>${evaluacion.analisis_ia}</p>` : '<p>No se generó análisis con IA.</p>'}
+
+              <h1>8. Alerta de Seguridad</h1>
+              <div class="alerta">
+                ⚠️ Este informe contiene información confidencial del paciente. Solo debe ser utilizado por personal autorizado.
+              </div>
+
+              <h1>9. Datos de Generación</h1>
+              <table>
+                <tr><th>Informe generado por</th><td>${usuario}</td></tr>
+                <tr><th>Fecha de generación</th><td>${fecha}</td></tr>
+                <tr><th>Hora de generación</th><td>${hora}</td></tr>
+                <tr><th>Centro</th><td>${centroNombre}</td></tr>
+              </table>
+
+              <div style="text-align: center; margin-top: 40px; font-size: 10pt; color: #64748b;">
+                --- Fin del informe ---
+              </div>
+            </div>
+            <div class="pie">
+              Documento Clínico Confidencial - ${centroNombre} - Pág. 3
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
 
       const ventana = window.open('', '_blank', 'width=800,height=600,scrollbars=yes');
       if (ventana) {
-        // Aquí iría el contenido HTML completo (igual que antes)
-        // ...
+        ventana.document.title = `Informe Clínico - ${nombrePaciente}`;
+        ventana.document.write(contenidoHTML);
         ventana.document.close();
-        setTimeout(() => ventana.print(), 500);
+        setTimeout(() => ventana.print(), 1000);
       } else {
         alert('Por favor, permite las ventanas emergentes para generar el informe.');
       }
@@ -336,175 +714,6 @@ export default function EvaluacionPostural({ temaOscuro }) {
   const bgTarjeta = temaOscuro ? 'bg-[#0a141d] border-gray-800' : 'bg-white border-gray-200';
   const bgInput = temaOscuro ? 'bg-black/20 border-white/10 text-white' : 'bg-gray-100 border-gray-300 text-[#0f172a]';
 
-  // ========== RENDER ANAMNESIS (COMPLETO) ==========
-  const renderAnamnesis = () => (
-    <div className={`${bgTarjeta} p-6 rounded-3xl border`}>
-      <h2 className={`text-2xl font-black ${textoPrincipal} mb-4`}>📋 Anamnesis</h2>
-
-      <div className="mb-6">
-        <h3 className={`text-sm font-bold ${textoPrincipal} uppercase tracking-wider border-b border-gray-600 pb-2 mb-3`}>1. Datos Personales</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Edad</label>
-            <div className="relative">
-              <input type="number" value={evaluacion.edad} onChange={(e) => handleInputChange('edad', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} placeholder="Ej: 45" ref={(el) => (inputRefs.current['edad'] = el)} />
-              <button onClick={() => iniciarDictado('edad')} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === 'edad' ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}>🎙️</button>
-            </div>
-          </div>
-          <div>
-            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Sexo</label>
-            <select value={evaluacion.sexo} onChange={(e) => handleInputChange('sexo', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`}>
-              <option value="">Seleccionar</option>
-              <option value="Masculino">Masculino</option>
-              <option value="Femenino">Femenino</option>
-              <option value="Otro">Otro</option>
-            </select>
-          </div>
-          <div>
-            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Estado Civil</label>
-            <select value={evaluacion.estado_civil} onChange={(e) => handleInputChange('estado_civil', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`}>
-              <option value="">Seleccionar</option>
-              <option value="Soltero/a">Soltero/a</option>
-              <option value="Casado/a">Casado/a</option>
-              <option value="Divorciado/a">Divorciado/a</option>
-              <option value="Viudo/a">Viudo/a</option>
-            </select>
-          </div>
-          <div>
-            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Teléfono</label>
-            <div className="relative">
-              <input type="text" value={evaluacion.telefono} onChange={(e) => handleInputChange('telefono', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} placeholder="Ej: 987654321" ref={(el) => (inputRefs.current['telefono'] = el)} />
-              <button onClick={() => iniciarDictado('telefono')} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === 'telefono' ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}>🎙️</button>
-            </div>
-          </div>
-          <div className="md:col-span-2">
-            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Dirección</label>
-            <div className="relative">
-              <input type="text" value={evaluacion.direccion} onChange={(e) => handleInputChange('direccion', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} placeholder="Calle, número, ciudad..." ref={(el) => (inputRefs.current['direccion'] = el)} />
-              <button onClick={() => iniciarDictado('direccion')} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === 'direccion' ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}>🎙️</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="mb-6">
-        <h3 className={`text-sm font-bold ${textoPrincipal} uppercase tracking-wider border-b border-gray-600 pb-2 mb-3`}>2. Motivo de Consulta</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="md:col-span-2">
-            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Motivo principal</label>
-            <div className="relative">
-              <textarea value={evaluacion.motivo_consulta} onChange={(e) => handleInputChange('motivo_consulta', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm resize-none min-h-[60px]`} placeholder="Describe el motivo de la consulta..." ref={(el) => (inputRefs.current['motivo_consulta'] = el)} />
-              <button onClick={() => iniciarDictado('motivo_consulta')} className={`absolute right-2 top-2 p-1.5 rounded-full ${escuchando && campoActivo === 'motivo_consulta' ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}>🎙️</button>
-            </div>
-          </div>
-          <div>
-            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Tiempo de evolución</label>
-            <div className="relative">
-              <input type="text" value={evaluacion.tiempo_evolucion} onChange={(e) => handleInputChange('tiempo_evolucion', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} placeholder="Ej: 2 semanas" ref={(el) => (inputRefs.current['tiempo_evolucion'] = el)} />
-              <button onClick={() => iniciarDictado('tiempo_evolucion')} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === 'tiempo_evolucion' ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}>🎙️</button>
-            </div>
-          </div>
-          <div>
-            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Mecanismo de lesión</label>
-            <div className="relative">
-              <input type="text" value={evaluacion.mecanismo_lesion} onChange={(e) => handleInputChange('mecanismo_lesion', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} placeholder="Caída, sobrecarga, etc." ref={(el) => (inputRefs.current['mecanismo_lesion'] = el)} />
-              <button onClick={() => iniciarDictado('mecanismo_lesion')} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === 'mecanismo_lesion' ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}>🎙️</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="mb-6">
-        <h3 className={`text-sm font-bold ${textoPrincipal} uppercase tracking-wider border-b border-gray-600 pb-2 mb-3`}>3. Antecedentes</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Antecedentes médicos</label>
-            <div className="relative">
-              <input type="text" value={evaluacion.antecedentes_medicos} onChange={(e) => handleInputChange('antecedentes_medicos', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} placeholder="Diabetes, hipertensión, etc." ref={(el) => (inputRefs.current['antecedentes_medicos'] = el)} />
-              <button onClick={() => iniciarDictado('antecedentes_medicos')} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === 'antecedentes_medicos' ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}>🎙️</button>
-            </div>
-          </div>
-          <div>
-            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Alergias</label>
-            <div className="relative">
-              <input type="text" value={evaluacion.alergias} onChange={(e) => handleInputChange('alergias', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} placeholder="Medicamentos, alimentos, etc." ref={(el) => (inputRefs.current['alergias'] = el)} />
-              <button onClick={() => iniciarDictado('alergias')} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === 'alergias' ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}>🎙️</button>
-            </div>
-          </div>
-          <div>
-            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Medicamentos actuales</label>
-            <div className="relative">
-              <input type="text" value={evaluacion.medicamentos} onChange={(e) => handleInputChange('medicamentos', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} placeholder="Ibuprofeno, etc." ref={(el) => (inputRefs.current['medicamentos'] = el)} />
-              <button onClick={() => iniciarDictado('medicamentos')} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === 'medicamentos' ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}>🎙️</button>
-            </div>
-          </div>
-          <div>
-            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Cirugías previas</label>
-            <div className="relative">
-              <input type="text" value={evaluacion.cirugias_previas} onChange={(e) => handleInputChange('cirugias_previas', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} placeholder="Tipo y año" ref={(el) => (inputRefs.current['cirugias_previas'] = el)} />
-              <button onClick={() => iniciarDictado('cirugias_previas')} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === 'cirugias_previas' ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}>🎙️</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="mb-6">
-        <h3 className={`text-sm font-bold ${textoPrincipal} uppercase tracking-wider border-b border-gray-600 pb-2 mb-3`}>4. Evaluación del Dolor</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="md:col-span-2">
-            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Tipo de dolor</label>
-            <div className="flex flex-wrap gap-2">
-              {['Latido', 'Destello', 'Lanciante', 'Cortante', 'Calambre', 'Quema', 'Hormigueo', 'Sordo', 'Pesado'].map((tipo) => (
-                <label key={tipo} className="flex items-center gap-1 text-xs">
-                  <input type="checkbox" checked={(evaluacion.tipo_dolor || []).includes(tipo)} onChange={(e) => {
-                    const current = evaluacion.tipo_dolor || [];
-                    const nuevos = e.target.checked ? [...current, tipo] : current.filter(t => t !== tipo);
-                    handleInputChange('tipo_dolor', nuevos);
-                  }} className="accent-[#22d3ee]" />
-                  {tipo}
-                </label>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Intensidad (EVA) en reposo</label>
-            <input type="number" min="0" max="10" value={evaluacion.intensidad_reposo} onChange={(e) => handleInputChange('intensidad_reposo', parseInt(e.target.value) || 0)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} />
-          </div>
-          <div>
-            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Intensidad (EVA) en actividad</label>
-            <input type="number" min="0" max="10" value={evaluacion.intensidad_actividad} onChange={(e) => handleInputChange('intensidad_actividad', parseInt(e.target.value) || 0)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} />
-          </div>
-          <div className="md:col-span-2">
-            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Factores agravantes</label>
-            <div className="relative">
-              <input type="text" value={evaluacion.factores_agravantes} onChange={(e) => handleInputChange('factores_agravantes', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} placeholder="¿Qué empeora el dolor?" ref={(el) => (inputRefs.current['factores_agravantes'] = el)} />
-              <button onClick={() => iniciarDictado('factores_agravantes')} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === 'factores_agravantes' ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}>🎙️</button>
-            </div>
-          </div>
-          <div className="md:col-span-2">
-            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Factores atenuantes</label>
-            <div className="relative">
-              <input type="text" value={evaluacion.factores_atenuantes} onChange={(e) => handleInputChange('factores_atenuantes', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} placeholder="¿Qué alivia el dolor?" ref={(el) => (inputRefs.current['factores_atenuantes'] = el)} />
-              <button onClick={() => iniciarDictado('factores_atenuantes')} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === 'factores_atenuantes' ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}>🎙️</button>
-            </div>
-          </div>
-          <div className="md:col-span-2">
-            <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Síntomas asociados</label>
-            <div className="relative">
-              <input type="text" value={evaluacion.sintomas_asociados} onChange={(e) => handleInputChange('sintomas_asociados', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} placeholder="Hormigueo, debilidad, mareos..." ref={(el) => (inputRefs.current['sintomas_asociados'] = el)} />
-              <button onClick={() => iniciarDictado('sintomas_asociados')} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === 'sintomas_asociados' ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}>🎙️</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex justify-end mt-6">
-        <button onClick={() => setPaso(2)} className="px-6 py-3 bg-[#22d3ee] text-black font-black rounded-xl text-sm hover:scale-105 transition-all">Siguiente →</button>
-      </div>
-    </div>
-  );
-
-  // ========== RENDER PRINCIPAL ==========
   if (loading) {
     return <div className={`min-h-screen ${bgPrincipal} flex items-center justify-center`}><div className="animate-spin rounded-full h-10 w-10 border-4 border-[#22d3ee] border-t-transparent"></div></div>;
   }
@@ -523,11 +732,31 @@ export default function EvaluacionPostural({ temaOscuro }) {
             </span>
           </div>
         </div>
-        <div className="w-full h-2 bg-gray-700 rounded-full mb-6">
+        <div className="w-full h-1.5 bg-gray-700 rounded-full mb-3">
           <div className="h-full bg-[#22d3ee] rounded-full transition-all duration-500" style={{ width: `${(paso / 3) * 100}%` }} />
         </div>
+        <div className="flex justify-between text-[8px] text-gray-500 uppercase tracking-wider mb-4">
+          <span className={paso >= 1 ? 'text-[#22d3ee]' : ''}>1. Anamnesis</span>
+          <span className={paso >= 2 ? 'text-[#22d3ee]' : ''}>2. BodyChart</span>
+          <span className={paso >= 3 ? 'text-[#22d3ee]' : ''}>3. Evaluación</span>
+        </div>
 
-        {paso === 1 && renderAnamnesis()}
+        {paso === 1 && (
+          <div className={`${bgTarjeta} p-6 rounded-3xl border`}>
+            <h2 className={`text-2xl font-black ${textoPrincipal} mb-4`}>📋 Anamnesis</h2>
+            <AnamnesisForm
+              evaluacion={evaluacion}
+              handleInputChange={handleInputChange}
+              iniciarDictado={iniciarDictado}
+              escuchando={escuchando}
+              campoActivo={campoActivo}
+              temaOscuro={temaOscuro}
+              tipoFormulario={tipoFormulario}
+              setTipoFormulario={setTipoFormulario}
+              setPaso={setPaso}
+            />
+          </div>
+        )}
 
         {paso === 2 && (
           <div className={`${bgTarjeta} p-6 rounded-3xl border`}>
