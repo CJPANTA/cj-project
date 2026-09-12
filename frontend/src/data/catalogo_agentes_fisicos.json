@@ -1,0 +1,11 @@
+[
+  {
+    "id": "ag_001",
+    "nombre": "Ultrasonido terapéutico",
+    "indicaciones": ["tendinopatías", "bursitis", "contracturas"],
+    "contraindicaciones": ["neoplasias", "trombosis", "embarazo", "marcapasos"],
+    "fase_recomendada": ["subaguda", "crónica"],
+    "parametros_por_defecto": { "frecuencia_mhz": 1, "intensidad_w_cm2": 1.5, "tiempo_min": 8, "modo": "continuo" },
+    "descripcion": "Aplicación de ondas sonoras de alta frecuencia para generar calor profundo y promover la reparación tisular."
+  }
+]

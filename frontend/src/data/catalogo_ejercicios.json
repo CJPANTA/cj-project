@@ -1,0 +1,35 @@
+[
+  {
+    "id": "ej_001",
+    "nombre": "Estiramiento de extensores de muñeca",
+    "grupo_muscular": "Antebrazo",
+    "fase_recomendada": ["subaguda", "cronica"],
+    "contraindicaciones": ["dolor agudo > 5/10", "fractura de muñeca"],
+    "descripcion_terapeuta": "Estiramiento pasivo de los músculos extensores de la muñeca, útil para epicondilitis lateral. Se realiza con el codo extendido y la muñeca en flexión forzada.",
+    "descripcion_paciente": "Estira el brazo hacia adelante con la palma hacia arriba, toma la mano con la otra y tira suavemente hacia abajo y hacia atrás.",
+    "parametros_por_defecto": {
+      "series": 3,
+      "repeticiones": 1,
+      "duracion_segundos": 15,
+      "frecuencia": "2 veces al día"
+    },
+    "stickman_poses": [
+      {
+        "nombre": "Inicio",
+        "tronco": { "x1": 50, "y1": 22, "x2": 50, "y2": 55 },
+        "brazo_izq": { "x1": 50, "y1": 30, "x2": 30, "y2": 45 },
+        "brazo_der": { "x1": 50, "y1": 30, "x2": 70, "y2": 45 },
+        "pierna_izq": { "x1": 50, "y1": 55, "x2": 35, "y2": 85 },
+        "pierna_der": { "x1": 50, "y1": 55, "x2": 65, "y2": 85 }
+      },
+      {
+        "nombre": "Estiramiento",
+        "tronco": { "x1": 50, "y1": 22, "x2": 50, "y2": 55 },
+        "brazo_izq": { "x1": 50, "y1": 30, "x2": 20, "y2": 50 },
+        "brazo_der": { "x1": 50, "y1": 30, "x2": 80, "y2": 50 },
+        "pierna_izq": { "x1": 50, "y1": 55, "x2": 35, "y2": 85 },
+        "pierna_der": { "x1": 50, "y1": 55, "x2": 65, "y2": 85 }
+      }
+    ]
+  }
+]

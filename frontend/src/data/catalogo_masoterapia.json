@@ -1,0 +1,9 @@
+[
+  {
+    "id": "mas_001",
+    "nombre": "Fricción transversal profunda",
+    "indicaciones": ["tendinopatías", "adherencias", "fibrosis"],
+    "contraindicaciones": ["lesiones agudas", "infecciones", "neoplasias"],
+    "descripcion": "Técnica de masaje que se aplica perpendicular al eje de las fibras tendinosas para romper adherencias y estimular la reparación."
+  }
+]
