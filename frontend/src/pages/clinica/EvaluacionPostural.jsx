@@ -73,6 +73,58 @@ export default function EvaluacionPostural({ temaOscuro }) {
     recomendaciones: '',
     alertas: '',
     plan_tratamiento: '',
+    hijos: [],
+        nivel_educativo: '',
+    como_llego: '',
+    contactos_emergencia: [
+      { nombre: '', telefono: '', parentesco: '' },
+      { nombre: '', telefono: '', parentesco: '' },
+    ],
+    signos_vitales: {
+      ta_sistolica: '',
+      ta_diastolica: '',
+      fc: '',
+      fr: '',
+      temperatura: '',
+      spo2: '',
+      peso: '',
+      talla: '',
+      glucemia: '',
+      fecha_toma: '',
+          antecedentes_familiares: [],
+    antecedentes_familiares_otros: '',
+    habitos: {
+      tabaquismo: false,
+      cigarrillos_dia: '',
+      anios_tabaquismo: '',
+      alcohol: false,
+      alcohol_frecuencia: '',
+      drogas: false,
+      dependencia_medicamentos: false,
+    },
+    actividad_fisica: '',
+    nivel_deportivo: '',
+    deporte_practicado: '',
+    calidad_suenio: null,
+    estres_percibido: '',
+        gineco_obstetricos: {
+      embarazo: '',
+      lactancia: '',
+      fum: '',
+      metodo_anticonceptivo: '',
+      menopausia: '',
+      edad_menopausia: '',
+      num_embarazos: '',
+      num_partos: '',
+      num_abortos: '',
+    },
+    urologicos: {
+      visita_urologo: '',
+      hiperplasia_prostata: '',
+      medicacion_prostata: '',
+      banderas_rojas: [],
+    },
+    },
   });
 
   // ========== CARGAR CATÁLOGOS ==========
@@ -152,6 +204,13 @@ export default function EvaluacionPostural({ temaOscuro }) {
             const region = partes.slice(1).join('_');
             const campoReal = tipo === 'obs' ? 'observaciones' : 'notas';
             handleRegionDataChange(region, campoReal, transcript);
+          } else if (campoActivo.startsWith('test_')) {
+            // 🔥 NUEVO: dictado en los tests individuales
+            const partes = campoActivo.split('_');
+            // formato: test_<region>_<nombreTest>
+            const region = partes[1];
+            const testNombre = partes.slice(2).join('_');
+            handleTestDetalleChange(region, testNombre, transcript);
           } else {
             handleInputChange(campoActivo, transcript);
           }
@@ -256,6 +315,44 @@ export default function EvaluacionPostural({ temaOscuro }) {
           recomendaciones: data.datos_regiones?._recomendaciones || '',
           alertas: data.datos_regiones?._alertas || '',
           plan_tratamiento: data.datos_regiones?._plan_tratamiento || '',
+          hijos: data.datos_regiones?._hijos || [],
+                    nivel_educativo: data.datos_regiones?._nivel_educativo || '',
+          como_llego: data.datos_regiones?._como_llego || '',
+          contactos_emergencia: data.datos_regiones?._contactos_emergencia || [
+            { nombre: '', telefono: '', parentesco: '' },
+            { nombre: '', telefono: '', parentesco: '' },
+          ],
+          signos_vitales: data.datos_regiones?._signos_vitales || {
+            ta_sistolica: '',
+            ta_diastolica: '',
+            fc: '',
+            fr: '',
+            temperatura: '',
+            spo2: '',
+            peso: '',
+            talla: '',
+            glucemia: '',
+            fecha_toma: '',
+          },
+          antecedentes_familiares: data.datos_regiones?._antecedentes_familiares || [],
+          antecedentes_familiares_otros: data.datos_regiones?._antecedentes_familiares_otros || '',
+          habitos: data.datos_regiones?._habitos || {
+            tabaquismo: false, cigarrillos_dia: '', anios_tabaquismo: '',
+            alcohol: false, alcohol_frecuencia: '', drogas: false, dependencia_medicamentos: false,
+          },
+          actividad_fisica: data.datos_regiones?._actividad_fisica || '',
+          nivel_deportivo: data.datos_regiones?._nivel_deportivo || '',
+          deporte_practicado: data.datos_regiones?._deporte_practicado || '',
+          calidad_suenio: data.datos_regiones?._calidad_suenio ?? null,
+          estres_percibido: data.datos_regiones?._estres_percibido || '',
+          gineco_obstetricos: data.datos_regiones?._gineco_obstetricos || {
+            embarazo: '', lactancia: '', fum: '', metodo_anticonceptivo: '',
+            menopausia: '', edad_menopausia: '', num_embarazos: '', num_partos: '', num_abortos: '',
+          },
+          urologicos: data.datos_regiones?._urologicos || {
+            visita_urologo: '', hiperplasia_prostata: '', medicacion_prostata: '',
+            banderas_rojas: data.datos_regiones?._banderas_rojas || [],
+          },
         };
         const camposExtra = data.datos_regiones?._campos_extra || {};
         Object.keys(camposExtra).forEach(key => { evalData[key] = camposExtra[key]; });
@@ -282,6 +379,23 @@ export default function EvaluacionPostural({ temaOscuro }) {
       datos_regiones: {
         ...prev.datos_regiones,
         [region]: { ...prev.datos_regiones[region], [campo]: valor },
+      },
+    }));
+  };
+
+  // 🔥 NUEVO HANDLER: Guardar detalle individual de cada test
+  const handleTestDetalleChange = (region, testNombre, valor) => {
+    setEvaluacion(prev => ({
+      ...prev,
+      datos_regiones: {
+        ...prev.datos_regiones,
+        [region]: {
+          ...prev.datos_regiones[region],
+          tests_detalle: {
+            ...(prev.datos_regiones[region]?.tests_detalle || {}),
+            [testNombre]: valor,
+          },
+        },
       },
     }));
   };
@@ -327,7 +441,6 @@ export default function EvaluacionPostural({ temaOscuro }) {
       !e.nombre.toLowerCase().includes('movilización')
     );
 
-    // 🔥 DOBLE SALTO DE LÍNEA (\n\n) entre cada número para forzar separación
     let texto = `1. Diagnóstico sugerido: ${planEditado.diagnostico_sugerido || 'No especificado'}\n\n`;
     texto += `2. Justificación: ${planEditado.justificacion || 'No especificada'}\n\n`;
     
@@ -400,7 +513,6 @@ export default function EvaluacionPostural({ temaOscuro }) {
       if (!user) throw new Error('Usuario no autenticado');
       const { data: perfil } = await supabase.from('profiles').select('centro_id').eq('id', user.id).single();
 
-      // 🔥 MAGIA: Si el plan está visible, compilamos todo automáticamente
       let planFinal = evaluacion.plan_tratamiento;
       let recomendacionesFinal = evaluacion.recomendaciones;
       let alertasFinal = evaluacion.alertas;
@@ -410,7 +522,6 @@ export default function EvaluacionPostural({ temaOscuro }) {
         recomendacionesFinal = planEditado.recomendaciones_generales.join('\n');
         alertasFinal = planEditado.alertas_seguridad.join('\n');
         
-        // Actualizar el estado local para que coincida
         setEvaluacion(prev => ({
           ...prev,
           plan_tratamiento: planFinal,
@@ -430,6 +541,81 @@ export default function EvaluacionPostural({ temaOscuro }) {
         _recomendaciones: recomendacionesFinal,
         _alertas: alertasFinal,
         _plan_tratamiento: planFinal,
+        _diagnostico_sugerido: planEditado?.diagnostico_sugerido || '',
+        _plan_ejercicios: (planEditado?.ejercicios || []).map(nombre => {
+          const ej = catalogos.ejercicios.find(e => e.nombre === nombre);
+          const params = parametrosEjercicios[nombre] || {};
+          
+          // Inferir tipo por nombre si no está en catálogo
+          let tipoFinal = ej?.tipo;
+          if (!tipoFinal) {
+            const nombreLower = nombre.toLowerCase();
+            if (nombreLower.includes('estiramiento') || nombreLower.includes('stretching')) {
+              tipoFinal = 'estiramiento';
+            } else if (nombreLower.includes('fortalecimiento') || nombreLower.includes('puente') || 
+                       nombreLower.includes('plancha') || nombreLower.includes('isométrico') ||
+                       nombreLower.includes('activación') || nombreLower.includes('bird-dog') ||
+                       nombreLower.includes('superman') || nombreLower.includes('dead bug')) {
+              tipoFinal = 'fortalecimiento';
+            } else if (nombreLower.includes('movilidad') || nombreLower.includes('rotación') ||
+                       nombreLower.includes('alfabeto')) {
+              tipoFinal = 'movilidad';
+            } else {
+              tipoFinal = 'general';
+            }
+          }
+          
+          // Inferir posición por nombre
+          let posicionFinal = ej?.posicion;
+          if (!posicionFinal) {
+            const nombreLower = nombre.toLowerCase();
+            if (nombreLower.includes('decúbito prono') || nombreLower.includes('prono') || 
+                nombreLower.includes('superman') || nombreLower.includes('plancha')) {
+              posicionFinal = 'prono';
+            } else if (nombreLower.includes('decúbito supino') || nombreLower.includes('supino') ||
+                       nombreLower.includes('boca arriba') || nombreLower.includes('puente') ||
+                       nombreLower.includes('dead bug')) {
+              posicionFinal = 'supino';
+            } else if (nombreLower.includes('cuadrupedia') || nombreLower.includes('bird-dog') ||
+                       nombreLower.includes('cuadrúpede')) {
+              posicionFinal = 'cuadrupedia';
+            } else if (nombreLower.includes('sentado') || nombreLower.includes('sedente') ||
+                       nombreLower.includes('cervical')) {
+              posicionFinal = 'sedente';
+            } else {
+              posicionFinal = 'bipedo';
+            }
+          }
+          
+          return {
+            id: ej?.id || '',
+            nombre: nombre,
+            tipo: tipoFinal,
+            posicion: posicionFinal,
+            zonas_aplicables: ej?.zonas_aplicables || [],
+            descripcion_paciente: ej?.descripcion_paciente || '',
+            series: params.series || 3,
+            repeticiones: params.repeticiones || 10,
+            frecuencia: params.frecuencia || 'diaria',
+            duracion_segundos: params.duracion_segundos || null,
+          };
+        }),
+        _hijos: evaluacion.hijos || [],
+        _nivel_educativo: evaluacion.nivel_educativo || '',
+        _como_llego: evaluacion.como_llego || '',
+        _contactos_emergencia: evaluacion.contactos_emergencia || [],
+        _signos_vitales: evaluacion.signos_vitales || {},
+        _antecedentes_familiares: evaluacion.antecedentes_familiares || [],
+        _antecedentes_familiares_otros: evaluacion.antecedentes_familiares_otros || '',
+        _habitos: evaluacion.habitos || {},
+        _actividad_fisica: evaluacion.actividad_fisica || '',
+        _nivel_deportivo: evaluacion.nivel_deportivo || '',
+        _deporte_practicado: evaluacion.deporte_practicado || '',
+        _calidad_suenio: evaluacion.calidad_suenio,
+        _estres_percibido: evaluacion.estres_percibido || '',
+        _gineco_obstetricos: evaluacion.gineco_obstetricos || {},
+        _urologicos: evaluacion.urologicos || {},
+        _banderas_rojas: evaluacion.banderas_rojas || [],
       };
 
       const datos = {
@@ -529,6 +715,9 @@ export default function EvaluacionPostural({ temaOscuro }) {
       'inf': 'Inferior', 'sup': 'Superior',
       'prox': 'Proximal', 'dist': 'Distal',
       'ilion': 'Ilion', 'isquion': 'Isquion', 'gluteo': 'Glúteo',
+      'coxis': 'Coxis', 'carpo': 'Carpo', 'metacarpo': 'Metacarpo',
+      'falanges_prox': 'Falanges Proximales', 'falanges_dist': 'Falanges Distales',
+      'pulgar': 'Pulgar', 'eminencia_tenar': 'Eminencia Tenar',
     };
 
     let resultado = nombre;
@@ -575,7 +764,11 @@ export default function EvaluacionPostural({ temaOscuro }) {
         regiones_afectadas: evaluacion.regiones.map(r => formatearNombreRegion(r)).join(', '),
         datos_por_region: evaluacion.regiones.map(r => {
           const data = evaluacion.datos_regiones[r] || {};
-          return `${formatearNombreRegion(r)}: EVA ${data.eva || 'N/A'}/10, ROM ${data.rom || 'N/A'}°, Tests: ${(data.tests || []).join(', ') || 'Ninguno'}`;
+          const testsConDetalle = (data.tests || []).map(t => {
+            const detalle = data.tests_detalle?.[t];
+            return detalle ? `${t} (${detalle})` : t;
+          }).join(', ');
+          return `${formatearNombreRegion(r)}: EVA ${data.eva || 'N/A'}/10, ROM ${data.rom || 'N/A'}°, Tests: ${testsConDetalle || 'Ninguno'}`;
         }).join('; '),
       };
 
@@ -710,468 +903,6 @@ Reglas: Solo usa agentes, técnicas y ejercicios del catálogo. Sé conservador 
     }));
   };
 
-  // ============================================================
-  // GENERAR INFORME (CORREGIDO: PUNTO 5 EN TABLA, 7 Y 8 CON LISTAS, 9 CON ALERTAS)
-  // ============================================================
-  const generarInforme = async () => {
-    if (evaluacion.regiones.length === 0) {
-      alert('No hay regiones seleccionadas para generar el informe.');
-      return;
-    }
-
-    setGenerandoInforme(true);
-    try {
-      const { data: pacienteData } = await supabase
-        .from('pacientes')
-        .select('*')
-        .eq('id', pacienteId)
-        .single();
-
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: perfil } = await supabase
-        .from('profiles')
-        .select('nombre_completo, centro_id, titulo_profesional, numero_colegiatura')
-        .eq('id', user.id)
-        .single();
-
-      let centroNombre = 'Centro CJ';
-      let logoUrl = '';
-      if (perfil?.centro_id) {
-        const { data: centro } = await supabase
-          .from('centros')
-          .select('nombre, logo_url')
-          .eq('id', perfil.centro_id)
-          .single();
-        if (centro) {
-          centroNombre = centro.nombre || 'Centro CJ';
-          logoUrl = centro.logo_url || '';
-        }
-        if (!logoUrl) {
-          const publicLogo = `/logo_centros/${perfil.centro_id}.png`;
-          try {
-            const response = await fetch(publicLogo);
-            if (response.ok) logoUrl = publicLogo;
-          } catch (e) {}
-        }
-      }
-
-      const nombrePaciente = pacienteData ? `${pacienteData.nombre} ${pacienteData.apellidos}` : 'Paciente';
-      const fecha = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
-      const hora = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-      const usuario = perfil?.nombre_completo || 'Usuario';
-      const titulo = perfil?.titulo_profesional || '';
-      const colegiatura = perfil?.numero_colegiatura || '';
-      
-      let credenciales = '';
-      if (titulo && colegiatura) {
-        credenciales = `${titulo} - Nº Colegiatura: ${colegiatura}`;
-      } else if (titulo) {
-        credenciales = titulo;
-      } else if (colegiatura) {
-        credenciales = `Nº Colegiatura: ${colegiatura}`;
-      }
-
-      const regiones = evaluacion.regiones || [];
-      const datosRegiones = evaluacion.datos_regiones || {};
-      const recomendaciones = evaluacion.recomendaciones || '';
-      const alertas = evaluacion.alertas || '';
-      const planTratamiento = evaluacion.plan_tratamiento || '';
-
-      // ============================================================
-      // 🔥 PUNTO 5: REGIONES AFECTADAS - TABLA EN COLUMNAS (EXCEL)
-      // ============================================================
-      const zonas = {
-        'Cabeza y Cuello': ['cabeza', 'cuello', 'nuca', 'cervical'],
-        'Tronco': ['torax', 'pecho', 'espalda', 'abdomen', 'lumbar', 'dorsal', 'clavicula', 'trapecio', 'escapula'],
-        'Miembro Superior': ['hombro', 'brazo', 'antebrazo', 'mano', 'muneca', 'codo', 'biceps', 'triceps', 'olecranon', 'deltoides', 'manguito', 'acromion'],
-        'Miembro Inferior': ['pierna', 'muslo', 'rodilla', 'rotula', 'gemelo', 'tobillo', 'pie', 'talon', 'cuadriceps', 'isquiotibial', 'soleo', 'tendon_aquiles', 'tibial', 'poplitea', 'lca', 'lcp', 'lcm', 'lcl', 'menisco'],
-        'Pelvis': ['pelvis', 'cadera', 'sacro', 'pubis', 'gluteo', 'ilion', 'isquion'],
-        'Otras': [],
-      };
-      const zonasKeys = Object.keys(zonas);
-      const regionesPorZona = {};
-      zonasKeys.forEach(z => regionesPorZona[z] = []);
-      
-      regiones.forEach(r => {
-        let asignada = false;
-        for (const [zona, keywords] of Object.entries(zonas)) {
-          if (zona === 'Otras') continue;
-          if (keywords.some(k => r.includes(k))) {
-            regionesPorZona[zona].push(r);
-            asignada = true;
-            break;
-          }
-        }
-        if (!asignada) {
-          regionesPorZona['Otras'].push(r);
-        }
-      });
-
-      const maxItems = Math.max(...Object.values(regionesPorZona).map(arr => arr.length), 1);
-      let regionesColumnasHTML = '<table border="1" cellpadding="4" cellspacing="0" style="width:100%; border-collapse:collapse; font-size:9pt; margin: 4px 0;">';
-      regionesColumnasHTML += '<tr>';
-      zonasKeys.forEach(zona => {
-        regionesColumnasHTML += `<th style="background:#f1f5f9; font-weight:700; text-align:center; padding:4px;">${zona}</th>`;
-      });
-      regionesColumnasHTML += '</tr>';
-      for (let i = 0; i < maxItems; i++) {
-        regionesColumnasHTML += '<tr>';
-        zonasKeys.forEach(zona => {
-          const items = regionesPorZona[zona] || [];
-          const nombre = items[i] ? formatearNombreRegion(items[i]) : '';
-          regionesColumnasHTML += `<td style="text-align:center; padding:4px; vertical-align:top;">${nombre}</td>`;
-        });
-        regionesColumnasHTML += '</tr>';
-      }
-      regionesColumnasHTML += '</table>';
-
-      // ============================================================
-      // STICKMAN (Anterior / Posterior)
-      // ============================================================
-      const esPosterior = (r) => {
-        const postRegions = ['nuca', 'espalda', 'sacro', 'gluteo', 'poplitea', 'lumbar', 'dorsal', 'escapula', 'trapecio', 'post'];
-        if (postRegions.some(p => r.includes(p))) return true;
-        return false;
-      };
-      const esAnterior = (r) => !esPosterior(r);
-      const regionesAnteriores = regiones.filter(esAnterior);
-      const regionesPosteriores = regiones.filter(esPosterior);
-
-      const generarStickman = (regionesVista, titulo) => {
-        if (regionesVista.length === 0) return '';
-        const centroides = {
-          cabeza: { cx: 100, cy: 30 }, cuello: { cx: 100, cy: 50 }, nuca: { cx: 100, cy: 50 },
-          torax: { cx: 100, cy: 85 }, pecho: { cx: 100, cy: 85 }, espalda: { cx: 100, cy: 85 },
-          hombro_izq: { cx: 75, cy: 45 }, hombro_der: { cx: 125, cy: 45 },
-          brazo_izq: { cx: 60, cy: 80 }, brazo_der: { cx: 140, cy: 80 },
-          biceps: { cx: 60, cy: 80 }, biceps_izq: { cx: 60, cy: 80 }, biceps_der: { cx: 140, cy: 80 },
-          codo: { cx: 60, cy: 105 }, codo_izq: { cx: 60, cy: 105 }, codo_der: { cx: 140, cy: 105 },
-          antebrazo: { cx: 60, cy: 125 }, antebrazo_izq: { cx: 60, cy: 125 }, antebrazo_der: { cx: 140, cy: 125 },
-          muneca: { cx: 60, cy: 145 }, muneca_izq: { cx: 60, cy: 145 }, muneca_der: { cx: 140, cy: 145 },
-          mano: { cx: 60, cy: 155 }, mano_izq: { cx: 60, cy: 155 }, mano_der: { cx: 140, cy: 155 },
-          pelvis: { cx: 100, cy: 145 }, cadera: { cx: 100, cy: 145 },
-          sacro: { cx: 100, cy: 145 }, pubis: { cx: 100, cy: 155 },
-          pierna_izq: { cx: 80, cy: 200 }, pierna_der: { cx: 120, cy: 200 },
-          cuadriceps: { cx: 80, cy: 200 }, cuadriceps_izq: { cx: 80, cy: 200 }, cuadriceps_der: { cx: 120, cy: 200 },
-          isquiotibial: { cx: 80, cy: 200 }, isquiotibiales: { cx: 80, cy: 200 },
-          rodilla_izq: { cx: 80, cy: 235 }, rodilla_der: { cx: 120, cy: 235 },
-          rotula: { cx: 80, cy: 235 }, rotula_izq: { cx: 80, cy: 235 }, rotula_der: { cx: 120, cy: 235 },
-          gemelo: { cx: 80, cy: 260 }, gemelo_izq: { cx: 80, cy: 260 }, gemelo_der: { cx: 120, cy: 260 },
-          tobillo: { cx: 80, cy: 280 }, tobillo_izq: { cx: 80, cy: 280 }, tobillo_der: { cx: 120, cy: 280 },
-          pie_izq: { cx: 75, cy: 295 }, pie_der: { cx: 125, cy: 295 },
-          acromion: { cx: 75, cy: 45 }, acromion_izq: { cx: 75, cy: 45 }, acromion_der: { cx: 125, cy: 45 },
-          deltoides: { cx: 75, cy: 55 }, deltoides_ant: { cx: 75, cy: 55 }, deltoides_post: { cx: 75, cy: 55 },
-          manguito: { cx: 75, cy: 60 }, manguito_ant: { cx: 75, cy: 60 }, manguito_post: { cx: 75, cy: 60 },
-          clavicula_izq: { cx: 90, cy: 40 }, clavicula_der: { cx: 110, cy: 40 },
-          trapecio_izq: { cx: 90, cy: 45 }, trapecio_der: { cx: 110, cy: 45 },
-          escapula_izq: { cx: 90, cy: 55 }, escapula_der: { cx: 110, cy: 55 },
-          lumbar: { cx: 100, cy: 100 }, cervical: { cx: 100, cy: 30 }, dorsal: { cx: 100, cy: 50 },
-          poplitea_izq: { cx: 80, cy: 195 }, poplitea_der: { cx: 120, cy: 195 },
-          lca: { cx: 80, cy: 195 }, lcp: { cx: 80, cy: 195 },
-          menisco_med: { cx: 80, cy: 195 }, menisco_lat: { cx: 120, cy: 195 },
-        };
-        const puntosHTML = regionesVista.map(r => {
-          let coords = centroides[r];
-          if (!coords) {
-            const baseKey = r.split('_')[0];
-            coords = centroides[baseKey];
-          }
-          if (!coords) coords = { cx: 100, cy: 100 };
-          return `<circle cx="${coords.cx}" cy="${coords.cy}" r="5" fill="#ef4444" stroke="#fff" stroke-width="1.5"/>`;
-        }).join('');
-        const siluetaPaths = `
-          <path d="M 87,22 C 87,7 113,7 113,22 C 113,34 107,42 105,46 C 106,50 112,52 115,55 L 85,55 C 88,52 94,50 95,46 C 93,42 87,34 87,22 Z"/>
-          <path d="M 85,55 C 98,58 115,55 115,55 C 122,68 118,98 112,120 L 88,120 C 82,98 78,68 85,55 Z"/>
-          <path d="M 115,55 C 126,55 132,60 129,71 C 123,73 117,67 115,55 Z"/>
-          <path d="M 85,55 C 74,55 68,60 71,71 C 77,73 83,67 85,55 Z"/>
-          <path d="M 129,71 C 138,83 134,112 130,142 C 128,154 123,154 120,142 C 118,112 121,88 116,73 C 119,69 125,69 129,71 Z"/>
-          <path d="M 71,71 C 62,83 66,112 70,142 C 72,154 77,154 80,142 C 82,112 79,88 84,73 C 81,69 75,69 71,71 Z"/>
-          <path d="M 120,142 L 130,142 C 131,148 133,156 131,163 C 129,167 124,167 121,160 C 119,152 119,146 120,142 Z"/>
-          <path d="M 80,142 L 70,142 C 69,148 67,156 69,163 C 71,167 76,167 79,160 C 81,152 81,146 80,142 Z"/>
-          <path d="M 88,120 L 112,120 C 116,136 114,154 106,168 L 100,172 L 94,168 C 86,154 84,136 88,120 Z"/>
-          <path d="M 103,172 L 108,168 C 120,185 121,210 114,235 C 111,245 113,268 111,288 L 103,288 C 104,268 107,245 105,235 C 107,210 105,185 103,172 Z"/>
-          <path d="M 97,172 L 92,168 C 80,185 79,210 86,235 C 89,245 87,268 89,288 L 97,288 C 96,268 93,245 95,235 C 93,210 95,185 97,172 Z"/>
-          <path d="M 103,288 L 111,288 C 115,294 119,303 113,308 C 107,311 101,304 103,288 Z"/>
-          <path d="M 97,288 L 89,288 C 85,294 81,303 87,308 C 93,311 99,304 97,288 Z"/>
-        `;
-        return `
-          <div style="text-align:center; margin: 5px 0;">
-            <h3 style="font-size:11pt; margin: 3px 0;">${titulo}</h3>
-            <svg viewBox="0 0 200 320" width="140" height="224" xmlns="http://www.w3.org/2000/svg" style="max-width:160px; height:auto;">
-              <defs><linearGradient id="bodyGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#f8fafc"/><stop offset="100%" stopColor="#e2e8f0"/></linearGradient></defs>
-              <g fill="url(#bodyGrad)" stroke="#94a3b8" stroke-width="1.2" opacity="0.8">${siluetaPaths}</g>
-              ${puntosHTML}
-            </svg>
-          </div>
-        `;
-      };
-
-      const stickmanAnterior = generarStickman(regionesAnteriores, 'Vista Anterior');
-      const stickmanPosterior = generarStickman(regionesPosteriores, 'Vista Posterior');
-
-      // ============================================================
-      // 🔥 PUNTO 6: EVALUACIÓN POR REGIÓN (Muestra el test real)
-      // ============================================================
-      const tablaRegiones = regiones.map(region => {
-        const data = datosRegiones[region] || {};
-        const nombreFormateado = formatearNombreRegion(region);
-        const eva = data.eva !== undefined ? `${data.eva}/10` : '—';
-        const rom = data.rom || '—';
-        const tests = (data.tests && data.tests.length > 0) ? data.tests.join(', ') : '—';
-        const obs = data.observaciones || '—';
-        const notas = data.notas || '—';
-        return { region: nombreFormateado, eva, rom, tests, obs, notas };
-      });
-
-      const tablaHTML = tablaRegiones.map(row => `
-        <tr>
-          <td style="font-weight:600;">${row.region}</td>
-          <td>${row.eva}</td>
-          <td>${row.rom}</td>
-          <td>${row.tests}</td>
-          <td>${row.obs}</td>
-          <td>${row.notas}</td>
-        </tr>
-      `).join('');
-
-      // ============================================================
-      // 🔥 PUNTO 7: RECOMENDACIONES (Lista numerada 1., 2., 3.)
-      // ============================================================
-      const recomLines = recomendaciones.split('\n').filter(line => line.trim() !== '');
-      let recomendacionesHTML = '<div style="font-size:9pt; line-height:1.5;">';
-      if (recomLines.length > 0) {
-        recomLines.forEach((line, idx) => {
-          recomendacionesHTML += `<div style="margin-bottom: 2px;">${idx+1}. ${line}</div>`;
-        });
-      } else {
-        recomendacionesHTML += '<span class="campo-vacio">No se han registrado recomendaciones.</span>';
-      }
-      recomendacionesHTML += '</div>';
-
-      // ============================================================
-      // 🔥 PUNTO 8: PLAN DE TRATAMIENTO (Forzar saltos de línea con white-space: pre-wrap)
-      // ============================================================
-      let planHTML = '<div style="font-size:9pt; line-height:1.6; font-family: \'Calibri\', \'Roboto\', Arial, sans-serif; white-space: pre-wrap;">';
-      if (planTratamiento) {
-        // Reemplazar \n por saltos de línea reales (el white-space: pre-wrap los respeta)
-        planHTML += planTratamiento;
-      } else {
-        planHTML += '<span class="campo-vacio">No se ha registrado un plan de tratamiento.</span>';
-      }
-      planHTML += '</div>';
-
-      // ============================================================
-      // 🔥 PUNTO 9: ALERTAS DE SEGURIDAD (ESPECÍFICAS + GENERAL)
-      // ============================================================
-      const alertLines = alertas.split('\n').filter(line => line.trim() !== '');
-      let alertasHTML = '<div style="font-size:9pt; margin-bottom: 8px;">';
-      alertasHTML += '<strong>9.1 Alertas Clínicas Específicas:</strong>';
-      alertasHTML += '<div style="white-space:pre-wrap; margin-top: 4px; padding: 6px; background: #fef2f2; border-radius: 4px;">';
-      if (alertLines.length > 0) {
-        alertLines.forEach(line => {
-          alertasHTML += `<div>• ${line}</div>`;
-        });
-      } else {
-        alertasHTML += '<span class="campo-vacio">No se han registrado alertas específicas.</span>';
-      }
-      alertasHTML += '</div></div>';
-      alertasHTML += `<div class="alerta">⚠️ Este informe contiene información confidencial del paciente. Solo debe ser utilizado por personal autorizado.</div>`;
-
-      // ===== CONTENIDO HTML DEL INFORME (ESTRUCTURA COMPLETA) =====
-      const contenidoHTML = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <title>Informe Clínico - ${nombrePaciente}</title>
-          <style>
-            @page { size: A4; margin: 1.5cm 1.5cm 1cm 1.5cm; }
-            * { box-sizing: border-box; }
-            body {
-              font-family: 'Calibri', 'Roboto', Arial, sans-serif;
-              font-size: 10pt;
-              line-height: 1.4;
-              color: #1e293b;
-              background: white;
-              margin: 0;
-              padding: 0;
-            }
-            .pagina { display: flex; flex-direction: column; height: 100vh; padding: 0; page-break-after: always; position: relative; }
-            .pagina:last-child { page-break-after: avoid; }
-            .contenido { flex: 1; padding-bottom: 15px; }
-            .encabezado {
-              text-align: center;
-              border-bottom: 2px solid #22d3ee;
-              padding-bottom: 8px;
-              margin-bottom: 15px;
-              position: relative;
-              min-height: 70px;
-            }
-            .encabezado .logo { max-width: 60px; max-height: 60px; float: left; margin-right: 12px; }
-            .encabezado .logo-derecho { max-width: 50px; max-height: 50px; float: right; margin-left: 12px; }
-            .encabezado .titulo { font-size: 16pt; font-weight: 700; color: #0f172a; text-transform: uppercase; letter-spacing: 1px; }
-            .encabezado .subtitulo { font-size: 9pt; color: #64748b; }
-            .encabezado .datos { font-size: 8pt; color: #475569; margin-top: 3px; }
-            .pie {
-              text-align: center;
-              font-size: 8pt;
-              color: #94a3b8;
-              border-top: 1px solid #e2e8f0;
-              padding-top: 6px;
-              margin-top: auto;
-              width: 100%;
-            }
-            .marca-agua {
-              position: fixed;
-              top: 0; left: 0; right: 0; bottom: 0;
-              display: flex;
-              justify-content: center;
-              align-items: center;
-              pointer-events: none;
-              z-index: 1000;
-              opacity: 0.04;
-              font-size: 80pt;
-              font-weight: 900;
-              color: #22d3ee;
-              transform: rotate(-30deg);
-              text-transform: uppercase;
-              letter-spacing: 20px;
-              user-select: none;
-            }
-            h1 { font-size: 13pt; font-weight: 700; color: #0f172a; border-left: 4px solid #22d3ee; padding-left: 10px; margin-top: 14px; margin-bottom: 6px; text-transform: uppercase; page-break-after: avoid; }
-            table { width: 100%; border-collapse: collapse; margin: 4px 0; font-size: 9pt; page-break-inside: avoid; }
-            th, td { border: 1px solid #cbd5e1; padding: 3px 5px; text-align: left; vertical-align: top; }
-            th { background-color: #f1f5f9; font-weight: 700; }
-            .alerta { background-color: #fee2e2; border-left: 4px solid #ef4444; padding: 5px 10px; margin: 6px 0; border-radius: 3px; font-weight: 600; font-size: 9pt; }
-            .stickman-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin: 8px 0; }
-            .stickman-container > div { flex: 0 1 auto; text-align: center; }
-            .firma { margin-top: 25px; border-top: 1px solid #94a3b8; padding-top: 8px; text-align: right; font-size: 10pt; }
-            .campo-vacio { color: #94a3b8; font-style: italic; }
-            @media print { .marca-agua { opacity: 0.03; } .pagina { height: auto; min-height: 100vh; } }
-          </style>
-        </head>
-        <body>
-          <div class="marca-agua">CONFIDENCIAL</div>
-
-          <!-- PÁGINA 1 -->
-          <div class="pagina">
-            <div class="contenido">
-              <div class="encabezado clearfix">
-                ${logoUrl ? `<img src="${logoUrl}" class="logo" alt="Logo Centro" onerror="this.style.display='none'" />` : ''}
-                <img src="/logos_cj_circular.png" class="logo-derecho" alt="CJ Fisioterapia" onerror="this.style.display='none'" />
-                <div>
-                  <div class="titulo">Informe de Evaluación Clínica</div>
-                  <div class="subtitulo">${centroNombre}</div>
-                  <div class="datos">Paciente: ${nombrePaciente} &nbsp;|&nbsp; Fecha: ${fecha} &nbsp;|&nbsp; ID: ${evaluacion.paciente_id}</div>
-                </div>
-              </div>
-              <h1>1. Datos Generales</h1>
-              <table>
-                <tr><th>Campo</th><th>Valor</th></tr>
-                ${evaluacion.edad ? `<tr><td>Edad</td><td>${evaluacion.edad}</td></tr>` : ''}
-                ${evaluacion.sexo ? `<tr><td>Sexo</td><td>${evaluacion.sexo}</td></tr>` : ''}
-                ${evaluacion.ocupacion ? `<tr><td>Ocupación</td><td>${evaluacion.ocupacion}</td></tr>` : ''}
-                ${evaluacion.telefono ? `<tr><td>Teléfono</td><td>${evaluacion.telefono}</td></tr>` : ''}
-                ${evaluacion.direccion ? `<tr><td>Dirección</td><td>${evaluacion.direccion}</td></tr>` : ''}
-              </table>
-              <h1>2. Motivo de Consulta</h1>
-              ${evaluacion.motivo_consulta ? `<p><strong>Motivo principal:</strong> ${evaluacion.motivo_consulta}</p>` : ''}
-              ${evaluacion.tiempo_evolucion ? `<p><strong>Tiempo de evolución:</strong> ${evaluacion.tiempo_evolucion}</p>` : ''}
-              ${evaluacion.mecanismo_lesion ? `<p><strong>Mecanismo de lesión:</strong> ${evaluacion.mecanismo_lesion}</p>` : ''}
-              <h1>3. Antecedentes</h1>
-              <table>
-                ${evaluacion.antecedentes_medicos ? `<tr><th>Antecedentes médicos</th><td>${evaluacion.antecedentes_medicos}</td></tr>` : ''}
-                ${evaluacion.alergias ? `<tr><th>Alergias</th><td>${evaluacion.alergias}</td></tr>` : ''}
-                ${evaluacion.medicamentos ? `<tr><th>Medicamentos actuales</th><td>${evaluacion.medicamentos}</td></tr>` : ''}
-                ${evaluacion.cirugias_previas ? `<tr><th>Cirugías previas</th><td>${evaluacion.cirugias_previas}</td></tr>` : ''}
-              </table>
-            </div>
-            <div class="pie">Documento Clínico Confidencial - ${centroNombre} - Pág. 1</div>
-          </div>
-
-          <!-- PÁGINA 2 -->
-          <div class="pagina">
-            <div class="contenido">
-              <h1>4. Evaluación del Dolor</h1>
-              ${evaluacion.tipo_dolor && evaluacion.tipo_dolor.length > 0 ? `<p><strong>Tipo de dolor:</strong> ${evaluacion.tipo_dolor.join(', ')}</p>` : ''}
-              <table>
-                <tr><th>Intensidad en reposo (EVA)</th><td>${evaluacion.intensidad_reposo || 0} / 10</td></tr>
-                <tr><th>Intensidad en actividad (EVA)</th><td>${evaluacion.intensidad_actividad || 0} / 10</td></tr>
-                ${evaluacion.factores_agravantes ? `<tr><th>Factores agravantes</th><td>${evaluacion.factores_agravantes}</td></tr>` : ''}
-                ${evaluacion.factores_atenuantes ? `<tr><th>Factores atenuantes</th><td>${evaluacion.factores_atenuantes}</td></tr>` : ''}
-                ${evaluacion.sintomas_asociados ? `<tr><th>Síntomas asociados</th><td>${evaluacion.sintomas_asociados}</td></tr>` : ''}
-              </table>
-
-              <h1>5. Regiones Afectadas</h1>
-              ${regionesColumnasHTML}
-              
-              <div class="stickman-container">
-                ${stickmanAnterior}
-                ${stickmanPosterior}
-                <p style="width:100%; text-align:center; font-size:8pt; color:#64748b; margin:0;">Los puntos rojos indican las regiones afectadas</p>
-              </div>
-
-              <h1>6. Evaluación por Región</h1>
-              <table>
-                <thead>
-                  <tr><th style="width:22%;">Región</th><th style="width:8%;">EVA</th><th style="width:10%;">ROM</th><th style="width:18%;">Tests</th><th style="width:22%;">Observaciones</th><th style="width:20%;">Notas</th></tr>
-                </thead>
-                <tbody>${tablaHTML}</tbody>
-              </table>
-            </div>
-            <div class="pie">Documento Clínico Confidencial - ${centroNombre} - Pág. 2</div>
-          </div>
-
-          <!-- PÁGINA 3 -->
-          <div class="pagina">
-            <div class="contenido">
-              <h1>7. Recomendaciones Generales</h1>
-              ${recomendacionesHTML}
-
-              <h1>8. Plan de Tratamiento</h1>
-              ${planHTML}
-
-              <h1>9. Alertas de Seguridad</h1>
-              ${alertasHTML}
-
-              <h1>10. Datos de Generación</h1>
-              <table>
-                <tr><th>Informe generado por</th><td>${usuario}</td></tr>
-                <tr><th>Fecha de generación</th><td>${fecha}</td></tr>
-                <tr><th>Hora de generación</th><td>${hora}</td></tr>
-                <tr><th>Centro</th><td>${centroNombre}</td></tr>
-              </table>
-
-              <div class="firma">
-                <p>Firma del terapeuta: ________________________</p>
-                <p style="font-size:8pt; color:#94a3b8;">${usuario}</p>
-                ${credenciales ? `<p style="font-size:8pt; color:#64748b;">${credenciales}</p>` : ''}
-              </div>
-              <div style="text-align: center; margin-top: 15px; font-size: 9pt; color: #64748b;">--- Fin del informe ---</div>
-            </div>
-            <div class="pie">Documento Clínico Confidencial - ${centroNombre} - Pág. 3</div>
-          </div>
-        </body>
-        </html>
-      `;
-
-      const ventana = window.open('', '_blank', 'width=800,height=600,scrollbars=yes');
-      if (ventana) {
-        ventana.document.title = `Informe Clínico - ${nombrePaciente}`;
-        ventana.document.write(contenidoHTML);
-        ventana.document.close();
-        setTimeout(() => ventana.print(), 1000);
-      } else {
-        alert('Por favor, permite las ventanas emergentes para generar el informe.');
-      }
-    } catch (error) {
-      console.error('Error al generar informe:', error);
-      alert('Error al generar el informe: ' + error.message);
-    } finally {
-      setGenerandoInforme(false);
-    }
-  };
-
   // ========== ESTILOS ==========
   const bgPrincipal = temaOscuro ? 'bg-[#0a141d]' : 'bg-[#e2e8f0]';
   const textoPrincipal = temaOscuro ? 'text-white' : 'text-[#0f172a]';
@@ -1255,7 +986,7 @@ Reglas: Solo usa agentes, técnicas y ejercicios del catálogo. Sé conservador 
               <div className="space-y-8 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
                 {evaluacion.regiones.map((region) => {
                   const data = evaluacion.datos_regiones[region] || {};
-                  const tests = TESTS_POR_REGION[region] || ['Test no específico'];
+                  const tests = TESTS_POR_REGION[region] || ['Test realizado (escribir cuál)'];
                   const rangos = RANGOS_ROM[region] || {};
                   return (
                     <div key={region} className={`p-5 rounded-2xl border ${temaOscuro ? 'border-gray-700' : 'border-gray-200'} shadow-sm`}>
@@ -1281,25 +1012,83 @@ Reglas: Solo usa agentes, técnicas y ejercicios del catálogo. Sé conservador 
                           </div>
                         )}
                       </div>
+
+                      {/* 🔥 BLOQUE ACTUALIZADO: Tests con detalle individual */}
                       <div className="mb-4">
                         <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Tests especiales</label>
-                        <div className="grid grid-cols-2 gap-2">
-                          {tests.map((test) => (
-                            <label key={test} className="flex items-center gap-2 text-sm">
-                              <input type="checkbox" checked={(data.tests || []).includes(test)} onChange={(e) => {
-                                const current = data.tests || [];
-                                const nuevos = e.target.checked ? [...current, test] : current.filter(t => t !== test);
-                                handleRegionDataChange(region, 'tests', nuevos);
-                              }} className="accent-[#22d3ee] w-4 h-4" />
-                              <span className={`${textoPrincipal} text-xs`}>{test}</span>
-                            </label>
-                          ))}
+                        <div className="space-y-2">
+                          {tests.map((test) => {
+                            const checked = (data.tests || []).includes(test);
+                            const testDetalle = data.tests_detalle?.[test] || '';
+                            return (
+                              <div key={test} className={`p-2 rounded-xl border ${temaOscuro ? 'border-white/10 bg-black/10' : 'border-gray-200 bg-gray-50'}`}>
+                                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={(e) => {
+                                      const current = data.tests || [];
+                                      const nuevos = e.target.checked ? [...current, test] : current.filter(t => t !== test);
+                                      handleRegionDataChange(region, 'tests', nuevos);
+                                      if (!e.target.checked) {
+                                        const nuevosDetalles = { ...(data.tests_detalle || {}) };
+                                        delete nuevosDetalles[test];
+                                        setEvaluacion(prev => ({
+                                          ...prev,
+                                          datos_regiones: {
+                                            ...prev.datos_regiones,
+                                            [region]: { ...prev.datos_regiones[region], tests_detalle: nuevosDetalles },
+                                          },
+                                        }));
+                                      }
+                                    }}
+                                    className="accent-[#22d3ee] w-4 h-4"
+                                  />
+                                  <span className={`${textoPrincipal} text-xs font-medium`}>{test}</span>
+                                </label>
+                                {checked && (
+                                  <div className="relative mt-2">
+                                    <input
+                                      type="text"
+                                      placeholder="Resultado / detalle del test (ej: positivo, dolor irradiado...)"
+                                      value={testDetalle}
+                                      onChange={(e) => handleTestDetalleChange(region, test, e.target.value)}
+                                      className={`w-full ${bgInput} border p-2 rounded-lg outline-none focus:border-[#22d3ee] transition-all text-xs pr-10`}
+                                    />
+                                    <button
+                                      onClick={() => iniciarDictado(`test_${region}_${test}`)}
+                                      className={`absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full ${escuchando && campoActivo === `test_${region}_${test}` ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}
+                                      title="Dictar por voz"
+                                    >
+                                      🎙️
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
-                        <div className="relative mt-2">
-                          <input type="text" placeholder="Observaciones del test..." value={data.observaciones || ''} onChange={(e) => handleRegionDataChange(region, 'observaciones', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm pr-10`} ref={(el) => { if (el) inputRefs.current[`obs_${region}`] = el; }} />
-                          <button onClick={() => iniciarDictado(`obs_${region}`)} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === `obs_${region}` ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}>🎙️</button>
+                        
+                        {/* Observaciones generales de la región (separadas) */}
+                        <div className="relative mt-3">
+                          <label className={`block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1`}>Observaciones adicionales de la región</label>
+                          <input
+                            type="text"
+                            placeholder="Observaciones generales..."
+                            value={data.observaciones || ''}
+                            onChange={(e) => handleRegionDataChange(region, 'observaciones', e.target.value)}
+                            className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm pr-10`}
+                            ref={(el) => { if (el) inputRefs.current[`obs_${region}`] = el; }}
+                          />
+                          <button
+                            onClick={() => iniciarDictado(`obs_${region}`)}
+                            className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === `obs_${region}` ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}
+                          >
+                            🎙️
+                          </button>
                         </div>
                       </div>
+
                       <div className="relative">
                         <input type="text" placeholder="Notas adicionales..." value={data.notas || ''} onChange={(e) => handleRegionDataChange(region, 'notas', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm pr-10`} ref={(el) => { if (el) inputRefs.current[`notas_${region}`] = el; }} />
                         <button onClick={() => iniciarDictado(`notas_${region}`)} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === `notas_${region}` ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}>🎙️</button>
@@ -1310,7 +1099,7 @@ Reglas: Solo usa agentes, técnicas y ejercicios del catálogo. Sé conservador 
               </div>
             )}
 
-            {/* ===== SECCIÓN DE GENERACIÓN DEL PLAN (SIN BOTÓN DE MEMORIA) ===== */}
+            {/* ===== SECCIÓN DE GENERACIÓN DEL PLAN ===== */}
             <div className="mt-6 border-t border-gray-700 pt-6">
               <button
                 onClick={generarPlan}

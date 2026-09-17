@@ -14,6 +14,10 @@ export default function VistaGeneral({
     const selected = regionesSeleccionadas?.includes(regionId) || false;
     const isMacroRegion = isMacro || false;
 
+    // Color según estado: seleccionado > macrorregión > normal
+    const colorCirculo = selected ? '#22d3ee' : (isMacroRegion ? '#facc15' : '#475569');
+    const colorPunto = selected ? '#22d3ee' : (isMacroRegion ? '#facc15' : '#94a3b8');
+
     return (
       <g
         onClick={() => {
@@ -31,16 +35,16 @@ export default function VistaGeneral({
           cy={y}
           r="4.5"
           fill="transparent"
-          stroke={selected ? '#22d3ee' : (isMacroRegion ? '#facc15' : '#475569')}
+          stroke={colorCirculo}
           strokeWidth="1.2"
           className="group-hover:stroke-[#38bdf8] transition-all duration-200"
-          opacity={selected ? "1" : (isMacroRegion ? "0.7" : "0.4")}
+          opacity={selected ? "1" : (isMacroRegion ? "0.9" : "0.4")}
         />
         <circle
           cx={x}
           cy={y}
           r="1.8"
-          fill={selected ? '#22d3ee' : (isMacroRegion ? '#facc15' : '#94a3b8')}
+          fill={colorPunto}
         />
         <text
           x={x}
@@ -108,7 +112,7 @@ export default function VistaGeneral({
           <Hotspot x={74} y={110} regionId="brazo_der" label="Brazo D" isMacro={true} />
         </g>
 
-        {/* MANOS (Forma anatómica sin aspecto de guante de box) */}
+        {/* MANOS */}
         <g>
           <path className="region-base" onClick={() => onSeleccionarRegion('mano_izq')} 
                 d="M 120,142 L 130,142 C 131,148 133,156 131,163 C 129,167 124,167 121,160 C 119,152 119,146 120,142 Z" />
@@ -118,6 +122,11 @@ export default function VistaGeneral({
           <Hotspot x={75} y={154} regionId="mano_der" label="Mano D" isMacro={true} />
         </g>
 
+        {/* COLUMNA (NUEVO HOTSPOT EN LA LÍNEA MEDIA) */}
+        <g>
+          <Hotspot x={100} y={105} regionId="columna" label="Columna" isMacro={true} />
+        </g>
+
         {/* PELVIS Y CADERA */}
         <g>
           <path className="region-base" onClick={() => onSeleccionarRegion('pelvis')} 
@@ -125,12 +134,10 @@ export default function VistaGeneral({
           <Hotspot x={100} y={145} regionId="pelvis" label="Pelvis" isMacro={true} />
         </g>
 
-        {/* PIERNAS (Separadas, con volumen muscular natural y sin verse como fideos) */}
+        {/* PIERNAS */}
         <g>
-          {/* Pierna Izquierda */}
           <path className="region-base" onClick={() => onSeleccionarRegion('pierna_izq')} 
                 d="M 103,172 L 108,168 C 120,185 121,210 114,235 C 111,245 113,268 111,288 L 103,288 C 104,268 107,245 105,235 C 107,210 105,185 103,172 Z" />
-          {/* Pierna Derecha */}
           <path className="region-base" onClick={() => onSeleccionarRegion('pierna_der')} 
                 d="M 97,172 L 92,168 C 80,185 79,210 86,235 C 89,245 87,268 89,288 L 97,288 C 96,268 93,245 95,235 C 93,210 95,185 97,172 Z" />
           
@@ -140,7 +147,7 @@ export default function VistaGeneral({
           <Hotspot x={92} y={248} regionId="rodilla_der" label="Rodilla D" isMacro={true} />
         </g>
 
-        {/* PIES (Separados y con forma anatómica orientada al frente/afuera) */}
+        {/* PIES */}
         <g>
           <path className="region-base" onClick={() => onSeleccionarRegion('pie_izq')} 
                 d="M 103,288 L 111,288 C 115,294 119,303 113,308 C 107,311 101,304 103,288 Z" />

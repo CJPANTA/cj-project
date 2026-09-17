@@ -1,18 +1,18 @@
 // src/components/clinica/BodyChart/BodyChartContainer.jsx
 import { useState } from 'react';
-import { VISTAS } from './regionesConfig';
 
 import VistaGeneral from './vistas/VistaGeneral';
 import VistaCabeza from './vistas/VistaCabeza';
 import VistaTorax from './vistas/VistaTorax';
 import VistaPelvis from './vistas/VistaPelvis';
 import VistaBrazo from './vistas/VistaBrazo';
-import VistaMano from './vistas/VistaMano'; // Asegúrate de tener este import
+import VistaMano from './vistas/VistaMano';
 import VistaPierna from './vistas/VistaPierna';
 import VistaPie from './vistas/VistaPie';
 import VistaHombro from './vistas/VistaHombro';
 import VistaRodilla from './vistas/VistaRodilla';
 import VistaLumbar from './vistas/VistaLumbar';
+import VistaColumna from './vistas/VistaColumna';
 
 export default function BodyChartContainer({
   regionesSeleccionadas = [],
@@ -25,13 +25,17 @@ export default function BodyChartContainer({
 
   const MAPA_VISTAS = {
     cabeza: 'cabeza',
+    cuello: 'cabeza',
+    nuca: 'cabeza',
     torax: 'torax',
+    columna: 'columna',
+    lumbar: 'columna',
     pelvis: 'pelvis',
     cadera: 'pelvis',
     brazo_izq: 'brazo_izq',
     brazo_der: 'brazo_der',
-    mano_izq: 'mano_izq',     // <-- Añadido
-    mano_der: 'mano_der',     // <-- Añadido
+    mano_izq: 'mano_izq',
+    mano_der: 'mano_der',
     pierna_izq: 'pierna_izq',
     pierna_der: 'pierna_der',
     pie_izq: 'pie_izq',
@@ -40,7 +44,6 @@ export default function BodyChartContainer({
     hombro_der: 'hombro_der',
     rodilla_izq: 'rodilla_izq',
     rodilla_der: 'rodilla_der',
-    lumbar: 'lumbar',
   };
 
   const seleccionarRegion = (regionId) => {
@@ -84,12 +87,14 @@ export default function BodyChartContainer({
         return <VistaCabeza cara={cara} onRegionToggle={onRegionToggle} regionesSeleccionadas={regionesSeleccionadas} />;
       case 'torax':
         return <VistaTorax cara={cara} onRegionToggle={onRegionToggle} regionesSeleccionadas={regionesSeleccionadas} />;
+      case 'columna':
+        return <VistaColumna cara={cara} onRegionToggle={onRegionToggle} regionesSeleccionadas={regionesSeleccionadas} />;
       case 'pelvis':
         return <VistaPelvis cara={cara} onRegionToggle={onRegionToggle} regionesSeleccionadas={regionesSeleccionadas} />;
       case 'brazo':
         return <VistaBrazo cara={cara} lado={lado} onRegionToggle={onRegionToggle} regionesSeleccionadas={regionesSeleccionadas} />;
-      case 'mano':                                                                                                                      // <-- Añadido
-        return <VistaMano cara={cara} lado={lado} onRegionToggle={onRegionToggle} regionesSeleccionadas={regionesSeleccionadas} />;       // <-- Añadido
+      case 'mano':
+        return <VistaMano cara={cara} lado={lado} onRegionToggle={onRegionToggle} regionesSeleccionadas={regionesSeleccionadas} />;
       case 'pierna':
         return <VistaPierna cara={cara} lado={lado} onRegionToggle={onRegionToggle} regionesSeleccionadas={regionesSeleccionadas} />;
       case 'pie':
@@ -99,7 +104,7 @@ export default function BodyChartContainer({
       case 'rodilla':
         return <VistaRodilla cara={cara} lado={lado} onRegionToggle={onRegionToggle} regionesSeleccionadas={regionesSeleccionadas} />;
       case 'lumbar':
-        return <VistaLumbar cara={cara} lado={lafdo} onRegionToggle={onRegionToggle} regionesSeleccionadas={regionesSeleccionadas} />;
+        return <VistaLumbar cara={cara} onRegionToggle={onRegionToggle} regionesSeleccionadas={regionesSeleccionadas} />;
       default:
         return <div className="text-gray-400 text-center p-4">Vista no disponible para "{vistaDetalle}"</div>;
     }
@@ -116,7 +121,7 @@ export default function BodyChartContainer({
             cara === 'anterior' ? 'bg-[#22d3ee] text-black shadow-lg shadow-[#22d3ee]/30' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
           }`}
         >
-          👤 Anterior
+          Anterior
         </button>
         <button
           onClick={() => setCara('posterior')}
@@ -124,12 +129,15 @@ export default function BodyChartContainer({
             cara === 'posterior' ? 'bg-[#22d3ee] text-black shadow-lg shadow-[#22d3ee]/30' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
           }`}
         >
-          🔙 Posterior
+          Posterior
         </button>
       </div>
 
       {vistaDetalle && (
-        <button onClick={volverCuerpoEntero} className="mb-4 text-[#22d3ee] text-xs font-bold flex items-center gap-1 hover:underline transition-all">
+        <button
+          onClick={volverCuerpoEntero}
+          className="mb-4 text-[#22d3ee] text-xs font-bold flex items-center gap-1 hover:underline transition-all"
+        >
           ← Volver al cuerpo completo
         </button>
       )}

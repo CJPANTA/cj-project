@@ -92,7 +92,7 @@ export default function VistaTorax({ cara, regionesSeleccionadas, onRegionToggle
                   d="M 305,110 C 280,105 240,115 230,125 C 240,160 255,185 270,200 C 290,160 305,130 305,110 Z" />
 
             {/* COLUMNA DORSAL / VERTEBRAL */}
-            <path className="region" onClick={() => onRegionToggle('columna_dorsal')} 
+            <path className="region" onClick={() => onRegionToggle('dorsal')} 
                   d="M 195,160 L 205,160 L 205,375 L 195,375 Z" />
 
             {/* DORSAL ANCHO (Forma en "V" de la espalda baja) */}
@@ -106,7 +106,7 @@ export default function VistaTorax({ cara, regionesSeleccionadas, onRegionToggle
             <Hotspot x={260} y={90} regionId="trapecio_der" label="Trapecio D" />
             <Hotspot x={135} y={150} regionId="escapula_izq" label="Escápula I" />
             <Hotspot x={265} y={150} regionId="escapula_der" label="Escápula D" />
-            <Hotspot x={200} y={260} regionId="columna_dorsal" label="Columna" />
+            <Hotspot x={200} y={260} regionId="dorsal" label="Columna Dorsal" />
             <Hotspot x={160} y={280} regionId="dorsal_ancho_izq" label="Dorsal I" />
             <Hotspot x={240} y={280} regionId="dorsal_ancho_der" label="Dorsal D" />
           </g>
