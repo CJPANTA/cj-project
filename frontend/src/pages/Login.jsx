@@ -39,14 +39,14 @@ export default function Login() {
   const esHibrido = rolDeseado === 4;
   const esAdminCentro = rolDeseado === 7;
 
-  const requiereCTMP = esLicenciado || esHibrido || (esAdminCentro && tipoProfesionalAdmin === 'licenciado');
+    const requiereCTMP = esLicenciado || ((esHibrido || esAdminCentro) && tipoProfesionalAdmin === 'licenciado');
   const requiereRegistroInterno = esAdminCentro && tipoProfesionalAdmin === 'tecnico';
   const requiereDireccionCentro = esAdminCentro;
 
   const derivarTipoProfesional = () => {
     if (esEstudiante) return 'estudiante';
     if (esLicenciado) return 'licenciado';
-    if (esHibrido) return 'licenciado';
+    if (esHibrido) return tipoProfesionalAdmin; // ← Ahora respeta la elección
     if (esAdminCentro) return tipoProfesionalAdmin;
     return null;
   };
@@ -250,14 +250,19 @@ export default function Login() {
                 </select>
               </div>
 
-              {/* TIPO PROFESIONAL SOLO PARA ADMIN CENTRO */}
-              {esAdminCentro && (
+              {/* TIPO PROFESIONAL PARA HÍBRIDO Y ADMIN CENTRO */}
+              {(esAdminCentro || esHibrido) && (
                 <div>
                   <label className={labelClass}>Tipo de Profesional *</label>
                   <select value={tipoProfesionalAdmin} onChange={(e) => setTipoProfesionalAdmin(e.target.value)} className={`${inputClass} cursor-pointer`}>
                     <option value="licenciado">Licenciado en Fisioterapia (con CTMP)</option>
-                    <option value="tecnico">Técnico en Fisioterapia (sin CTMP)</option>
+                    <option value="tecnico">Técnico en Fisioterapia (con DNI)</option>
                   </select>
+                  <p className="text-[9px] text-gray-500 mt-1">
+                    {tipoProfesionalAdmin === 'licenciado'
+                      ? 'Firmará informes como Lic. T.M. Fisioterapia con su CTMP.'
+                      : 'Firmará como Técnico en Fisioterapia con su DNI.'}
+                  </p>
                 </div>
               )}
 
