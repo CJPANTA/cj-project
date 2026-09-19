@@ -39,7 +39,7 @@ export default function Login() {
   const esHibrido = rolDeseado === 4;
   const esAdminCentro = rolDeseado === 7;
 
-    const requiereCTMP = esLicenciado || ((esHibrido || esAdminCentro) && tipoProfesionalAdmin === 'licenciado');
+  const requiereCTMP = esLicenciado || ((esHibrido || esAdminCentro) && tipoProfesionalAdmin === 'licenciado');
   const requiereRegistroInterno = esAdminCentro && tipoProfesionalAdmin === 'tecnico';
   const requiereDireccionCentro = esAdminCentro;
 
@@ -278,7 +278,7 @@ export default function Login() {
                   </div>
                   <div className="col-span-2">
                     <label className={labelClass}>Número *</label>
-                    <input type="text" placeholder="Ej: 45063406" value={numeroDocumento} onChange={(e) => setNumeroDocumento(e.target.value)} className={inputClass} required />
+                    <input type="text" placeholder="Ej: 00000000" value={numeroDocumento} onChange={(e) => setNumeroDocumento(e.target.value)} className={inputClass} required />
                   </div>
                 </div>
               )}
@@ -287,7 +287,7 @@ export default function Login() {
               {requiereCTMP && (
                 <div>
                   <label className={labelClass}>CTMP (Colegio Tecnólogo Médico) *</label>
-                  <input type="text" placeholder="Ej: 12345" value={ctmp} onChange={(e) => setCtmp(e.target.value)} className={inputClass} required />
+                  <input type="text" placeholder="Ej: 00000" value={ctmp} onChange={(e) => setCtmp(e.target.value)} className={inputClass} required />
                   <p className="text-[9px] text-gray-500 mt-1">Número de colegiatura del Colegio Tecnólogo Médico del Perú.</p>
                 </div>
               )}
