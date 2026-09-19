@@ -144,6 +144,21 @@ const svgEjercicio = (posicion) => {
 };
 
 // ============================================================
+// CORRECCIÓN DE TYPOS DE LA IA
+// ============================================================
+const corregirTypos = (texto) => {
+  if (!texto) return texto;
+  return texto
+    .replace(/Estimamientos/gi, 'Estiramientos')
+    .replace(/estimamiento/gi, 'estiramiento')
+    .replace(/Susponder/gi, 'Suspender')
+    .replace(/susponder/gi, 'suspender')
+    .replace(/Lumbalgia mecanica/gi, 'Lumbalgia mecánica')
+    .replace(/Aplicaciòn/gi, 'Aplicación')
+    .replace(/aplicaciòn/gi, 'aplicación');
+};
+
+// ============================================================
 // FUNCIÓN PRINCIPAL
 // ============================================================
 export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'borrador') {
@@ -164,18 +179,27 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
   const { data: { user } } = await supabase.auth.getUser();
   const { data: perfil } = await supabase
     .from('profiles')
-    .select('nombre_completo, centro_id, titulo_profesional, numero_colegiatura, dni')
+    .select('nombre_completo, centro_id, titulo_profesional, numero_colegiatura, dni, tipo_profesional, tipo_documento, registro_interno')
     .eq('id', user.id)
     .single();
+
+  // ============================================================
+  // DETECTAR TIPO DE PROFESIONAL Y TIPO DE CENTRO
+  // ============================================================
+  const tipoProfesional = perfil?.tipo_profesional || 'licenciado';
+  const esLicenciado = tipoProfesional === 'licenciado';
+  const firmaComoTecnico = !esLicenciado;
 
   let centroNombre = 'Centro CJ';
   let centroTelefono = '';
   let centroDireccion = '';
   let logoUrl = '';
+  let tipoCentro = 'gimnasio_terapeutico';
+
   if (perfil?.centro_id) {
     const { data: centro } = await supabase
       .from('centros')
-      .select('nombre, logo_url, telefono, direccion')
+      .select('nombre, logo_url, telefono, direccion, tipo_centro')
       .eq('id', perfil.centro_id)
       .single();
     if (centro) {
@@ -183,8 +207,14 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
       centroTelefono = centro.telefono || '';
       centroDireccion = centro.direccion || '';
       logoUrl = centro.logo_url || '';
+      tipoCentro = centro.tipo_centro || 'gimnasio_terapeutico';
     }
   }
+
+  const esGimnasioTerapeutico = tipoCentro === 'gimnasio_terapeutico';
+  const subtituloTipoCentro = esGimnasioTerapeutico
+    ? 'Gimnasio Terapéutico'
+    : 'Centro Fisioterapéutico';
 
   const nombrePaciente = pacienteData ? `${pacienteData.nombre} ${pacienteData.apellidos}` : 'Paciente';
   const fecha = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -192,23 +222,25 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
   const titulo = perfil?.titulo_profesional || '';
   const colegiatura = perfil?.numero_colegiatura || '';
   const dni = perfil?.dni || '';
+  const registroInterno = perfil?.registro_interno || '';
 
+  // ============================================================
+  // FIRMA SEGÚN TIPO PROFESIONAL
+  // ============================================================
   let credenciales = '';
-  const tituloLower = titulo.toLowerCase();
-  if (tituloLower.includes('licenciado') || tituloLower.includes('lic.')) {
-    credenciales = colegiatura ? `${titulo} — C.T.M.P. Nº ${colegiatura}` : titulo;
-  } else if (tituloLower.includes('técnico') || tituloLower.includes('tecnico') || tituloLower.includes('tec.')) {
-    credenciales = dni ? `${titulo} — DNI: ${dni}` : titulo;
-  } else if (titulo) {
-    credenciales = titulo;
-    if (colegiatura) credenciales += ` — C.T.M.P. Nº ${colegiatura}`;
-    else if (dni) credenciales += ` — DNI: ${dni}`;
+  if (firmaComoTecnico) {
+    if (dni) credenciales = `Técnico en Fisioterapia y Rehabilitación — DNI: ${dni}`;
+    else if (registroInterno) credenciales = `Técnico en Fisioterapia — Registro Interno: ${registroInterno}`;
+    else credenciales = titulo || 'Técnico en Fisioterapia';
+  } else {
+    if (colegiatura) credenciales = `Lic. T.M. Fisioterapia — C.T.M.P. N° ${colegiatura}`;
+    else if (titulo) credenciales = titulo;
   }
 
   const datosRegiones = evaluacion.datos_regiones || {};
-  const diagnostico = datosRegiones._diagnostico_sugerido || '';
-  const recomendaciones = datosRegiones._recomendaciones || '';
-  const alertas = datosRegiones._alertas || '';
+  const diagnostico = corregirTypos(datosRegiones._diagnostico_sugerido || '');
+  const recomendaciones = corregirTypos(datosRegiones._recomendaciones || '');
+  const alertas = corregirTypos(datosRegiones._alertas || '');
   const planEjercicios = datosRegiones._plan_ejercicios || [];
 
   let badgeEstado = '';
@@ -219,6 +251,11 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
   } else if (estadoEvaluacion === 'rechazado') {
     badgeEstado = `<div class="badge badge-rechazado">VISTA PREVIA — Evaluación rechazada</div>`;
   }
+
+  // ===== BADGE DEL TIPO DE CENTRO =====
+  const badgeCentroHTML = esGimnasioTerapeutico
+    ? `<div style="display:inline-block; padding:3px 10px; background:#fef3c7; color:#78350f; font-size:8pt; font-weight:700; border-radius:4px; letter-spacing:1px; text-transform:uppercase; margin:4px 0;">🏋️ Gimnasio Terapéutico</div>`
+    : `<div style="display:inline-block; padding:3px 10px; background:#dbeafe; color:#1e40af; font-size:8pt; font-weight:700; border-radius:4px; letter-spacing:1px; text-transform:uppercase; margin:4px 0;">🏥 Centro Fisioterapéutico</div>`;
 
   // ===== AGRUPAR POR TIPO =====
   const TIPOS = [
@@ -253,9 +290,9 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
                 ${svgEjercicio(posicion)}
               </div>
               <div class="ejercicio-detalle">
-                <div class="ejercicio-nombre">${ej.nombre}</div>
+                <div class="ejercicio-nombre">${corregirTypos(ej.nombre)}</div>
                 <div class="ejercicio-posicion">Posición: ${getIconoPosicion(posicion)}</div>
-                ${ej.descripcion_paciente ? `<div class="ejercicio-desc">${ej.descripcion_paciente}</div>` : ''}
+                ${ej.descripcion_paciente ? `<div class="ejercicio-desc">${corregirTypos(ej.descripcion_paciente)}</div>` : ''}
                 <div class="ejercicio-params">
                   ${params.map(p => `<span class="param-tag">${p}</span>`).join('')}
                 </div>
@@ -284,6 +321,15 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
   } else {
     alertasHTML = '<p class="campo-vacio">Sin alertas específicas.</p>';
   }
+
+  // ===== AVISO LEGAL SEGÚN TIPO PROFESIONAL =====
+  const avisoLegalHTML = firmaComoTecnico
+    ? `<div style="background:#fef3c7; border-left:4px solid #f59e0b; padding:10px 14px; border-radius:6px; margin-top:20px; font-size:9pt; color:#78350f;">
+        <strong>AVISO:</strong> Este documento es una evaluación funcional y un plan de ejercicios terapéuticos elaborado por un Técnico en Fisioterapia y Rehabilitación. NO constituye diagnóstico clínico ni prescripción médica. Para diagnóstico o prescripción, consulte con un <strong>Lic. T.M. Fisioterapia</strong>.
+      </div>`
+    : `<div style="background:#dbeafe; border-left:4px solid #3b82f6; padding:10px 14px; border-radius:6px; margin-top:20px; font-size:9pt; color:#1e40af;">
+        <strong>Documento confidencial.</strong> Este plan de ejercicios forma parte del tratamiento fisioterapéutico. Consérvelo y tráigalo a su próxima cita.
+      </div>`;
 
   const contenidoHTML = `
     <!DOCTYPE html>
@@ -352,7 +398,7 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
         .recomendaciones-lista li { margin-bottom: 6px; }
         .alertas-lista { list-style: none; padding-left: 0; }
         .alertas-lista li { padding: 8px 12px; margin-bottom: 6px; background: #fef2f2; border-left: 3px solid #ef4444; border-radius: 4px; font-size: 10pt; }
-        .alertas-lista li::before { content: "⚠ "; color: #ef4444; font-weight: 700; }
+        .alertas-lista li::before { content: "! "; color: #ef4444; font-weight: 700; }
         table.seguimiento { width: 100%; border-collapse: collapse; font-size: 9.5pt; margin: 10px 0; }
         table.seguimiento th, table.seguimiento td { border: 1px solid #cbd5e1; padding: 8px 10px; text-align: left; }
         table.seguimiento th { background: #f1f5f9; font-weight: 700; text-align: center; }
@@ -381,6 +427,7 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
             <div>
               <div class="titulo">Plan de Ejercicios y Cuidados en Casa</div>
               <div class="subtitulo">${centroNombre}</div>
+              <div style="text-align:center;">${badgeCentroHTML}</div>
               <div class="datos">Paciente: ${nombrePaciente} &nbsp;|&nbsp; Fecha: ${fecha}</div>
             </div>
           </div>
@@ -443,13 +490,15 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
           </div>
 
           <div class="firma-box">
-            <p style="font-size:10pt; margin-bottom:2px;">Firma del terapeuta:</p>
+            <p style="font-size:10pt; margin-bottom:2px;">Firma del profesional:</p>
             <div class="firma-linea">${usuario}</div>
             ${credenciales ? `<p style="font-size:9pt; color:#64748b; margin-top:4px;">${credenciales}</p>` : ''}
           </div>
 
+          ${avisoLegalHTML}
+
           <div class="contacto-centro">
-            <strong>${centroNombre}</strong>
+            <strong>${centroNombre}</strong> — ${subtituloTipoCentro}
             ${centroTelefono ? `<br/>Teléfono: ${centroTelefono}` : ''}
             ${centroDireccion ? `<br/>Dirección: ${centroDireccion}` : ''}
           </div>

@@ -15,6 +15,14 @@ export default function Login() {
   const [cargando, setCargando] = useState(false);
   const navigate = useNavigate();
 
+  // ===== CAMPOS NUEVOS SEGÚN ROL =====
+  const [tipoDocumento, setTipoDocumento] = useState('DNI');       // DNI | CE
+  const [numeroDocumento, setNumeroDocumento] = useState('');      // Nº del DNI/CE
+  const [ctmp, setCtmp] = useState('');                            // Colegio Tecnólogo Médico
+  const [registroInterno, setRegistroInterno] = useState('');      // Registro interno (técnicos)
+  const [direccionCentro, setDireccionCentro] = useState('');      // Para Admin Centro
+  const [tipoProfesionalAdmin, setTipoProfesionalAdmin] = useState('licenciado'); // licenciado | tecnico
+
   const mostrarError = (texto) => {
     setError(texto);
     setTimeout(() => setError(''), 4000);
@@ -22,18 +30,34 @@ export default function Login() {
 
   const mostrarMensaje = (texto) => {
     setMensaje(texto);
-    setTimeout(() => setMensaje(''), 4000);
+    setTimeout(() => setMensaje(''), 5000);
   };
 
+  // ===== VALIDACIÓN DINÁMICA =====
+  const esEstudiante = rolDeseado === 2;
+  const esLicenciado = rolDeseado === 3;
+  const esHibrido = rolDeseado === 4;
+  const esAdminCentro = rolDeseado === 7;
+
+  const requiereCTMP = esLicenciado || esHibrido || (esAdminCentro && tipoProfesionalAdmin === 'licenciado');
+  const requiereRegistroInterno = esAdminCentro && tipoProfesionalAdmin === 'tecnico';
+  const requiereDireccionCentro = esAdminCentro;
+
+  const derivarTipoProfesional = () => {
+    if (esEstudiante) return 'estudiante';
+    if (esLicenciado) return 'licenciado';
+    if (esHibrido) return 'licenciado';
+    if (esAdminCentro) return tipoProfesionalAdmin;
+    return null;
+  };
+
+  // ===== LOGIN =====
   const handleLogin = async (e) => {
     e.preventDefault();
     setCargando(true);
     setError('');
 
-    const { data, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
 
     if (authError) {
       mostrarError('Credenciales incorrectas');
@@ -60,26 +84,40 @@ export default function Login() {
     navigate('/');
   };
 
-  // ============================================================
-  // handleRegister ACTUALIZADO (siguiendo la auditoría)
-  // ============================================================
+  // ===== REGISTRO =====
   const handleRegister = async (e) => {
     e.preventDefault();
     setCargando(true);
     setError('');
 
-    // Enviar todos los datos complementarios empaquetados en los metadatos de Auth
+    // Validaciones mínimas
+    if (!nombreCompleto.trim()) { mostrarError('Ingresa tu nombre completo'); setCargando(false); return; }
+    if (!email.trim()) { mostrarError('Ingresa tu correo'); setCargando(false); return; }
+    if (password.length < 6) { mostrarError('La contraseña debe tener al menos 6 caracteres'); setCargando(false); return; }
+    if (esEstudiante || esLicenciado || esHibrido || esAdminCentro) {
+      if (!numeroDocumento.trim()) { mostrarError('Ingresa tu número de documento'); setCargando(false); return; }
+    }
+    if (requiereCTMP && !ctmp.trim()) { mostrarError('Ingresa tu número de CTMP'); setCargando(false); return; }
+    if (requiereRegistroInterno && !registroInterno.trim()) { mostrarError('Ingresa tu registro interno del centro'); setCargando(false); return; }
+
+    // 1) Crear usuario en Auth con metadata (para que el trigger cree el profile)
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
-          name: nombreCompleto,           // Nombre completo
-          telefono: telefono || '',        // Teléfono (opcional)
-          rol: Number(rolDeseado),         // Rol seleccionado en el formulario
-          estado: 'pendiente'              // Estado inicial para aprobación
-        }
-      }
+          name: nombreCompleto,
+          telefono: telefono || '',
+          rol: Number(rolDeseado),
+          estado: 'pendiente',
+          tipo_profesional: derivarTipoProfesional(),
+          tipo_documento: tipoDocumento,
+          dni: numeroDocumento,
+          numero_colegiatura: ctmp || null,
+          registro_interno: registroInterno || null,
+          direccion_centro: direccionCentro || null,
+        },
+      },
     });
 
     if (signUpError) {
@@ -88,15 +126,30 @@ export default function Login() {
       return;
     }
 
+    // 2) Actualizar el profile por si el trigger no capturó los campos nuevos
+    if (data?.user?.id) {
+      await supabase
+        .from('profiles')
+        .update({
+          tipo_profesional: derivarTipoProfesional(),
+          tipo_documento: tipoDocumento,
+          dni: numeroDocumento,
+          numero_colegiatura: ctmp || null,
+          registro_interno: registroInterno || null,
+          direccion_centro: direccionCentro || null,
+          telefono: telefono || null,
+        })
+        .eq('id', data.user.id);
+    }
+
     mostrarMensaje('Registro solicitado con éxito. Espera la aprobación del Director.');
 
-    // Limpiar el formulario después del registro
+    // Limpiar
     setEsRegistro(false);
-    setEmail('');
-    setPassword('');
-    setNombreCompleto('');
-    setTelefono('');
-    setRolDeseado(2);
+    setEmail(''); setPassword(''); setNombreCompleto(''); setTelefono('');
+    setRolDeseado(2); setTipoDocumento('DNI'); setNumeroDocumento('');
+    setCtmp(''); setRegistroInterno(''); setDireccionCentro('');
+    setTipoProfesionalAdmin('licenciado');
     setCargando(false);
   };
 
@@ -163,119 +216,122 @@ export default function Login() {
             <form onSubmit={handleLogin} className="space-y-5">
               <div>
                 <label className={labelClass}>Correo Electrónico</label>
-                <input
-                  type="email"
-                  placeholder="tu@ejemplo.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className={inputClass}
-                  required
-                />
+                <input type="email" placeholder="tu@ejemplo.com" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} required />
               </div>
               <div>
                 <label className={labelClass}>Contraseña</label>
                 <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Tu contraseña"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className={`${inputClass} pr-10`}
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-white transition-colors"
-                  >
+                  <input type={showPassword ? 'text' : 'password'} placeholder="Tu contraseña" value={password} onChange={(e) => setPassword(e.target.value)} className={`${inputClass} pr-10`} required />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-white transition-colors">
                     {showPassword ? <EyeSlashIcon /> : <EyeIcon />}
                   </button>
                 </div>
               </div>
-              <button
-                type="submit"
-                disabled={cargando}
-                className="w-full mt-2 bg-[#22d3ee] text-black font-black uppercase py-3 rounded-xl hover:bg-[#1bc1da] transition-all active:scale-95 text-xs tracking-widest shadow-[0_0_15px_rgba(34,211,238,0.3)] disabled:opacity-50"
-              >
+              <button type="submit" disabled={cargando} className="w-full mt-2 bg-[#22d3ee] text-black font-black uppercase py-3 rounded-xl hover:bg-[#1bc1da] transition-all active:scale-95 text-xs tracking-widest shadow-[0_0_15px_rgba(34,211,238,0.3)] disabled:opacity-50">
                 {cargando ? 'Accediendo...' : 'Entrar al Sistema'}
               </button>
             </form>
           ) : (
             <form onSubmit={handleRegister} className="space-y-4">
+              {/* NOMBRE */}
               <div>
-                <label className={labelClass}>Nombre Completo</label>
-                <input
-                  type="text"
-                  placeholder="Ej: Jorge Luis Chiroque"
-                  value={nombreCompleto}
-                  onChange={(e) => setNombreCompleto(e.target.value)}
-                  className={inputClass}
-                  required
-                />
+                <label className={labelClass}>Nombre Completo *</label>
+                <input type="text" placeholder="Ej: Jorge Luis Chiroque" value={nombreCompleto} onChange={(e) => setNombreCompleto(e.target.value)} className={inputClass} required />
               </div>
+
+              {/* ROL DESEADO */}
               <div>
-                <label className={labelClass}>Correo Electrónico</label>
-                <input
-                  type="email"
-                  placeholder="tu@ejemplo.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className={inputClass}
-                  required
-                />
+                <label className={labelClass}>Perfil Deseado *</label>
+                <select value={rolDeseado} onChange={(e) => setRolDeseado(Number(e.target.value))} className={`${inputClass} cursor-pointer`}>
+                  <option value={2}>📘 Estudiante (Academia)</option>
+                  <option value={3}>🩺 Licenciado en Fisioterapia (Clínica)</option>
+                  <option value={4}>🤝 Híbrido (Academia + Clínica)</option>
+                  <option value={7}>🏢 Admin Centro (Gestión de centro)</option>
+                </select>
               </div>
+
+              {/* TIPO PROFESIONAL SOLO PARA ADMIN CENTRO */}
+              {esAdminCentro && (
+                <div>
+                  <label className={labelClass}>Tipo de Profesional *</label>
+                  <select value={tipoProfesionalAdmin} onChange={(e) => setTipoProfesionalAdmin(e.target.value)} className={`${inputClass} cursor-pointer`}>
+                    <option value="licenciado">Licenciado en Fisioterapia (con CTMP)</option>
+                    <option value="tecnico">Técnico en Fisioterapia (sin CTMP)</option>
+                  </select>
+                </div>
+              )}
+
+              {/* DOCUMENTO */}
+              {(esEstudiante || esLicenciado || esHibrido || esAdminCentro) && (
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className={labelClass}>Tipo *</label>
+                    <select value={tipoDocumento} onChange={(e) => setTipoDocumento(e.target.value)} className={`${inputClass} cursor-pointer`}>
+                      <option value="DNI">DNI</option>
+                      <option value="CE">CE</option>
+                    </select>
+                  </div>
+                  <div className="col-span-2">
+                    <label className={labelClass}>Número *</label>
+                    <input type="text" placeholder="Ej: 45063406" value={numeroDocumento} onChange={(e) => setNumeroDocumento(e.target.value)} className={inputClass} required />
+                  </div>
+                </div>
+              )}
+
+              {/* CTMP (Licenciados, Híbridos, Admin Centro licenciado) */}
+              {requiereCTMP && (
+                <div>
+                  <label className={labelClass}>CTMP (Colegio Tecnólogo Médico) *</label>
+                  <input type="text" placeholder="Ej: 12345" value={ctmp} onChange={(e) => setCtmp(e.target.value)} className={inputClass} required />
+                  <p className="text-[9px] text-gray-500 mt-1">Número de colegiatura del Colegio Tecnólogo Médico del Perú.</p>
+                </div>
+              )}
+
+              {/* REGISTRO INTERNO (Admin Centro técnico) */}
+              {requiereRegistroInterno && (
+                <div>
+                  <label className={labelClass}>Registro Interno del Centro *</label>
+                  <input type="text" placeholder="Ej: CJ-TEC-001" value={registroInterno} onChange={(e) => setRegistroInterno(e.target.value)} className={inputClass} required />
+                  <p className="text-[9px] text-gray-500 mt-1">Número de registro interno otorgado por el centro.</p>
+                </div>
+              )}
+
+              {/* DIRECCIÓN DEL CENTRO (Admin Centro) */}
+              {requiereDireccionCentro && (
+                <div>
+                  <label className={labelClass}>Dirección del Centro *</label>
+                  <input type="text" placeholder="Ej: Av. Los Álamos 123, Lima" value={direccionCentro} onChange={(e) => setDireccionCentro(e.target.value)} className={inputClass} required />
+                </div>
+              )}
+
+              {/* EMAIL */}
               <div>
-                <label className={labelClass}>Contraseña</label>
+                <label className={labelClass}>Correo Electrónico *</label>
+                <input type="email" placeholder="tu@ejemplo.com" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} required />
+              </div>
+
+              {/* TELÉFONO */}
+              <div>
+                <label className={labelClass}>Teléfono *</label>
+                <input type="tel" placeholder="Ej: 987654321" value={telefono} onChange={(e) => setTelefono(e.target.value)} className={inputClass} required />
+              </div>
+
+              {/* PASSWORD */}
+              <div>
+                <label className={labelClass}>Contraseña *</label>
                 <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Crea una contraseña segura"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className={`${inputClass} pr-10`}
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-white transition-colors"
-                  >
+                  <input type={showPassword ? 'text' : 'password'} placeholder="Mínimo 6 caracteres" value={password} onChange={(e) => setPassword(e.target.value)} className={`${inputClass} pr-10`} required minLength={6} />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-white transition-colors">
                     {showPassword ? <EyeSlashIcon /> : <EyeIcon />}
                   </button>
                 </div>
               </div>
-              <div>
-                <label className={labelClass}>Teléfono (Opcional)</label>
-                <input
-                  type="tel"
-                  placeholder="Ej: 987654321"
-                  value={telefono}
-                  onChange={(e) => setTelefono(e.target.value)}
-                  className={inputClass}
-                />
-                <p className="text-[9px] text-gray-500 mt-1">Para recibir notificaciones y recordatorios.</p>
-              </div>
-              <div>
-                <label className={labelClass}>Perfil Deseado</label>
-                <select
-                  value={rolDeseado}
-                  onChange={(e) => setRolDeseado(Number(e.target.value))}
-                  className={`${inputClass} cursor-pointer`}
-                >
-                  <option value={2}>📘 Estudiante (Academia)</option>
-                  <option value={3}>🩺 Licenciado / Técnico (Clínica)</option>
-                  <option value={4}>🤝 Híbrido (Academia + Clínica)</option>
-                </select>
-              </div>
-              <button
-                type="submit"
-                disabled={cargando}
-                className="w-full mt-2 bg-[#10b981] text-white font-black uppercase py-3 rounded-xl hover:bg-[#0c9a6b] transition-all active:scale-95 text-xs tracking-widest disabled:opacity-50"
-              >
+
+              <button type="submit" disabled={cargando} className="w-full mt-2 bg-[#10b981] text-white font-black uppercase py-3 rounded-xl hover:bg-[#0c9a6b] transition-all active:scale-95 text-xs tracking-widest disabled:opacity-50">
                 {cargando ? 'Solicitando...' : 'Solicitar Acceso'}
               </button>
               <p className="text-[9px] text-center text-gray-500 mt-4">
-                Tu solicitud será revisada por el Director. Recibirás una notificación cuando sea aprobada.
+                Tu solicitud será revisada por el Director. Recibirás notificación cuando sea aprobada.
               </p>
             </form>
           )}

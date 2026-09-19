@@ -441,7 +441,18 @@ export default function EvaluacionPostural({ temaOscuro }) {
       !e.nombre.toLowerCase().includes('movilización')
     );
 
-    let texto = `1. Diagnóstico sugerido: ${planEditado.diagnostico_sugerido || 'No especificado'}\n\n`;
+    // Corrector de typos comunes de la IA
+  const corregirTypos = (t) => (t || '')
+    .replace(/Estimamientos/gi, 'Estiramientos')
+    .replace(/estimamiento/gi, 'estiramiento')
+    .replace(/Susponder/gi, 'Suspender')
+    .replace(/susponder/gi, 'suspender')
+    .replace(/Lumbalgia mecanica/gi, 'Lumbalgia mecánica')
+    .replace(/Aplicaciòn/gi, 'Aplicación');
+
+  let texto = `1. Diagnóstico sugerido: ${corregirTypos(planEditado.diagnostico_sugerido) || 'No especificado'}\n\n`;
+  
+  return corregirTypos(texto);
     texto += `2. Justificación: ${planEditado.justificacion || 'No especificada'}\n\n`;
     
     texto += `3. Agentes Físicos:\n`;

@@ -19,21 +19,39 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
   const { data: { user } } = await supabase.auth.getUser();
   const { data: perfil } = await supabase
     .from('profiles')
-    .select('nombre_completo, centro_id, titulo_profesional, numero_colegiatura, dni')
+    .select('nombre_completo, centro_id, titulo_profesional, numero_colegiatura, dni, tipo_profesional, tipo_documento, registro_interno')
     .eq('id', user.id)
     .single();
 
+  // ============================================================
+  // DETECTAR TIPO DE PROFESIONAL Y TIPO DE CENTRO
+  // ============================================================
+  const tipoProfesional = perfil?.tipo_profesional || 'licenciado';
+  const esLicenciado = tipoProfesional === 'licenciado';
+  const esTecnico = tipoProfesional === 'tecnico';
+
+  // Si NO es licenciado explícitamente, asumimos firma técnica
+  // (director, admin centro técnico, etc.)
+  const firmaComoTecnico = !esLicenciado;
+
   let centroNombre = 'Centro CJ';
+  let centroTelefono = '';
+  let centroDireccion = '';
   let logoUrl = '';
+  let tipoCentro = 'gimnasio_terapeutico';
+
   if (perfil?.centro_id) {
     const { data: centro } = await supabase
       .from('centros')
-      .select('nombre, logo_url')
+      .select('nombre, logo_url, telefono, direccion, tipo_centro')
       .eq('id', perfil.centro_id)
       .single();
     if (centro) {
       centroNombre = centro.nombre || 'Centro CJ';
+      centroTelefono = centro.telefono || '';
+      centroDireccion = centro.direccion || '';
       logoUrl = centro.logo_url || '';
+      tipoCentro = centro.tipo_centro || 'gimnasio_terapeutico';
     }
     if (!logoUrl) {
       const publicLogo = `/logo_centros/${perfil.centro_id}.png`;
@@ -44,6 +62,29 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
     }
   }
 
+  const esGimnasioTerapeutico = tipoCentro === 'gimnasio_terapeutico';
+
+  // ============================================================
+  // TÍTULOS DINÁMICOS SEGÚN TIPO
+  // ============================================================
+  const tituloDocumento = firmaComoTecnico
+    ? 'Evaluación Funcional y Plan de Ejercicios'
+    : 'Informe de Evaluación Clínica';
+
+  const seccion1Titulo = firmaComoTecnico ? '1. Datos del Usuario' : '1. Datos Generales';
+  const seccion8Titulo = firmaComoTecnico
+    ? '8. Plan de Ejercicios Terapéuticos'
+    : '8. Plan de Tratamiento Fisioterapéutico';
+
+  const etiquetaDiagnostico = firmaComoTecnico ? 'Hallazgos funcionales' : 'Diagnóstico clínico';
+
+  const subtituloTipoCentro = esGimnasioTerapeutico
+    ? 'Gimnasio Terapéutico'
+    : 'Centro Fisioterapéutico';
+
+  // ============================================================
+  // DATOS DEL PROFESIONAL Y FIRMA
+  // ============================================================
   const nombrePaciente = pacienteData ? `${pacienteData.nombre} ${pacienteData.apellidos}` : 'Paciente';
   const fecha = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const hora = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
@@ -51,25 +92,35 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
   const titulo = perfil?.titulo_profesional || '';
   const colegiatura = perfil?.numero_colegiatura || '';
   const dni = perfil?.dni || '';
+  const registroInterno = perfil?.registro_interno || '';
 
-  // ===== FIRMA INTELIGENTE (Licenciado vs Técnico) =====
+  // Firma según tipo profesional
   let credenciales = '';
-  const tituloLower = titulo.toLowerCase();
-  if (tituloLower.includes('licenciado') || tituloLower.includes('lic.')) {
-    credenciales = colegiatura ? `${titulo} — C.T.M.P. Nº ${colegiatura}` : titulo;
-  } else if (tituloLower.includes('técnico') || tituloLower.includes('tecnico') || tituloLower.includes('tec.')) {
-    credenciales = dni ? `${titulo} — DNI: ${dni}` : titulo;
-  } else if (titulo) {
-    credenciales = titulo;
-    if (colegiatura) credenciales += ` — C.T.M.P. Nº ${colegiatura}`;
-    else if (dni) credenciales += ` — DNI: ${dni}`;
+  if (firmaComoTecnico) {
+    // Firma técnica: DNI + registro interno si lo tiene
+    if (dni) credenciales = `Técnico en Fisioterapia y Rehabilitación — DNI: ${dni}`;
+    else if (registroInterno) credenciales = `Técnico en Fisioterapia — Registro Interno: ${registroInterno}`;
+    else credenciales = titulo || 'Técnico en Fisioterapia';
+  } else {
+    // Firma de licenciado: CTMP obligatorio
+    if (colegiatura) credenciales = `Lic. T.M. Fisioterapia — C.T.M.P. N° ${colegiatura}`;
+    else if (titulo) credenciales = titulo;
   }
 
   const regiones = evaluacion.regiones || [];
   const datosRegiones = evaluacion.datos_regiones || {};
   const recomendaciones = datosRegiones._recomendaciones || '';
   const alertas = datosRegiones._alertas || '';
-  const planTratamiento = datosRegiones._plan_tratamiento || '';
+  let planTratamiento = datosRegiones._plan_tratamiento || '';
+  // Corregir typos comunes generados por la IA
+  planTratamiento = planTratamiento
+    .replace(/Estimamientos/gi, 'Estiramientos')
+    .replace(/estimamiento/gi, 'estiramiento')
+    .replace(/Susponder/gi, 'Suspender')
+    .replace(/susponder/gi, 'suspender')
+    .replace(/Lumbalgia mecanica/gi, 'Lumbalgia mecánica')
+    .replace(/Aplicaciòn/gi, 'Aplicación')
+    .replace(/aplicaciòn/gi, 'aplicación');
   const hijos = datosRegiones._hijos || [];
   const contactosEmergencia = datosRegiones._contactos_emergencia || [];
   const signosVitales = datosRegiones._signos_vitales || {};
@@ -136,7 +187,7 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
   };
 
   // ============================================================
-  // PUNTO 5: REGIONES EN TABLA CON COLUMNAS (solo zonas con contenido)
+  // TABLA POR ZONAS (COLUMNAS)
   // ============================================================
   const zonas = {
     'Cabeza y Cuello': ['cabeza', 'cuello', 'nuca', 'cervical'],
@@ -189,7 +240,7 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
   }
 
   // ============================================================
-  // STICKMAN (Vista Anterior / Posterior)
+  // STICKMAN
   // ============================================================
   const esPosterior = (r) => {
     const postRegions = ['nuca', 'espalda', 'sacro', 'gluteo', 'poplitea', 'lumbar', 'dorsal', 'escapula', 'trapecio', 'post', 'isquion', 'ilion'];
@@ -211,7 +262,7 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
     muneca: { cx: 60, cy: 145 }, muneca_izq: { cx: 60, cy: 145 }, muneca_der: { cx: 140, cy: 145 },
     mano: { cx: 60, cy: 155 }, mano_izq: { cx: 60, cy: 155 }, mano_der: { cx: 140, cy: 155 },
     pelvis: { cx: 100, cy: 145 }, cadera: { cx: 100, cy: 145 },
-    sacro: { cx: 100, cy: 145 }, pubis: { cx: 100, cy: 155 },
+    sacro: { cx: 100, cy: 138 }, pubis: { cx: 100, cy: 158 },
     pierna_izq: { cx: 80, cy: 200 }, pierna_der: { cx: 120, cy: 200 },
     cuadriceps: { cx: 80, cy: 200 }, cuadriceps_izq: { cx: 80, cy: 200 }, cuadriceps_der: { cx: 120, cy: 200 },
     isquiotibial: { cx: 80, cy: 200 }, isquiotibiales: { cx: 80, cy: 200 },
@@ -226,7 +277,7 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
     clavicula_izq: { cx: 90, cy: 40 }, clavicula_der: { cx: 110, cy: 40 },
     trapecio_izq: { cx: 90, cy: 45 }, trapecio_der: { cx: 110, cy: 45 },
     escapula_izq: { cx: 90, cy: 55 }, escapula_der: { cx: 110, cy: 55 },
-    lumbar: { cx: 100, cy: 100 }, cervical: { cx: 100, cy: 30 }, dorsal: { cx: 100, cy: 50 }, abdomen: { cx: 100, cy: 165 },
+    lumbar: { cx: 100, cy: 100 }, cervical: { cx: 100, cy: 30 }, dorsal: { cx: 100, cy: 50 }, abdomen: { cx: 100, cy: 118 },
     poplitea_izq: { cx: 80, cy: 195 }, poplitea_der: { cx: 120, cy: 195 },
     lca: { cx: 80, cy: 195 }, lcp: { cx: 80, cy: 195 },
     menisco_med: { cx: 80, cy: 195 }, menisco_lat: { cx: 120, cy: 195 },
@@ -290,7 +341,7 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
   const stickmanPosterior = generarStickman(regionesPosteriores, 'Vista Posterior');
 
   // ============================================================
-  // PUNTO 6: EVALUACIÓN POR REGIÓN
+  // TABLA DE EVALUACIÓN POR REGIÓN
   // ============================================================
   const tablaRegiones = regiones.map(region => {
     const data = datosRegiones[region] || {};
@@ -331,7 +382,7 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
   `).join('');
 
   // ============================================================
-  // PUNTO 7: RECOMENDACIONES COMO LISTA NUMERADA
+  // RECOMENDACIONES
   // ============================================================
   const recomLines = recomendaciones.split('\n').map(l => l.trim()).filter(l => l !== '');
   let recomendacionesHTML = '';
@@ -346,7 +397,7 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
   }
 
   // ============================================================
-  // PUNTO 8: PLAN DE TRATAMIENTO
+  // PLAN DE TRATAMIENTO
   // ============================================================
   let planHTML = '<div style="font-size:9.5pt; line-height:1.55;">';
   if (planTratamiento) {
@@ -384,7 +435,7 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
   planHTML += '</div>';
 
   // ============================================================
-  // PUNTO 9: ALERTAS
+  // ALERTAS
   // ============================================================
   const alertLines = alertas.split('\n').map(l => l.trim()).filter(l => l !== '');
   let alertasHTML = '<div style="font-size:9.5pt; line-height:1.55; margin-bottom: 8px;">';
@@ -392,25 +443,30 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
   if (alertLines.length > 0) {
     alertasHTML += '<div style="background:#fef2f2; border-left:3px solid #ef4444; padding:6px 10px; border-radius:3px;">';
     alertLines.forEach(line => {
-      alertasHTML += `<div style="margin-bottom: 2px;">⚠ ${line}</div>`;
+      alertasHTML += `<div style="margin-bottom: 2px;"><strong>!</strong> ${line}</div>`;
     });
     alertasHTML += '</div>';
   } else {
     alertasHTML += '<div style="background:#f8fafc; padding:6px 10px; border-radius:3px; color:#94a3b8; font-style:italic;">No se han registrado alertas específicas.</div>';
   }
   alertasHTML += '</div>';
-  alertasHTML += `<div class="alerta">⚠️ Este informe contiene información confidencial del paciente. Solo debe ser utilizado por personal autorizado.</div>`;
+
+  // Aviso legal diferenciado
+  if (firmaComoTecnico) {
+    alertasHTML += `<div class="alerta" style="background:#fef3c7; border-left-color:#f59e0b; color:#78350f;">
+      ⚠️ AVISO: Documento funcional elaborado por un Técnico en Fisioterapia y Rehabilitación. NO constituye diagnóstico clínico ni prescripción médica. Para diagnóstico o prescripción, consulte con un <strong>Lic. T.M. Fisioterapia</strong>.
+    </div>`;
+  } else {
+    alertasHTML += `<div class="alerta">⚠️ Este informe contiene información confidencial del paciente. Solo debe ser utilizado por personal autorizado.</div>`;
+  }
 
   // ============================================================
   // BLOQUES AUXILIARES
   // ============================================================
-
-  // Nivel educativo
   const nivelEducativoHTML = evaluacion.nivel_educativo
     ? `<tr><td>Nivel educativo</td><td>${evaluacion.nivel_educativo}</td></tr>`
     : '';
 
-  // Hijos
   let hijosHTML = '';
   if (hijos && hijos.length > 0) {
     const hijosTexto = hijos.map((h, i) => {
@@ -420,7 +476,6 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
     hijosHTML = `<tr><td>Nº de hijos</td><td>${hijosTexto}</td></tr>`;
   }
 
-  // Contactos de emergencia
   const contactosValidos = contactosEmergencia.filter(c => c.nombre || c.telefono);
   let contactosEmergenciaHTML = '';
   if (contactosValidos.length > 0) {
@@ -430,7 +485,6 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
     contactosEmergenciaHTML = `<tr><td>Contactos de emergencia</td><td>${texto}</td></tr>`;
   }
 
-  // Signos vitales
   const tieneSignosVitales = signosVitales && (
     signosVitales.ta_sistolica || signosVitales.ta_diastolica || signosVitales.fc || signosVitales.fr ||
     signosVitales.temperatura || signosVitales.spo2 || signosVitales.peso || signosVitales.talla || signosVitales.glucemia
@@ -480,17 +534,17 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
     else if (!isNaN(glu) && (glu > 110 || glu < 70)) alertasSV.push('Glucemia limítrofe');
 
     let fechaToma = '';
-if (signosVitales.fecha_toma) {
-  const d = new Date(signosVitales.fecha_toma);
-  if (!isNaN(d)) {
-    const dia = String(d.getDate()).padStart(2, '0');
-    const mes = String(d.getMonth() + 1).padStart(2, '0');
-    const anio = d.getFullYear();
-    const hora = String(d.getHours()).padStart(2, '0');
-    const min = String(d.getMinutes()).padStart(2, '0');
-    fechaToma = `${dia}/${mes}/${anio} ${hora}:${min}`;
-  }
-}
+    if (signosVitales.fecha_toma) {
+      const df = new Date(signosVitales.fecha_toma);
+      if (!isNaN(df)) {
+        const dia = String(df.getDate()).padStart(2, '0');
+        const mes = String(df.getMonth() + 1).padStart(2, '0');
+        const anio = df.getFullYear();
+        const hora2 = String(df.getHours()).padStart(2, '0');
+        const min = String(df.getMinutes()).padStart(2, '0');
+        fechaToma = `${dia}/${mes}/${anio} ${hora2}:${min}`;
+      }
+    }
 
     signosVitalesHTML = `
       <h1>1.1 Signos Vitales</h1>
@@ -511,7 +565,6 @@ if (signosVitales.fecha_toma) {
     `;
   }
 
-  // Antecedentes familiares
   let familiaresTexto = '';
   if (familiares.length > 0) {
     familiaresTexto = familiares.filter(f => f !== 'Otros').join(', ');
@@ -523,7 +576,6 @@ if (signosVitales.fecha_toma) {
   }
   const familiaresHTML = familiaresTexto ? `<tr><th>Antecedentes familiares</th><td>${familiaresTexto}</td></tr>` : '';
 
-  // Hábitos
   const tieneHabitos = habitos.tabaquismo || habitos.alcohol || habitos.drogas || habitos.dependencia_medicamentos ||
     actividadFisica || nivelDeportivo || (calidadSuenio !== null && calidadSuenio !== undefined) || estresPercibido;
 
@@ -554,7 +606,6 @@ if (signosVitales.fecha_toma) {
     `;
   }
 
-  // Gineco-obstétricos
   const tieneGineco = gineco.embarazo || gineco.lactancia || gineco.fum || gineco.metodo_anticonceptivo ||
     gineco.menopausia || gineco.num_embarazos || gineco.num_partos || gineco.num_abortos;
 
@@ -564,22 +615,22 @@ if (signosVitales.fecha_toma) {
     if (gineco.embarazo) items.push(['¿Embarazo?', gineco.embarazo]);
     if (gineco.lactancia) items.push(['¿Lactancia?', gineco.lactancia]);
     if (gineco.fum) {
-  const fumDate = new Date(gineco.fum);
-  const fumFormato = !isNaN(fumDate) 
-    ? `${String(fumDate.getDate()).padStart(2, '0')}/${String(fumDate.getMonth() + 1).padStart(2, '0')}/${fumDate.getFullYear()}`
-    : gineco.fum;
-  items.push(['Fecha de última menstruación (FUM)', fumFormato]);
-}
+      const fumDate = new Date(gineco.fum);
+      const fumFormato = !isNaN(fumDate)
+        ? `${String(fumDate.getDate()).padStart(2, '0')}/${String(fumDate.getMonth() + 1).padStart(2, '0')}/${fumDate.getFullYear()}`
+        : gineco.fum;
+      items.push(['Fecha de última menstruación (FUM)', fumFormato]);
+    }
     if (gineco.metodo_anticonceptivo) items.push(['Método anticonceptivo', gineco.metodo_anticonceptivo]);
     if (gineco.menopausia) items.push(['Menopausia', gineco.menopausia]);
     if (gineco.edad_menopausia !== '' && gineco.edad_menopausia !== undefined) {
-  items.push(['Edad de menopausia', `${gineco.edad_menopausia} años`]);
-}
+      items.push(['Edad de menopausia', `${gineco.edad_menopausia} años`]);
+    }
     if (gineco.num_embarazos) items.push(['Nº de embarazos', gineco.num_embarazos]);
     if (gineco.num_partos) items.push(['Nº de partos', gineco.num_partos]);
     if (gineco.num_abortos !== '' && gineco.num_abortos !== undefined) {
-  items.push(['Nº de abortos', gineco.num_abortos]);
-}
+      items.push(['Nº de abortos', gineco.num_abortos]);
+    }
 
     ginecoHTML = `
       <h1>3.2 Antecedentes Gineco-obstétricos</h1>
@@ -591,7 +642,6 @@ if (signosVitales.fecha_toma) {
     `;
   }
 
-  // Urológicos
   const tieneUro = uro.visita_urologo || uro.hiperplasia_prostata || uro.medicacion_prostata;
 
   let uroHTML = '';
@@ -609,11 +659,9 @@ if (signosVitales.fecha_toma) {
       </table>
     `;
   }
-  // ============================================================
+
   // BANDERAS ROJAS
-  // ============================================================
   const banderasRojasSeleccionadas = datosRegiones._banderas_rojas || [];
-  
   const BANDERAS_LABELS = {
     cancer: 'Antecedente de cáncer (últimos 5 años)',
     anticoagulantes: 'Uso de anticoagulantes (warfarina, rivaroxabán, etc.)',
@@ -648,7 +696,6 @@ if (signosVitales.fecha_toma) {
     `;
   }
 
-  // Alerta general si hay banderas rojas (va al inicio del informe)
   let alertaBanderasHTML = '';
   if (banderasRojasSeleccionadas.length > 0) {
     alertaBanderasHTML = `
@@ -659,14 +706,21 @@ if (signosVitales.fecha_toma) {
   }
 
   // ============================================================
-  // HTML FINAL DEL INFORME
+  // BADGE DEL TIPO DE CENTRO
+  // ============================================================
+  const badgeCentroHTML = esGimnasioTerapeutico
+    ? `<div style="display:inline-block; padding:3px 10px; background:#fef3c7; color:#78350f; font-size:8pt; font-weight:700; border-radius:4px; letter-spacing:1px; text-transform:uppercase; margin-bottom:6px;">🏋️ Gimnasio Terapéutico</div>`
+    : `<div style="display:inline-block; padding:3px 10px; background:#dbeafe; color:#1e40af; font-size:8pt; font-weight:700; border-radius:4px; letter-spacing:1px; text-transform:uppercase; margin-bottom:6px;">🏥 Centro Fisioterapéutico</div>`;
+
+  // ============================================================
+  // HTML FINAL
   // ============================================================
   const contenidoHTML = `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="UTF-8">
-      <title>Informe Clínico - ${nombrePaciente}</title>
+      <title>${tituloDocumento} - ${nombrePaciente}</title>
       <style>
         @page { size: A4; margin: 1.5cm 1.5cm 1cm 1.5cm; }
         * { box-sizing: border-box; }
@@ -703,7 +757,7 @@ if (signosVitales.fecha_toma) {
       </style>
     </head>
     <body>
-      <div class="marca-agua">CONFIDENCIAL</div>
+      <div class="marca-agua">${firmaComoTecnico ? 'DOCUMENTO FUNCIONAL' : 'CONFIDENCIAL'}</div>
 
       <div class="pagina">
         <div class="contenido">
@@ -712,13 +766,14 @@ if (signosVitales.fecha_toma) {
             ${logoUrl ? `<img src="${logoUrl}" class="logo" alt="Logo Centro" onerror="this.style.display='none'" />` : ''}
             <img src="/logos_cj_circular.png" class="logo-derecho" alt="CJ Fisioterapia" onerror="this.style.display='none'" />
             <div>
-              <div class="titulo">Informe de Evaluación Clínica</div>
+              <div class="titulo">${tituloDocumento}</div>
               <div class="subtitulo">${centroNombre}</div>
+              <div style="text-align:center;">${badgeCentroHTML}</div>
               <div class="datos">Paciente: ${nombrePaciente} &nbsp;|&nbsp; Fecha: ${fecha} &nbsp;|&nbsp; ID: ${evaluacion.paciente_id}</div>
             </div>
           </div>
 
-          <h1>1. Datos Generales</h1>
+          <h1>${seccion1Titulo}</h1>
           <table>
             <tr><th>Campo</th><th>Valor</th></tr>
             ${evaluacion.edad ? `<tr><td>Edad</td><td>${evaluacion.edad}</td></tr>` : ''}
@@ -754,7 +809,7 @@ if (signosVitales.fecha_toma) {
           ${uroHTML}
           ${banderasRojasHTML}
         </div>
-        <div class="pie">Documento Clínico Confidencial - ${centroNombre} - Pág. 1</div>
+        <div class="pie">${tituloDocumento} - ${centroNombre} - Pág. 1</div>
       </div>
 
       <div class="pagina">
@@ -793,7 +848,7 @@ if (signosVitales.fecha_toma) {
             <tbody>${tablaHTML}</tbody>
           </table>
         </div>
-        <div class="pie">Documento Clínico Confidencial - ${centroNombre} - Pág. 2</div>
+        <div class="pie">${tituloDocumento} - ${centroNombre} - Pág. 2</div>
       </div>
 
       <div class="pagina">
@@ -801,7 +856,8 @@ if (signosVitales.fecha_toma) {
           <h1>7. Recomendaciones Generales</h1>
           ${recomendacionesHTML}
 
-          <h1>8. Plan de Tratamiento</h1>
+          <h1>${seccion8Titulo}</h1>
+          ${firmaComoTecnico ? `<p style="font-size:8.5pt; color:#78350f; background:#fef3c7; padding:5px 8px; border-radius:4px; margin-bottom:6px;"><strong>Nota:</strong> Los agentes físicos y técnicas manuales aquí descritos son <strong>sugerencias de aplicación</strong> basadas en protocolos estándar de rehabilitación funcional. Su aplicación está sujeta a validación por un <strong>Lic. T.M. Fisioterapia</strong>.</p>` : ''}
           ${planHTML}
 
           <h1>9. Alertas de Seguridad</h1>
@@ -809,21 +865,22 @@ if (signosVitales.fecha_toma) {
 
           <h1>10. Datos de Generación</h1>
           <table>
-            <tr><th>Informe generado por</th><td>${usuario}</td></tr>
+            <tr><th>Documento generado por</th><td>${usuario}</td></tr>
+            <tr><th>Tipo de profesional</th><td>${firmaComoTecnico ? 'Técnico en Fisioterapia y Rehabilitación' : 'Licenciado en Tecnología Médica - Fisioterapia'}</td></tr>
             <tr><th>Fecha de generación</th><td>${fecha}</td></tr>
             <tr><th>Hora de generación</th><td>${hora}</td></tr>
-            <tr><th>Centro</th><td>${centroNombre}</td></tr>
+            <tr><th>Centro</th><td>${centroNombre} (${subtituloTipoCentro})</td></tr>
           </table>
 
           <div class="firma">
-            <p>Firma del terapeuta: ________________________</p>
+            <p>Firma del profesional: ________________________</p>
             <p style="font-size:8pt; color:#94a3b8;">${usuario}</p>
             ${credenciales ? `<p style="font-size:8pt; color:#64748b;">${credenciales}</p>` : ''}
           </div>
 
-          <div style="text-align: center; margin-top: 15px; font-size: 9pt; color: #64748b;">--- Fin del informe ---</div>
+          <div style="text-align: center; margin-top: 15px; font-size: 9pt; color: #64748b;">--- Fin del documento ---</div>
         </div>
-        <div class="pie">Documento Clínico Confidencial - ${centroNombre} - Pág. 3</div>
+        <div class="pie">${tituloDocumento} - ${centroNombre} - Pág. 3</div>
       </div>
     </body>
     </html>
@@ -831,7 +888,7 @@ if (signosVitales.fecha_toma) {
 
   const ventana = window.open('', '_blank', 'width=800,height=600,scrollbars=yes');
   if (ventana) {
-    ventana.document.title = `Informe Clínico - ${nombrePaciente}`;
+    ventana.document.title = `${tituloDocumento} - ${nombrePaciente}`;
     ventana.document.write(contenidoHTML);
     ventana.document.close();
     setTimeout(() => ventana.print(), 1000);
