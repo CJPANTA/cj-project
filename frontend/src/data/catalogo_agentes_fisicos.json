@@ -2,10 +2,71 @@
   {
     "id": "ag_001",
     "nombre": "Ultrasonido terapéutico",
+    "tipo": "electroterapia",
     "indicaciones": ["tendinopatías", "bursitis", "contracturas"],
     "contraindicaciones": ["neoplasias", "trombosis", "embarazo", "marcapasos"],
     "fase_recomendada": ["subaguda", "crónica"],
     "parametros_por_defecto": { "frecuencia_mhz": 1, "intensidad_w_cm2": 1.5, "tiempo_min": 8, "modo": "continuo" },
     "descripcion": "Aplicación de ondas sonoras de alta frecuencia para generar calor profundo y promover la reparación tisular."
+  },
+  {
+    "id": "ag_002",
+    "nombre": "Termoterapia (calor húmedo)",
+    "tipo": "termoterapia",
+    "indicaciones": ["contracturas", "dolor muscular", "rigidez articular", "lumbalgia"],
+    "contraindicaciones": ["inflamación aguda", "edema", "infección", "pérdida de sensibilidad"],
+    "fase_recomendada": ["subaguda", "crónica"],
+    "parametros_por_defecto": { "tiempo_min": 15, "temperatura": "tibia", "frecuencia": "2 veces al día" },
+    "descripcion": "Aplicación de calor húmedo para relajar musculatura, mejorar circulación y disminuir dolor."
+  },
+  {
+    "id": "ag_003",
+    "nombre": "Crioterapia (frío local)",
+    "tipo": "termoterapia",
+    "indicaciones": ["inflamación aguda", "esguinces", "contusiones", "dolor post-ejercicio"],
+    "contraindicaciones": ["fenómeno de Raynaud", "urticaria al frío", "pérdida de sensibilidad"],
+    "fase_recomendada": ["aguda"],
+    "parametros_por_defecto": { "tiempo_min": 15, "tipo": "hielo o gel frío", "frecuencia": "cada 4-6 horas" },
+    "descripcion": "Aplicación de frío local para disminuir inflamación, edema y dolor en fase aguda."
+  },
+  {
+    "id": "ag_004",
+    "nombre": "Electroterapia TENS",
+    "tipo": "electroterapia",
+    "indicaciones": ["dolor crónico", "dolor neuropático", "lumbalgia", "cervicalgia"],
+    "contraindicaciones": ["marcapasos", "embarazo", "epilepsia", "zona cardiaca"],
+    "fase_recomendada": ["subaguda", "crónica"],
+    "parametros_por_defecto": { "frecuencia_hz": 100, "intensidad": "hasta hormigueo cómodo", "tiempo_min": 20 },
+    "descripcion": "Electroestimulación nerviosa transcutánea para modulación del dolor."
+  },
+  {
+    "id": "ag_005",
+    "nombre": "Electroterapia de corriente interferencial",
+    "tipo": "electroterapia",
+    "indicaciones": ["dolor muscular profundo", "lumbalgia", "contracturas"],
+    "contraindicaciones": ["marcapasos", "embarazo", "trombosis", "neoplasias"],
+    "fase_recomendada": ["subaguda", "crónica"],
+    "parametros_por_defecto": { "frecuencia_hz": "4000 modulada a 100", "intensidad": "hasta hormigueo profundo", "tiempo_min": 15 },
+    "descripcion": "Corrientes de media frecuencia que se cruzan para generar estimulación profunda y analgesia."
+  },
+  {
+    "id": "ag_006",
+    "nombre": "Parafinoterapia (cera tibia)",
+    "tipo": "termoterapia",
+    "indicaciones": ["artritis reumatoide", "artrosis de manos", "rigidez articular", "esclerodermia", "contracturas crónicas"],
+    "contraindicaciones": ["heridas abiertas", "infección cutánea", "pérdida de sensibilidad", "insuficiencia vascular periférica"],
+    "fase_recomendada": ["subaguda", "crónica"],
+    "parametros_por_defecto": { "temperatura_c": 52, "tiempo_min": 15, "capas": "7-10", "frecuencia": "1 sesión diaria" },
+    "descripcion": "Inmersión o aplicación de cera de parafina tibia para calentar tejidos profundos, mejorar rigidez articular y aliviar dolor crónico. Especialmente útil en manos y pies."
+  },
+  {
+    "id": "ag_007",
+    "nombre": "Cera terapéutica (parafina con aromaterapia)",
+    "tipo": "termoterapia",
+    "indicaciones": ["artritis", "artrosis", "rigidez matutina", "dolor articular crónico"],
+    "contraindicaciones": ["alergia a componentes", "heridas abiertas", "infección local"],
+    "fase_recomendada": ["subaguda", "crónica"],
+    "parametros_por_defecto": { "temperatura_c": 50, "tiempo_min": 20, "frecuencia": "1 sesión diaria" },
+    "descripcion": "Cera terapéutica enriquecida con aceites esenciales. Combina los beneficios térmicos de la parafina con efectos relajantes y antiinflamatorios."
   }
 ]

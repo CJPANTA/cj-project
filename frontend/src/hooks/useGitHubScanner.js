@@ -28,7 +28,7 @@ export function useGitHubScanner(institucion = null) {
     const cacheKey = `github_scanner_${institucion}_${GITHUB_USER}_${GITHUB_REPO}`;
     const cacheTimeKey = `${cacheKey}_time`;
     const ahora = Date.now();
-    const unaHora = 5 * 60 * 1000; // 5 min de caché (más fresco que 1h)
+    const unaHora = 5 * 60 * 1000; // 5 min de caché
 
     // Verificar caché
     if (!forzar) {
@@ -40,7 +40,7 @@ export function useGitHubScanner(institucion = null) {
           setCargando(false);
           return;
         } catch (e) {
-          // Si el caché está corrupto, continuar con fetch
+          // Caché corrupto, continuar con fetch
         }
       }
     }
@@ -54,9 +54,10 @@ export function useGitHubScanner(institucion = null) {
       let resultado;
 
       if (institucion === 'esan') {
-        // ===== ESAN: cursos directos sin ciclos =====
+        // ===== ESAN: cursos + material general en raíz =====
         const BASE_PATH = 'BASE_DATOS/07_ESAN';
         const cursos = {};
+        const archivosRaiz = [];
 
         const archivos = data.tree.filter(item =>
           item.type === 'blob' &&
@@ -66,16 +67,28 @@ export function useGitHubScanner(institucion = null) {
 
         archivos.forEach(archivo => {
           const partes = archivo.path.split('/');
-          // partes: ['BASE_DATOS', '07_ESAN', 'NOMBRE_CURSO', ..., 'archivo.pdf']
+          const nombreArchivo = partes[partes.length - 1];
+
+          // Caso 1: archivo DENTRO de una subcarpeta de curso
+          // partes: ['BASE_DATOS', '07_ESAN', 'NOMBRE_CURSO', 'archivo.pdf']
           if (partes.length >= 4) {
             const curso = partes[2];
-            const nombreArchivo = partes[partes.length - 1];
             if (!cursos[curso]) cursos[curso] = [];
             cursos[curso].push(nombreArchivo);
           }
+          // Caso 2: archivo en la RAÍZ de 07_ESAN
+          // partes: ['BASE_DATOS', '07_ESAN', 'archivo.pdf']
+          else if (partes.length === 3) {
+            archivosRaiz.push(nombreArchivo);
+          }
         });
 
-        // Ordenar cursos alfabéticamente (01-, 02-, etc.)
+        // Si hay archivos en raíz, agruparlos como "Material General"
+        if (archivosRaiz.length > 0) {
+          cursos['00-MATERIAL_GENERAL'] = archivosRaiz.sort();
+        }
+
+        // Ordenar cursos alfabéticamente (00, 01, 02, etc.)
         const cursosOrdenados = {};
         Object.keys(cursos).sort().forEach(k => {
           cursosOrdenados[k] = cursos[k].sort();

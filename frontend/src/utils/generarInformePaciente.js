@@ -118,9 +118,6 @@ const getIconoPosicion = (posicion) => {
   return map[posicion] || 'De pie';
 };
 
-// ============================================================
-// DIBUJO DE EJERCICIO: 2 POSES + ARROW
-// ============================================================
 const svgEjercicio = (posicion) => {
   const inicio = svgPorPosicion(posicion, 'inicio');
   const fin = svgPorPosicion(posicion, 'fin');
@@ -216,6 +213,10 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
     ? 'Gimnasio Terapéutico'
     : 'Centro Fisioterapéutico';
 
+  const nombreCentroConTipo = centroNombre.toLowerCase().includes(subtituloTipoCentro.toLowerCase())
+    ? centroNombre
+    : `${centroNombre} (${subtituloTipoCentro})`;
+
   const nombrePaciente = pacienteData ? `${pacienteData.nombre} ${pacienteData.apellidos}` : 'Paciente';
   const fecha = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const usuario = perfil?.nombre_completo || 'Usuario';
@@ -224,9 +225,6 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
   const dni = perfil?.dni || '';
   const registroInterno = perfil?.registro_interno || '';
 
-  // ============================================================
-  // FIRMA SEGÚN TIPO PROFESIONAL
-  // ============================================================
   let credenciales = '';
   if (firmaComoTecnico) {
     if (dni) credenciales = `Técnico en Fisioterapia y Rehabilitación — DNI: ${dni}`;
@@ -252,12 +250,10 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
     badgeEstado = `<div class="badge badge-rechazado">VISTA PREVIA — Evaluación rechazada</div>`;
   }
 
-  // ===== BADGE DEL TIPO DE CENTRO =====
   const badgeCentroHTML = esGimnasioTerapeutico
-    ? `<div style="display:inline-block; padding:3px 10px; background:#fef3c7; color:#78350f; font-size:8pt; font-weight:700; border-radius:4px; letter-spacing:1px; text-transform:uppercase; margin:4px 0;">🏋️ Gimnasio Terapéutico</div>`
-    : `<div style="display:inline-block; padding:3px 10px; background:#dbeafe; color:#1e40af; font-size:8pt; font-weight:700; border-radius:4px; letter-spacing:1px; text-transform:uppercase; margin:4px 0;">🏥 Centro Fisioterapéutico</div>`;
+    ? `<div style="display:inline-block; padding:3px 10px; background:#fef3c7; color:#78350f; font-size:8pt; font-weight:700; border-radius:4px; letter-spacing:1px; text-transform:uppercase; margin:4px 0;">Gimnasio Terapéutico</div>`
+    : `<div style="display:inline-block; padding:3px 10px; background:#dbeafe; color:#1e40af; font-size:8pt; font-weight:700; border-radius:4px; letter-spacing:1px; text-transform:uppercase; margin:4px 0;">Centro Fisioterapéutico</div>`;
 
-  // ===== AGRUPAR POR TIPO =====
   const TIPOS = [
     { key: 'estiramiento', titulo: 'Ejercicios de Estiramiento' },
     { key: 'fortalecimiento', titulo: 'Ejercicios de Fortalecimiento' },
@@ -322,10 +318,9 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
     alertasHTML = '<p class="campo-vacio">Sin alertas específicas.</p>';
   }
 
-  // ===== AVISO LEGAL SEGÚN TIPO PROFESIONAL =====
   const avisoLegalHTML = firmaComoTecnico
     ? `<div style="background:#fef3c7; border-left:4px solid #f59e0b; padding:10px 14px; border-radius:6px; margin-top:20px; font-size:9pt; color:#78350f;">
-        <strong>AVISO:</strong> Este documento es una evaluación funcional y un plan de ejercicios terapéuticos elaborado por un Técnico en Fisioterapia y Rehabilitación. NO constituye diagnóstico clínico ni prescripción médica. Para diagnóstico o prescripción, consulte con un <strong>Lic. T.M. Fisioterapia</strong>.
+        <strong>AVISO:</strong> Documento funcional elaborado por un Técnico en Fisioterapia y Rehabilitación. NO constituye diagnóstico clínico ni prescripción médica. Para diagnóstico o prescripción, consulte con un <strong>Lic. T.M. Fisioterapia</strong>.
       </div>`
     : `<div style="background:#dbeafe; border-left:4px solid #3b82f6; padding:10px 14px; border-radius:6px; margin-top:20px; font-size:9pt; color:#1e40af;">
         <strong>Documento confidencial.</strong> Este plan de ejercicios forma parte del tratamiento fisioterapéutico. Consérvelo y tráigalo a su próxima cita.
@@ -404,14 +399,20 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
         table.seguimiento th { background: #f1f5f9; font-weight: 700; text-align: center; }
         table.seguimiento td { height: 36px; }
         .seguimiento-nota { font-size: 9pt; font-style: italic; color: #64748b; margin-top: 6px; }
-        .notas-box { margin-top: 12px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; }
+        .notas-box { margin-top: 12px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; page-break-inside: avoid; }
         .notas-box .label { font-size: 9pt; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
         .notas-box .linea { border-bottom: 1px dashed #cbd5e1; height: 22px; margin-bottom: 8px; }
-        .proxima-cita { background: #ecfdf5; border: 2px dashed #10b981; padding: 16px; border-radius: 8px; text-align: center; margin: 12px 0; }
+        .proxima-cita { background: #ecfdf5; border: 2px dashed #10b981; padding: 16px; border-radius: 8px; text-align: center; margin: 12px 0; page-break-inside: avoid; }
         .proxima-cita .label { font-size: 9pt; font-weight: 700; color: #047857; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
         .proxima-cita .linea-fecha { font-size: 11pt; color: #064e3b; border-bottom: 1.5px solid #064e3b; padding-bottom: 4px; display: inline-block; min-width: 280px; }
-        .firma-box { margin-top: 30px; border-top: 1px solid #94a3b8; padding-top: 10px; text-align: right; }
-        .firma-box .firma-linea { display: inline-block; border-top: 1px solid #475569; padding-top: 4px; min-width: 200px; text-align: center; font-size: 10pt; }
+        .h1-proxima-cita { page-break-after: avoid; }
+        .seccion-final { page-break-inside: avoid; }
+        .firma-box { margin-top: 30px; border-top: 1px solid #94a3b8; padding-top: 30px; padding-right: 60px; }
+        .firma-box .firma-bloque { max-width: 320px; margin-left: auto; text-align: left; }
+        .firma-box .firma-label { font-size: 9pt; color: #475569; font-weight: 600; margin: 0 0 50px 0; }
+        .firma-box .firma-linea { border-top: 1.5px solid #475569; padding-top: 6px; margin: 0; }
+        .firma-box .firma-nombre { font-size: 10pt; font-weight: 700; color: #0f172a; margin: 0; }
+        .firma-box .firma-credenciales { font-size: 8.5pt; color: #64748b; margin: 2px 0 0 0; }
         .contacto-centro { margin-top: 20px; padding: 10px; background: #f8fafc; border-radius: 6px; font-size: 9pt; color: #475569; text-align: center; }
         .campo-vacio { color: #94a3b8; font-style: italic; }
         @media print { .pagina { min-height: auto; } }
@@ -483,22 +484,28 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
             <div class="linea"></div>
           </div>
 
-          <h1>6. Próxima Cita</h1>
-          <div class="proxima-cita">
-            <div class="label">Fecha sugerida</div>
-            <div class="linea-fecha">&nbsp;</div>
-          </div>
+          <div class="seccion-final">
+            <h1 class="h1-proxima-cita">6. Próxima Cita</h1>
+            <div class="proxima-cita">
+              <div class="label">Fecha sugerida</div>
+              <div class="linea-fecha">&nbsp;</div>
+            </div>
 
-          <div class="firma-box">
-            <p style="font-size:10pt; margin-bottom:2px;">Firma del profesional:</p>
-            <div class="firma-linea">${usuario}</div>
-            ${credenciales ? `<p style="font-size:9pt; color:#64748b; margin-top:4px;">${credenciales}</p>` : ''}
+            <div class="firma-box">
+              <div class="firma-bloque">
+                <p class="firma-label">${firmaComoTecnico ? 'Firma del profesional técnico:' : 'Firma del profesional:'}</p>
+                <div class="firma-linea">
+                  <p class="firma-nombre">${usuario}</p>
+                  ${credenciales ? `<p class="firma-credenciales">${credenciales}</p>` : ''}
+                </div>
+              </div>
+            </div>
           </div>
 
           ${avisoLegalHTML}
 
           <div class="contacto-centro">
-            <strong>${centroNombre}</strong> — ${subtituloTipoCentro}
+            <strong>${centroNombre}</strong>${centroNombre.toLowerCase().includes(subtituloTipoCentro.toLowerCase()) ? '' : ` — ${subtituloTipoCentro}`}
             ${centroTelefono ? `<br/>Teléfono: ${centroTelefono}` : ''}
             ${centroDireccion ? `<br/>Dirección: ${centroDireccion}` : ''}
           </div>

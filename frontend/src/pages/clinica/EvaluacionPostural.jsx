@@ -74,56 +74,34 @@ export default function EvaluacionPostural({ temaOscuro }) {
     alertas: '',
     plan_tratamiento: '',
     hijos: [],
-        nivel_educativo: '',
+    nivel_educativo: '',
     como_llego: '',
+    banderas_rojas: [],
     contactos_emergencia: [
       { nombre: '', telefono: '', parentesco: '' },
       { nombre: '', telefono: '', parentesco: '' },
     ],
     signos_vitales: {
-      ta_sistolica: '',
-      ta_diastolica: '',
-      fc: '',
-      fr: '',
-      temperatura: '',
-      spo2: '',
-      peso: '',
-      talla: '',
-      glucemia: '',
-      fecha_toma: '',
-          antecedentes_familiares: [],
+      ta_sistolica: '', ta_diastolica: '', fc: '', fr: '',
+      temperatura: '', spo2: '', peso: '', talla: '', glucemia: '', fecha_toma: '',
+    },
+    antecedentes_familiares: [],
     antecedentes_familiares_otros: '',
     habitos: {
-      tabaquismo: false,
-      cigarrillos_dia: '',
-      anios_tabaquismo: '',
-      alcohol: false,
-      alcohol_frecuencia: '',
-      drogas: false,
-      dependencia_medicamentos: false,
+      tabaquismo: false, cigarrillos_dia: '', anios_tabaquismo: '',
+      alcohol: false, alcohol_frecuencia: '', drogas: false, dependencia_medicamentos: false,
     },
     actividad_fisica: '',
     nivel_deportivo: '',
     deporte_practicado: '',
     calidad_suenio: null,
     estres_percibido: '',
-        gineco_obstetricos: {
-      embarazo: '',
-      lactancia: '',
-      fum: '',
-      metodo_anticonceptivo: '',
-      menopausia: '',
-      edad_menopausia: '',
-      num_embarazos: '',
-      num_partos: '',
-      num_abortos: '',
+    gineco_obstetricos: {
+      embarazo: '', lactancia: '', fum: '', metodo_anticonceptivo: '',
+      menopausia: '', edad_menopausia: '', num_embarazos: '', num_partos: '', num_abortos: '',
     },
     urologicos: {
-      visita_urologo: '',
-      hiperplasia_prostata: '',
-      medicacion_prostata: '',
-      banderas_rojas: [],
-    },
+      visita_urologo: '', hiperplasia_prostata: '', medicacion_prostata: '',
     },
   });
 
@@ -205,9 +183,7 @@ export default function EvaluacionPostural({ temaOscuro }) {
             const campoReal = tipo === 'obs' ? 'observaciones' : 'notas';
             handleRegionDataChange(region, campoReal, transcript);
           } else if (campoActivo.startsWith('test_')) {
-            // 🔥 NUEVO: dictado en los tests individuales
             const partes = campoActivo.split('_');
-            // formato: test_<region>_<nombreTest>
             const region = partes[1];
             const testNombre = partes.slice(2).join('_');
             handleTestDetalleChange(region, testNombre, transcript);
@@ -316,23 +292,16 @@ export default function EvaluacionPostural({ temaOscuro }) {
           alertas: data.datos_regiones?._alertas || '',
           plan_tratamiento: data.datos_regiones?._plan_tratamiento || '',
           hijos: data.datos_regiones?._hijos || [],
-                    nivel_educativo: data.datos_regiones?._nivel_educativo || '',
+          nivel_educativo: data.datos_regiones?._nivel_educativo || '',
           como_llego: data.datos_regiones?._como_llego || '',
+          banderas_rojas: data.datos_regiones?._banderas_rojas || [],
           contactos_emergencia: data.datos_regiones?._contactos_emergencia || [
             { nombre: '', telefono: '', parentesco: '' },
             { nombre: '', telefono: '', parentesco: '' },
           ],
           signos_vitales: data.datos_regiones?._signos_vitales || {
-            ta_sistolica: '',
-            ta_diastolica: '',
-            fc: '',
-            fr: '',
-            temperatura: '',
-            spo2: '',
-            peso: '',
-            talla: '',
-            glucemia: '',
-            fecha_toma: '',
+            ta_sistolica: '', ta_diastolica: '', fc: '', fr: '',
+            temperatura: '', spo2: '', peso: '', talla: '', glucemia: '', fecha_toma: '',
           },
           antecedentes_familiares: data.datos_regiones?._antecedentes_familiares || [],
           antecedentes_familiares_otros: data.datos_regiones?._antecedentes_familiares_otros || '',
@@ -351,7 +320,6 @@ export default function EvaluacionPostural({ temaOscuro }) {
           },
           urologicos: data.datos_regiones?._urologicos || {
             visita_urologo: '', hiperplasia_prostata: '', medicacion_prostata: '',
-            banderas_rojas: data.datos_regiones?._banderas_rojas || [],
           },
         };
         const camposExtra = data.datos_regiones?._campos_extra || {};
@@ -383,7 +351,6 @@ export default function EvaluacionPostural({ temaOscuro }) {
     }));
   };
 
-  // 🔥 NUEVO HANDLER: Guardar detalle individual de cada test
   const handleTestDetalleChange = (region, testNombre, valor) => {
     setEvaluacion(prev => ({
       ...prev,
@@ -412,7 +379,19 @@ export default function EvaluacionPostural({ temaOscuro }) {
   };
 
   // ============================================================
-  // FUNCIÓN PARA COMPILAR EL PLAN DE TRATAMIENTO (TEXTO CON DOBLE SALTO)
+  // CORRECTOR DE TYPOS DE LA IA
+  // ============================================================
+  const corregirTypos = (t) => (t || '')
+    .replace(/Estimamientos/gi, 'Estiramientos')
+    .replace(/estimamiento/gi, 'estiramiento')
+    .replace(/Susponder/gi, 'Suspender')
+    .replace(/susponder/gi, 'suspender')
+    .replace(/Lumbalgia mecanica/gi, 'Lumbalgia mecánica')
+    .replace(/Aplicaciòn/gi, 'Aplicación')
+    .replace(/aplicaciòn/gi, 'aplicación');
+
+  // ============================================================
+  // COMPILAR PLAN DE TRATAMIENTO (CORREGIDO)
   // ============================================================
   const compilarPlanTexto = () => {
     const agentesSeleccionados = planEditado.agentes_fisicos.map(nombre => {
@@ -432,29 +411,18 @@ export default function EvaluacionPostural({ temaOscuro }) {
       };
     });
 
-    const estiramientos = ejerciciosSeleccionados.filter(e => 
-      e.nombre.toLowerCase().includes('estiramiento') || 
+    const estiramientos = ejerciciosSeleccionados.filter(e =>
+      e.nombre.toLowerCase().includes('estiramiento') ||
       e.nombre.toLowerCase().includes('movilización')
     );
-    const fortalecimiento = ejerciciosSeleccionados.filter(e => 
-      !e.nombre.toLowerCase().includes('estiramiento') && 
+    const fortalecimiento = ejerciciosSeleccionados.filter(e =>
+      !e.nombre.toLowerCase().includes('estiramiento') &&
       !e.nombre.toLowerCase().includes('movilización')
     );
 
-    // Corrector de typos comunes de la IA
-  const corregirTypos = (t) => (t || '')
-    .replace(/Estimamientos/gi, 'Estiramientos')
-    .replace(/estimamiento/gi, 'estiramiento')
-    .replace(/Susponder/gi, 'Suspender')
-    .replace(/susponder/gi, 'suspender')
-    .replace(/Lumbalgia mecanica/gi, 'Lumbalgia mecánica')
-    .replace(/Aplicaciòn/gi, 'Aplicación');
-
-  let texto = `1. Diagnóstico sugerido: ${corregirTypos(planEditado.diagnostico_sugerido) || 'No especificado'}\n\n`;
-  
-  return corregirTypos(texto);
+    let texto = `1. Diagnóstico sugerido: ${planEditado.diagnostico_sugerido || 'No especificado'}\n\n`;
     texto += `2. Justificación: ${planEditado.justificacion || 'No especificada'}\n\n`;
-    
+
     texto += `3. Agentes Físicos:\n`;
     if (agentesSeleccionados.length > 0) {
       agentesSeleccionados.forEach(a => {
@@ -507,11 +475,11 @@ export default function EvaluacionPostural({ temaOscuro }) {
       texto += `      - Ninguna\n`;
     }
 
-    return texto;
+    return corregirTypos(texto);
   };
 
   // ============================================================
-  // GUARDAR EVALUACIÓN (CON COMPILACIÓN AUTOMÁTICA DEL PLAN)
+  // GUARDAR EVALUACIÓN
   // ============================================================
   const guardarEvaluacion = async (nuevoEstado) => {
     if (evaluacion.regiones.length === 0) {
@@ -532,7 +500,7 @@ export default function EvaluacionPostural({ temaOscuro }) {
         planFinal = compilarPlanTexto();
         recomendacionesFinal = planEditado.recomendaciones_generales.join('\n');
         alertasFinal = planEditado.alertas_seguridad.join('\n');
-        
+
         setEvaluacion(prev => ({
           ...prev,
           plan_tratamiento: planFinal,
@@ -556,14 +524,13 @@ export default function EvaluacionPostural({ temaOscuro }) {
         _plan_ejercicios: (planEditado?.ejercicios || []).map(nombre => {
           const ej = catalogos.ejercicios.find(e => e.nombre === nombre);
           const params = parametrosEjercicios[nombre] || {};
-          
-          // Inferir tipo por nombre si no está en catálogo
+
           let tipoFinal = ej?.tipo;
           if (!tipoFinal) {
             const nombreLower = nombre.toLowerCase();
             if (nombreLower.includes('estiramiento') || nombreLower.includes('stretching')) {
               tipoFinal = 'estiramiento';
-            } else if (nombreLower.includes('fortalecimiento') || nombreLower.includes('puente') || 
+            } else if (nombreLower.includes('fortalecimiento') || nombreLower.includes('puente') ||
                        nombreLower.includes('plancha') || nombreLower.includes('isométrico') ||
                        nombreLower.includes('activación') || nombreLower.includes('bird-dog') ||
                        nombreLower.includes('superman') || nombreLower.includes('dead bug')) {
@@ -575,12 +542,11 @@ export default function EvaluacionPostural({ temaOscuro }) {
               tipoFinal = 'general';
             }
           }
-          
-          // Inferir posición por nombre
+
           let posicionFinal = ej?.posicion;
           if (!posicionFinal) {
             const nombreLower = nombre.toLowerCase();
-            if (nombreLower.includes('decúbito prono') || nombreLower.includes('prono') || 
+            if (nombreLower.includes('decúbito prono') || nombreLower.includes('prono') ||
                 nombreLower.includes('superman') || nombreLower.includes('plancha')) {
               posicionFinal = 'prono';
             } else if (nombreLower.includes('decúbito supino') || nombreLower.includes('supino') ||
@@ -597,7 +563,7 @@ export default function EvaluacionPostural({ temaOscuro }) {
               posicionFinal = 'bipedo';
             }
           }
-          
+
           return {
             id: ej?.id || '',
             nombre: nombre,
@@ -687,7 +653,7 @@ export default function EvaluacionPostural({ temaOscuro }) {
         }
       }
       if (error) throw error;
-      
+
       alert(`✅ Evaluación guardada como "${nuevoEstado === 'borrador' ? 'borrador' : 'enviada a aprobación'}" correctamente.`);
       navigate(`/clinica/pacientes/${pacienteId}`);
     } catch (error) {
@@ -749,7 +715,7 @@ export default function EvaluacionPostural({ temaOscuro }) {
   };
 
   // ============================================================
-  // GENERAR PLAN DE TRATAMIENTO (con IA)
+  // GENERAR PLAN DE TRATAMIENTO (con IA) — VERSIÓN ROBUSTA
   // ============================================================
   const generarPlan = async () => {
     if (evaluacion.regiones.length === 0) {
@@ -759,6 +725,30 @@ export default function EvaluacionPostural({ temaOscuro }) {
 
     setGenerandoPlan(true);
     try {
+      // ===== BANDERAS ROJAS =====
+      const banderasRojas = evaluacion.banderas_rojas || [];
+      const BANDERAS_LABELS = {
+        cancer: 'Antecedente de cáncer (últimos 5 años)',
+        anticoagulantes: 'Uso de anticoagulantes',
+        marcapasos: 'Marcapasos o dispositivo implantado',
+        cirugia_reciente: 'Cirugía reciente (< 6 semanas)',
+        perdida_peso: 'Pérdida de peso inexplicable',
+        fiebre_persistente: 'Fiebre o sudoración nocturna persistente',
+        embarazo: 'Embarazo o sospecha de embarazo',
+        deficit_motor: 'Pérdida de fuerza o sensibilidad progresiva',
+        deficit_neuro: 'Déficit neurológico progresivo',
+        trauma: 'Trauma grave reciente',
+        cronico_peso: 'Pérdida de peso asociada al dolor',
+        esfinteres: 'Pérdida de control de esfínteres',
+        silla_montar: 'Alteración de sensibilidad en silla de montar',
+        deficit_mmii: 'Déficit neurológico en miembros inferiores',
+        rigidez_nuca: 'Rigidez de nuca intensa con fiebre',
+      };
+      const banderasTexto = banderasRojas.length > 0
+        ? banderasRojas.map(id => BANDERAS_LABELS[id] || id).join('; ')
+        : 'Ninguna';
+
+      // ===== DATOS PARA LA IA =====
       const datosParaIA = {
         edad: evaluacion.edad || 'No especificada',
         sexo: evaluacion.sexo || 'No especificado',
@@ -766,12 +756,19 @@ export default function EvaluacionPostural({ temaOscuro }) {
         motivo: evaluacion.motivo_consulta || 'No especificado',
         tiempo_evolucion: evaluacion.tiempo_evolucion || 'No especificado',
         mecanismo: evaluacion.mecanismo_lesion || 'No especificado',
-        tipo_dolor: evaluacion.tipo_dolor.join(', ') || 'No especificado',
+        tipo_dolor: (evaluacion.tipo_dolor || []).join(', ') || 'No especificado',
         eva_reposo: evaluacion.intensidad_reposo || 0,
         eva_actividad: evaluacion.intensidad_actividad || 0,
         factores_agravantes: evaluacion.factores_agravantes || 'No especificados',
         factores_atenuantes: evaluacion.factores_atenuantes || 'No especificados',
         sintomas_asociados: evaluacion.sintomas_asociados || 'No especificados',
+        antecedentes_medicos: evaluacion.antecedentes_medicos || 'Ninguno',
+        alergias: evaluacion.alergias || 'Ninguna',
+        medicamentos: evaluacion.medicamentos || 'Ninguno',
+        cirugias_previas: evaluacion.cirugias_previas || 'Ninguna',
+        embarazo: evaluacion.gineco_obstetricos?.embarazo || 'No',
+        lactancia: evaluacion.gineco_obstetricos?.lactancia || 'No',
+        banderas_rojas: banderasTexto,
         regiones_afectadas: evaluacion.regiones.map(r => formatearNombreRegion(r)).join(', '),
         datos_por_region: evaluacion.regiones.map(r => {
           const data = evaluacion.datos_regiones[r] || {};
@@ -783,75 +780,136 @@ export default function EvaluacionPostural({ temaOscuro }) {
         }).join('; '),
       };
 
+      // ===== DETECTAR FASE =====
       let fase = 'subaguda';
       const tiempo = evaluacion.tiempo_evolucion || '';
       if (tiempo.includes('día') || tiempo.includes('horas') || tiempo.includes('48') || tiempo.includes('72')) fase = 'aguda';
       else if (tiempo.includes('semana') && !tiempo.includes('mes')) fase = 'subaguda';
       else if (tiempo.includes('mes')) fase = 'cronica';
 
-      const systemPrompt = `Eres un fisioterapeuta experto. Genera un plan de tratamiento en formato JSON con esta estructura exacta:
+      // ===== SYSTEM PROMPT MEJORADO =====
+      const systemPrompt = `Eres un fisioterapeuta experto. Genera un plan de tratamiento en formato JSON ESTRICTO.
+
+ESTRUCTURA OBLIGATORIA (todos los campos son requeridos):
 {
   "diagnostico_sugerido": "Texto breve (máx 100 caracteres)",
-  "justificacion": "Explicación clínica (máx 200 caracteres)",
-  "agentes_fisicos": ["Lista de nombres del catálogo"],
-  "masoterapia": ["Lista de técnicas del catálogo"],
-  "ejercicios": ["Lista de nombres del catálogo"],
-  "recomendaciones_naturales": ["Consejos caseros"],
-  "recomendaciones_generales": ["Recomendaciones sobre frecuencia de sesiones, ergonomía, hábitos, etc."],
-  "alertas_seguridad": ["Alertas específicas para este paciente (contraindicaciones, signos de alarma, etc.)"]
+  "justificacion": "Explicación clínica de por qué este plan (máx 250 caracteres)",
+  "agentes_fisicos": ["Nombre1", "Nombre2"],
+  "masoterapia": ["Técnica1", "Técnica2"],
+  "ejercicios": ["Nombre1", "Nombre2"],
+  "recomendaciones_naturales": ["Consejo1", "Consejo2"],
+  "recomendaciones_generales": ["Recomendación1", "Recomendación2"],
+  "alertas_seguridad": ["Alerta1", "Alerta2"]
 }
-Reglas: Solo usa agentes, técnicas y ejercicios del catálogo. Sé conservador con el diagnóstico. NO uses la palabra "IA". Fase detectada: ${fase}. Datos: ${JSON.stringify(datosParaIA, null, 2)}`;
+
+REGLAS CRÍTICAS SOBRE BANDERAS ROJAS (OBLIGATORIO RESPETAR):
+- EMBARAZO: PROHIBIDO recomendar TENS, electroterapia, ultrasonido profundo, termoterapia profunda o masoterapia profunda. Solo terapia manual suave, ejercicios de bajo impacto, educación postural, respiración. Agregar en alertas_seguridad: "Paciente embarazada - tratamiento adaptado".
+- MARCAPASOS: PROHIBIDO TENS y electroterapia. Sí ultrasonido y terapia manual.
+- ANTICOAGULANTES: PROHIBIDO masoterapia profunda. Sí movilización suave.
+- CÁNCER ACTIVO: PROHIBIDO agentes físicos en zona tumoral.
+- CIRUGÍA RECIENTE: PROHIBIDO movilizar la zona operada sin autorización médica.
+- SIEMPRE incluir en "alertas_seguridad" un recordatorio sobre las banderas rojas presentes.
+
+REGLAS GENERALES:
+- Usa SOLO nombres de agentes, técnicas y ejercicios del catálogo disponible.
+- Sé conservador con el diagnóstico.
+- NO uses la palabra "IA".
+- Devuelve ÚNICAMENTE el JSON, sin texto antes ni después, sin bloques de código markdown.
+
+CATÁLOGO DE AGENTES FÍSICOS DISPONIBLES: Ultrasonido terapéutico, Termoterapia (calor húmedo), Electroterapia TENS, Electroterapia de corriente interferencial.
+CATÁLOGO DE MASOTERAPIA DISPONIBLE: Masaje de tejido profundo, Liberación miofascial, Técnica de punto gatillo, Fricción transversal profunda.
+CATÁLOGO DE EJERCICIOS DISPONIBLES: Estiramiento cervical lateral, Retracción cervical, Estiramiento de fascia plantar y tendón de Aquiles, Estiramiento de isquiotibiales en decúbito supino, Estiramiento de pectoral en marco de puerta, Estiramiento de extensores de muñeca, Estiramiento lumbar (rodillas al pecho), Basculación pélvica, Isométrico de cuádriceps, Elevación de pierna recta (Straight Leg Raise), Puente glúteo, Retracción escapular con banda elástica, Rotación externa de hombro con banda, Alfabeto con el tobillo, Toe curls (agarre con los dedos del pie).
+
+CONTEXTO CLÍNICO:
+- Fase detectada: ${fase}
+- Bandera(s) roja(s): ${banderasTexto}
+- Datos del paciente: ${JSON.stringify(datosParaIA, null, 2)}
+
+Responde AHORA con el JSON.`;
 
       const respuestaIA = await consultarAuraIA(
-        `Genera un plan de tratamiento para este paciente.`,
+        `Genera un plan de tratamiento para este paciente. Devuelve SOLO el JSON, sin texto adicional.`,
         { fase: fase },
         [],
         systemPrompt
       );
 
+      console.log('🔍 [IA] Respuesta cruda:', respuestaIA);
+
+      // ===== PARSEO ROBUSTO =====
       let planGenerado;
       try {
-        const jsonMatch = respuestaIA.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          planGenerado = JSON.parse(jsonMatch[0]);
-        } else {
-          throw new Error('No se encontró JSON');
+        let limpia = respuestaIA
+          .replace(/```json\s*/gi, '')
+          .replace(/```\s*/g, '')
+          .trim();
+
+        const jsonMatch = limpia.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          throw new Error('No se encontró JSON en la respuesta de la IA');
         }
+
+        planGenerado = JSON.parse(jsonMatch[0]);
+
+        // Validar campos mínimos
+        const camposRequeridos = ['diagnostico_sugerido', 'justificacion', 'agentes_fisicos', 'masoterapia', 'ejercicios'];
+        const faltantes = camposRequeridos.filter(c => !planGenerado[c]);
+        if (faltantes.length > 0) {
+          console.warn('⚠️ [IA] Campos faltantes:', faltantes);
+          faltantes.forEach(c => {
+            if (c === 'diagnostico_sugerido') planGenerado[c] = 'Diagnóstico diferencial pendiente';
+            else if (c === 'justificacion') planGenerado[c] = 'Plan basado en evaluación funcional. Revisar manualmente.';
+            else planGenerado[c] = [];
+          });
+        }
+
+        planGenerado.agentes_fisicos = planGenerado.agentes_fisicos || [];
+        planGenerado.masoterapia = planGenerado.masoterapia || [];
+        planGenerado.ejercicios = planGenerado.ejercicios || [];
+        planGenerado.recomendaciones_naturales = planGenerado.recomendaciones_naturales || [];
+        planGenerado.recomendaciones_generales = planGenerado.recomendaciones_generales || [];
+        planGenerado.alertas_seguridad = planGenerado.alertas_seguridad || [];
+
       } catch (e) {
-        console.error('Error parseando JSON:', e);
+        console.error('❌ [IA] Error parseando JSON:', e);
+        console.error('❌ [IA] Respuesta completa:', respuestaIA);
+
         planGenerado = {
-          diagnostico_sugerido: 'Diagnóstico diferencial pendiente',
-          justificacion: 'No se pudo generar análisis detallado. Revisa los datos manualmente.',
-          agentes_fisicos: ['Ultrasonido', 'TENS'],
-          masoterapia: ['Masaje de tejido profundo'],
-          ejercicios: ['Estiramientos suaves'],
-          recomendaciones_naturales: ['Compresas frías', 'Baños de contraste'],
-          recomendaciones_generales: ['Realizar sesiones 2 veces por semana', 'Mantener una postura adecuada'],
-          alertas_seguridad: ['Evitar ejercicios con carga si el dolor supera 5/10'],
+          diagnostico_sugerido: 'Diagnóstico funcional pendiente de revisión',
+          justificacion: `Plan generado automáticamente. La IA no devolvió respuesta estructurada. Revisar manualmente según evaluación clínica (fase ${fase}).`,
+          agentes_fisicos: banderasRojas.includes('embarazo') ? [] : ['Ultrasonido terapéutico'],
+          masoterapia: banderasRojas.includes('embarazo') ? [] : ['Masaje de tejido profundo'],
+          ejercicios: ['Estiramiento suave', 'Movilidad articular'],
+          recomendaciones_naturales: ['Aplicar compresas tibias 15 min si no hay inflamación aguda'],
+          recomendaciones_generales: ['Sesiones 2-3 veces/semana durante 4-6 semanas', 'Mantener postura neutra'],
+          alertas_seguridad: banderasRojas.length > 0
+            ? [`Paciente presenta bandera(s) roja(s): ${banderasTexto}. Revisar antes de aplicar tratamiento.`]
+            : ['Evitar ejercicios si el dolor supera 5/10'],
         };
       }
 
+      // ===== ENRIQUECER CON CATÁLOGO =====
       const { ejercicios, agentes, masoterapia } = catalogos;
       const planEnriquecido = {
         ...planGenerado,
-        agentes_detalle: planGenerado.agentes_fisicos?.map(nombre => {
+        agentes_detalle: (planGenerado.agentes_fisicos || []).map(nombre => {
           const encontrado = agentes.find(a => a.nombre.toLowerCase() === nombre.toLowerCase());
           return encontrado || { nombre, descripcion: 'Descripción no disponible' };
-        }) || [],
-        masoterapia_detalle: planGenerado.masoterapia?.map(nombre => {
+        }),
+        masoterapia_detalle: (planGenerado.masoterapia || []).map(nombre => {
           const encontrado = masoterapia.find(m => m.nombre.toLowerCase() === nombre.toLowerCase());
           return encontrado || { nombre, descripcion: 'Descripción no disponible' };
-        }) || [],
-        ejercicios_detalle: planGenerado.ejercicios?.map(nombre => {
+        }),
+        ejercicios_detalle: (planGenerado.ejercicios || []).map(nombre => {
           const encontrado = ejercicios.find(e => e.nombre.toLowerCase() === nombre.toLowerCase());
           return encontrado || { nombre, descripcion_terapeuta: 'Descripción no disponible' };
-        }) || [],
+        }),
         fase: fase,
         fecha_generacion: new Date().toISOString(),
       };
 
       setPlan(planEnriquecido);
-      
+
       setPlanEditado({
         diagnostico_sugerido: planEnriquecido.diagnostico_sugerido || '',
         justificacion: planEnriquecido.justificacion || '',
@@ -859,14 +917,14 @@ Reglas: Solo usa agentes, técnicas y ejercicios del catálogo. Sé conservador 
         masoterapia: planEnriquecido.masoterapia_detalle.map(m => m.nombre) || [],
         ejercicios: planEnriquecido.ejercicios_detalle.map(e => e.nombre) || [],
         recomendaciones_naturales: planEnriquecido.recomendaciones_naturales || [],
-        recomendaciones_generales: planGenerado.recomendaciones_generales || ['Realizar sesiones 2 veces por semana', 'Mantener una postura adecuada'],
-        alertas_seguridad: planGenerado.alertas_seguridad || ['Evitar ejercicios con carga si el dolor supera 5/10'],
+        recomendaciones_generales: planEnriquecido.recomendaciones_generales || [],
+        alertas_seguridad: planEnriquecido.alertas_seguridad || [],
       });
 
       setEvaluacion(prev => ({
         ...prev,
-        recomendaciones: (planGenerado.recomendaciones_generales || ['Realizar sesiones 2 veces por semana', 'Mantener una postura adecuada']).join('\n'),
-        alertas: (planGenerado.alertas_seguridad || ['Evitar ejercicios con carga si el dolor supera 5/10']).join('\n'),
+        recomendaciones: (planGenerado.recomendaciones_generales || []).join('\n'),
+        alertas: (planGenerado.alertas_seguridad || []).join('\n'),
       }));
 
       const paramsIniciales = {};
@@ -879,18 +937,18 @@ Reglas: Solo usa agentes, técnicas y ejercicios del catálogo. Sé conservador 
         }
       });
       setParametrosEjercicios(paramsIniciales);
-      
+
       setMostrarPlan(true);
     } catch (error) {
       console.error('Error al generar plan:', error);
-      alert('Error al generar plan. Intenta de nuevo.');
+      alert('Error al generar plan: ' + error.message + '\n\nRevisa la consola (F12) para más detalles.');
     } finally {
       setGenerandoPlan(false);
     }
   };
 
   // ============================================================
-  // MANEJADORES PARA LA EDICIÓN DEL PLAN
+  // MANEJADORES DEL PLAN
   // ============================================================
   const handlePlanChange = (campo, valor) => {
     setPlanEditado(prev => ({ ...prev, [campo]: valor }));
@@ -1024,7 +1082,6 @@ Reglas: Solo usa agentes, técnicas y ejercicios del catálogo. Sé conservador 
                         )}
                       </div>
 
-                      {/* 🔥 BLOQUE ACTUALIZADO: Tests con detalle individual */}
                       <div className="mb-4">
                         <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Tests especiales</label>
                         <div className="space-y-2">
@@ -1079,8 +1136,7 @@ Reglas: Solo usa agentes, técnicas y ejercicios del catálogo. Sé conservador 
                             );
                           })}
                         </div>
-                        
-                        {/* Observaciones generales de la región (separadas) */}
+
                         <div className="relative mt-3">
                           <label className={`block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1`}>Observaciones adicionales de la región</label>
                           <input
@@ -1110,7 +1166,6 @@ Reglas: Solo usa agentes, técnicas y ejercicios del catálogo. Sé conservador 
               </div>
             )}
 
-            {/* ===== SECCIÓN DE GENERACIÓN DEL PLAN ===== */}
             <div className="mt-6 border-t border-gray-700 pt-6">
               <button
                 onClick={generarPlan}
@@ -1123,8 +1178,7 @@ Reglas: Solo usa agentes, técnicas y ejercicios del catálogo. Sé conservador 
               {mostrarPlan && plan && (
                 <div className="mt-4 p-4 rounded-2xl border border-purple-500/30 bg-purple-900/10">
                   <h3 className="text-lg font-bold text-purple-400 mb-3">📋 Plan de Tratamiento Generado (Editable)</h3>
-                  
-                  {/* Punto 7 */}
+
                   <div className="mb-4">
                     <label className="block text-sm font-bold text-purple-300">7. Recomendaciones Generales</label>
                     <textarea
@@ -1139,10 +1193,9 @@ Reglas: Solo usa agentes, técnicas y ejercicios del catálogo. Sé conservador 
                     />
                   </div>
 
-                  {/* Punto 8 */}
                   <div className="mb-4">
                     <label className="block text-sm font-bold text-purple-300">8. Plan de Tratamiento</label>
-                    
+
                     <div className="space-y-3">
                       <div>
                         <label className="text-xs text-gray-400">Diagnóstico sugerido</label>
@@ -1279,7 +1332,6 @@ Reglas: Solo usa agentes, técnicas y ejercicios del catálogo. Sé conservador 
                     </div>
                   </div>
 
-                  {/* Punto 9 */}
                   <div className="mb-4">
                     <label className="block text-sm font-bold text-purple-300">9. Alertas de Seguridad</label>
                     <textarea
@@ -1297,7 +1349,6 @@ Reglas: Solo usa agentes, técnicas y ejercicios del catálogo. Sé conservador 
               )}
             </div>
 
-            {/* ===== BOTONES FINALES ===== */}
             <div className="flex justify-between mt-6 border-t border-gray-700 pt-6">
               <button onClick={() => setPaso(2)} className="px-6 py-3 bg-gray-600 text-white font-black rounded-xl text-sm hover:opacity-80 transition-all">← Anterior</button>
               <div className="flex gap-3">

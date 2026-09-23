@@ -36,6 +36,7 @@ const INSTITUCIONES = {
 // NOMBRES BONITOS DE LOS CURSOS DE ESAN
 // ============================================================
 const NOMBRES_CURSOS_ESAN = {
+  '00-MATERIAL_GENERAL': { num: '00', titulo: 'Material General del Programa' },
   '01-PLANIFICACION_ESTRATEGICA': { num: '01', titulo: 'Planificación Estratégica' },
   '02-GESTION-DE_CLIENTES_Y_UNIDAD_DE_NEGOCIO': { num: '02', titulo: 'Gestión de Clientes y Unidad de Negocio' },
   '03-CONTROL_INTERNO': { num: '03', titulo: 'Control Interno' },

@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { generarInformeDesdeEvaluacion } from '../../utils/generarInforme';
 import { generarInformePaciente } from '../../utils/generarInformePaciente';
+import { generarAcuerdoServicio } from '../../utils/generarAcuerdoServicio';
 
 export default function PacienteDetalle({ temaOscuro }) {
   const { id } = useParams();
@@ -181,6 +182,19 @@ export default function PacienteDetalle({ temaOscuro }) {
           </div>
           <div className="flex flex-wrap gap-3">
             <Link to={`/clinica/evaluacion/${paciente.id}`} className="px-4 py-2 bg-[#22d3ee]/20 text-[#22d3ee] font-bold rounded-xl text-xs hover:bg-[#22d3ee] hover:text-black transition-all">+ Agregar Evaluación</Link>
+            <button
+              onClick={async () => {
+                try {
+                  await generarAcuerdoServicio(paciente.id);
+                } catch (err) {
+                  alert('Error al generar el acuerdo: ' + err.message);
+                }
+              }}
+              className="px-4 py-2 bg-emerald-500/20 text-emerald-400 font-bold rounded-xl text-xs hover:bg-emerald-500 hover:text-white transition-all"
+              title="Genera el documento legal de acuerdo de servicio o consentimiento informado"
+            >
+              📄 Acuerdo de Servicio
+            </button>
             <button className="px-4 py-2 bg-purple-600/20 text-purple-400 font-bold rounded-xl text-xs hover:bg-purple-600 hover:text-white transition-all">+ Nueva Sesión</button>
             <button className="px-4 py-2 bg-yellow-600/20 text-yellow-400 font-bold rounded-xl text-xs hover:bg-yellow-600 hover:text-white transition-all">Editar Ficha</button>
           </div>

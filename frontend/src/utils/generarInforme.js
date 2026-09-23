@@ -28,10 +28,6 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
   // ============================================================
   const tipoProfesional = perfil?.tipo_profesional || 'licenciado';
   const esLicenciado = tipoProfesional === 'licenciado';
-  const esTecnico = tipoProfesional === 'tecnico';
-
-  // Si NO es licenciado explícitamente, asumimos firma técnica
-  // (director, admin centro técnico, etc.)
   const firmaComoTecnico = !esLicenciado;
 
   let centroNombre = 'Centro CJ';
@@ -76,11 +72,13 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
     ? '8. Plan de Ejercicios Terapéuticos'
     : '8. Plan de Tratamiento Fisioterapéutico';
 
-  const etiquetaDiagnostico = firmaComoTecnico ? 'Hallazgos funcionales' : 'Diagnóstico clínico';
-
   const subtituloTipoCentro = esGimnasioTerapeutico
     ? 'Gimnasio Terapéutico'
     : 'Centro Fisioterapéutico';
+
+  const nombreCentroConTipo = centroNombre.toLowerCase().includes(subtituloTipoCentro.toLowerCase())
+    ? centroNombre
+    : `${centroNombre} (${subtituloTipoCentro})`;
 
   // ============================================================
   // DATOS DEL PROFESIONAL Y FIRMA
@@ -94,26 +92,23 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
   const dni = perfil?.dni || '';
   const registroInterno = perfil?.registro_interno || '';
 
-  // Firma según tipo profesional
   let credenciales = '';
   if (firmaComoTecnico) {
-    // Firma técnica: DNI + registro interno si lo tiene
     if (dni) credenciales = `Técnico en Fisioterapia y Rehabilitación — DNI: ${dni}`;
     else if (registroInterno) credenciales = `Técnico en Fisioterapia — Registro Interno: ${registroInterno}`;
     else credenciales = titulo || 'Técnico en Fisioterapia';
   } else {
-    // Firma de licenciado: CTMP obligatorio
     if (colegiatura) credenciales = `Lic. T.M. Fisioterapia — C.T.M.P. N° ${colegiatura}`;
     else if (titulo) credenciales = titulo;
   }
 
   const regiones = evaluacion.regiones || [];
   const datosRegiones = evaluacion.datos_regiones || {};
-  const recomendaciones = datosRegiones._recomendaciones || '';
-  const alertas = datosRegiones._alertas || '';
-  let planTratamiento = datosRegiones._plan_tratamiento || '';
-  // Corregir typos comunes generados por la IA
-  planTratamiento = planTratamiento
+
+  // ============================================================
+  // CORRECTOR DE TYPOS DE LA IA
+  // ============================================================
+  const corregirTypos = (t) => (t || '')
     .replace(/Estimamientos/gi, 'Estiramientos')
     .replace(/estimamiento/gi, 'estiramiento')
     .replace(/Susponder/gi, 'Suspender')
@@ -121,6 +116,10 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
     .replace(/Lumbalgia mecanica/gi, 'Lumbalgia mecánica')
     .replace(/Aplicaciòn/gi, 'Aplicación')
     .replace(/aplicaciòn/gi, 'aplicación');
+
+  const recomendaciones = corregirTypos(datosRegiones._recomendaciones || '');
+  const alertas = corregirTypos(datosRegiones._alertas || '');
+  const planTratamiento = corregirTypos(datosRegiones._plan_tratamiento || '');
   const hijos = datosRegiones._hijos || [];
   const contactosEmergencia = datosRegiones._contactos_emergencia || [];
   const signosVitales = datosRegiones._signos_vitales || {};
@@ -240,7 +239,7 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
   }
 
   // ============================================================
-  // STICKMAN
+  // STICKMAN (Vista Anterior / Posterior)
   // ============================================================
   const esPosterior = (r) => {
     const postRegions = ['nuca', 'espalda', 'sacro', 'gluteo', 'poplitea', 'lumbar', 'dorsal', 'escapula', 'trapecio', 'post', 'isquion', 'ilion'];
@@ -277,12 +276,12 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
     clavicula_izq: { cx: 90, cy: 40 }, clavicula_der: { cx: 110, cy: 40 },
     trapecio_izq: { cx: 90, cy: 45 }, trapecio_der: { cx: 110, cy: 45 },
     escapula_izq: { cx: 90, cy: 55 }, escapula_der: { cx: 110, cy: 55 },
-    lumbar: { cx: 100, cy: 100 }, cervical: { cx: 100, cy: 30 }, dorsal: { cx: 100, cy: 50 }, abdomen: { cx: 100, cy: 118 },
+    lumbar: { cx: 100, cy: 110 }, cervical: { cx: 100, cy: 30 }, dorsal: { cx: 100, cy: 70 }, abdomen: { cx: 100, cy: 118 },
     poplitea_izq: { cx: 80, cy: 195 }, poplitea_der: { cx: 120, cy: 195 },
     lca: { cx: 80, cy: 195 }, lcp: { cx: 80, cy: 195 },
     menisco_med: { cx: 80, cy: 195 }, menisco_lat: { cx: 120, cy: 195 },
     ilion_der: { cx: 130, cy: 140 }, isquion_der: { cx: 130, cy: 155 },
-    gluteo_der: { cx: 120, cy: 140 },
+    gluteo_der: { cx: 120, cy: 140 }, gluteo_izq: { cx: 80, cy: 140 },
     carpo: { cx: 140, cy: 152 }, carpo_izq: { cx: 60, cy: 152 }, carpo_der: { cx: 140, cy: 152 },
     metacarpo: { cx: 140, cy: 140 }, metacarpo_izq: { cx: 60, cy: 140 }, metacarpo_der: { cx: 140, cy: 140 },
     falanges_prox: { cx: 140, cy: 128 }, falanges_prox_izq: { cx: 60, cy: 128 }, falanges_prox_der: { cx: 140, cy: 128 },
@@ -341,7 +340,7 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
   const stickmanPosterior = generarStickman(regionesPosteriores, 'Vista Posterior');
 
   // ============================================================
-  // TABLA DE EVALUACIÓN POR REGIÓN
+  // PUNTO 6: EVALUACIÓN POR REGIÓN
   // ============================================================
   const tablaRegiones = regiones.map(region => {
     const data = datosRegiones[region] || {};
@@ -382,7 +381,7 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
   `).join('');
 
   // ============================================================
-  // RECOMENDACIONES
+  // PUNTO 7: RECOMENDACIONES
   // ============================================================
   const recomLines = recomendaciones.split('\n').map(l => l.trim()).filter(l => l !== '');
   let recomendacionesHTML = '';
@@ -397,7 +396,7 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
   }
 
   // ============================================================
-  // PLAN DE TRATAMIENTO
+  // PUNTO 8: PLAN DE TRATAMIENTO
   // ============================================================
   let planHTML = '<div style="font-size:9.5pt; line-height:1.55;">';
   if (planTratamiento) {
@@ -435,7 +434,7 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
   planHTML += '</div>';
 
   // ============================================================
-  // ALERTAS
+  // PUNTO 9: ALERTAS
   // ============================================================
   const alertLines = alertas.split('\n').map(l => l.trim()).filter(l => l !== '');
   let alertasHTML = '<div style="font-size:9.5pt; line-height:1.55; margin-bottom: 8px;">';
@@ -451,13 +450,12 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
   }
   alertasHTML += '</div>';
 
-  // Aviso legal diferenciado
   if (firmaComoTecnico) {
     alertasHTML += `<div class="alerta" style="background:#fef3c7; border-left-color:#f59e0b; color:#78350f;">
-      ⚠️ AVISO: Documento funcional elaborado por un Técnico en Fisioterapia y Rehabilitación. NO constituye diagnóstico clínico ni prescripción médica. Para diagnóstico o prescripción, consulte con un <strong>Lic. T.M. Fisioterapia</strong>.
+      AVISO: Documento funcional elaborado por un Técnico en Fisioterapia y Rehabilitación. NO constituye diagnóstico clínico ni prescripción médica. Para diagnóstico o prescripción, consulte con un <strong>Lic. T.M. Fisioterapia</strong>.
     </div>`;
   } else {
-    alertasHTML += `<div class="alerta">⚠️ Este informe contiene información confidencial del paciente. Solo debe ser utilizado por personal autorizado.</div>`;
+    alertasHTML += `<div class="alerta">Este informe contiene información confidencial del paciente. Solo debe ser utilizado por personal autorizado.</div>`;
   }
 
   // ============================================================
@@ -700,7 +698,7 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
   if (banderasRojasSeleccionadas.length > 0) {
     alertaBanderasHTML = `
       <div class="alerta">
-        ⚠️ ATENCIÓN: El paciente presenta ${banderasRojasSeleccionadas.length} bandera(s) roja(s). Revisar antes de aplicar tratamiento.
+        ATENCIÓN: El paciente presenta ${banderasRojasSeleccionadas.length} bandera(s) roja(s). Revisar antes de aplicar tratamiento.
       </div>
     `;
   }
@@ -709,8 +707,8 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
   // BADGE DEL TIPO DE CENTRO
   // ============================================================
   const badgeCentroHTML = esGimnasioTerapeutico
-    ? `<div style="display:inline-block; padding:3px 10px; background:#fef3c7; color:#78350f; font-size:8pt; font-weight:700; border-radius:4px; letter-spacing:1px; text-transform:uppercase; margin-bottom:6px;">🏋️ Gimnasio Terapéutico</div>`
-    : `<div style="display:inline-block; padding:3px 10px; background:#dbeafe; color:#1e40af; font-size:8pt; font-weight:700; border-radius:4px; letter-spacing:1px; text-transform:uppercase; margin-bottom:6px;">🏥 Centro Fisioterapéutico</div>`;
+    ? `<div style="display:inline-block; padding:3px 10px; background:#fef3c7; color:#78350f; font-size:8pt; font-weight:700; border-radius:4px; letter-spacing:1px; text-transform:uppercase; margin-bottom:6px;">Gimnasio Terapéutico</div>`
+    : `<div style="display:inline-block; padding:3px 10px; background:#dbeafe; color:#1e40af; font-size:8pt; font-weight:700; border-radius:4px; letter-spacing:1px; text-transform:uppercase; margin-bottom:6px;">Centro Fisioterapéutico</div>`;
 
   // ============================================================
   // HTML FINAL
@@ -751,7 +749,12 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
         .alerta { background-color: #fee2e2; border-left: 4px solid #ef4444; padding: 5px 10px; margin: 6px 0; border-radius: 3px; font-weight: 600; font-size: 9pt; }
         .stickman-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin: 8px 0; }
         .stickman-container > div { flex: 0 1 auto; text-align: center; }
-        .firma { margin-top: 25px; border-top: 1px solid #94a3b8; padding-top: 8px; text-align: right; font-size: 10pt; }
+        .firma { margin-top: 30px; border-top: 1px solid #94a3b8; padding-top: 30px; padding-right: 60px; }
+        .firma .firma-bloque { max-width: 320px; margin-left: auto; text-align: left; }
+        .firma .firma-label { font-size: 9pt; color: #475569; font-weight: 600; margin: 0 0 50px 0; }
+        .firma .firma-linea { border-top: 1.5px solid #475569; padding-top: 6px; margin: 0; }
+        .firma .firma-nombre { font-size: 10pt; font-weight: 700; color: #0f172a; margin: 0; }
+        .firma .firma-credenciales { font-size: 8.5pt; color: #64748b; margin: 2px 0 0 0; }
         .campo-vacio { color: #94a3b8; font-style: italic; }
         @media print { .marca-agua { opacity: 0.03; } .pagina { height: auto; min-height: 100vh; } }
       </style>
@@ -869,13 +872,17 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
             <tr><th>Tipo de profesional</th><td>${firmaComoTecnico ? 'Técnico en Fisioterapia y Rehabilitación' : 'Licenciado en Tecnología Médica - Fisioterapia'}</td></tr>
             <tr><th>Fecha de generación</th><td>${fecha}</td></tr>
             <tr><th>Hora de generación</th><td>${hora}</td></tr>
-            <tr><th>Centro</th><td>${centroNombre} (${subtituloTipoCentro})</td></tr>
+            <tr><th>Centro</th><td>${nombreCentroConTipo}</td></tr>
           </table>
 
           <div class="firma">
-            <p>Firma del profesional: ________________________</p>
-            <p style="font-size:8pt; color:#94a3b8;">${usuario}</p>
-            ${credenciales ? `<p style="font-size:8pt; color:#64748b;">${credenciales}</p>` : ''}
+            <div class="firma-bloque">
+              <p class="firma-label">${firmaComoTecnico ? 'Firma del profesional técnico:' : 'Firma del profesional:'}</p>
+              <div class="firma-linea">
+                <p class="firma-nombre">${usuario}</p>
+                ${credenciales ? `<p class="firma-credenciales">${credenciales}</p>` : ''}
+              </div>
+            </div>
           </div>
 
           <div style="text-align: center; margin-top: 15px; font-size: 9pt; color: #64748b;">--- Fin del documento ---</div>
