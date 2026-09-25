@@ -194,6 +194,7 @@ export default function PacientesLista({ temaOscuro }) {
   // Estilos
   const bgPrincipal = temaOscuro ? 'bg-[#0a141d]' : 'bg-[#e2e8f0]';
   const textoPrincipal = temaOscuro ? 'text-white' : 'text-[#0f172a]';
+  const textoSecundario = temaOscuro ? 'text-gray-400' : 'text-gray-600';
   const bgTarjeta = temaOscuro ? 'bg-[#0a141d] border-gray-800' : 'bg-white border-gray-200';
   const bgInput = temaOscuro ? 'bg-black/20 border-white/10 text-white' : 'bg-gray-100 border-gray-300 text-[#0f172a]';
   const bgCard = temaOscuro ? 'bg-[#1a2533] border-gray-700' : 'bg-white border-gray-200';
@@ -263,30 +264,30 @@ export default function PacientesLista({ temaOscuro }) {
           </div>
         ) : pacientes.length === 0 ? (
           <div className={`${bgTarjeta} p-12 rounded-3xl border text-center`}>
-            <p className="text-gray-400 text-lg">No hay pacientes registrados.</p>
-            <p className="text-sm text-gray-500 mt-2">Usa el botón "Agregar Ejemplos" para ver una vista previa.</p>
+            <p className={`text-lg ${temaOscuro ? 'text-gray-400' : 'text-gray-600'}`}>No hay pacientes registrados.</p>
+            <p className={`text-sm mt-2 ${temaOscuro ? 'text-gray-500' : 'text-gray-500'}`}>Usa el botón "Agregar Ejemplos" para ver una vista previa.</p>
           </div>
         ) : (
           <>
             {/* --- TABLA (PC) --- */}
             <div className="hidden md:block overflow-x-auto rounded-2xl border shadow-sm">
               <table className="w-full text-sm">
-                <thead className={`${temaOscuro ? 'bg-[#0f1a24]' : 'bg-gray-100'} border-b border-gray-700`}>
+                <thead className={`${temaOscuro ? 'bg-[#0f1a24] border-gray-700' : 'bg-gray-100 border-gray-300'} border-b`}>
                   <tr>
-                    <th className="px-4 py-3 text-left font-bold text-xs uppercase tracking-wider text-gray-400">Nombre</th>
-                    <th className="px-4 py-3 text-left font-bold text-xs uppercase tracking-wider text-gray-400">Apellidos</th>
-                    <th className="px-4 py-3 text-left font-bold text-xs uppercase tracking-wider text-gray-400">Teléfono</th>
-                    <th className="px-4 py-3 text-left font-bold text-xs uppercase tracking-wider text-gray-400">Diagnóstico</th>
-                    <th className="px-4 py-3 text-center font-bold text-xs uppercase tracking-wider text-gray-400">Acciones</th>
+                    <th className={`px-4 py-3 text-left font-bold text-xs uppercase tracking-wider ${temaOscuro ? 'text-gray-400' : 'text-gray-700'}`}>Nombre</th>
+                    <th className={`px-4 py-3 text-left font-bold text-xs uppercase tracking-wider ${temaOscuro ? 'text-gray-400' : 'text-gray-700'}`}>Apellidos</th>
+                    <th className={`px-4 py-3 text-left font-bold text-xs uppercase tracking-wider ${temaOscuro ? 'text-gray-400' : 'text-gray-700'}`}>Teléfono</th>
+                    <th className={`px-4 py-3 text-left font-bold text-xs uppercase tracking-wider ${temaOscuro ? 'text-gray-400' : 'text-gray-700'}`}>Diagnóstico</th>
+                    <th className={`px-4 py-3 text-center font-bold text-xs uppercase tracking-wider ${temaOscuro ? 'text-gray-400' : 'text-gray-700'}`}>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   {pacientes.map((p) => (
-                    <tr key={p.id} className="border-b border-gray-700 hover:bg-[#22d3ee]/5 transition-colors">
-                      <td className="px-4 py-3 font-medium">{p.nombre}</td>
-                      <td className="px-4 py-3">{p.apellidos}</td>
-                      <td className="px-4 py-3">{p.telefono || '—'}</td>
-                      <td className="px-4 py-3 text-xs">{p.diagnostico || 'Pendiente'}</td>
+                    <tr key={p.id} className={`border-b ${temaOscuro ? 'border-gray-700 hover:bg-[#22d3ee]/5' : 'border-gray-200 hover:bg-[#22d3ee]/10'} transition-colors`}>
+                      <td className={`px-4 py-3 font-medium ${textoPrincipal}`}>{p.nombre}</td>
+                      <td className={`px-4 py-3 ${textoPrincipal}`}>{p.apellidos}</td>
+                      <td className={`px-4 py-3 ${textoPrincipal}`}>{p.telefono || '—'}</td>
+                      <td className={`px-4 py-3 text-xs ${textoSecundario}`}>{p.diagnostico || 'Pendiente'}</td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex justify-center gap-2">
                           <button
