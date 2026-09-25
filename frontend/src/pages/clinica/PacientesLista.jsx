@@ -7,6 +7,7 @@ export default function PacientesLista({ temaOscuro }) {
   const [pacientes, setPacientes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [orden, setOrden] = useState('apellidos_asc');
   const [pagina, setPagina] = useState(0);
   const [totalPaginas, setTotalPaginas] = useState(0);
   const [modalAbierto, setModalAbierto] = useState(false);
@@ -17,6 +18,17 @@ export default function PacientesLista({ temaOscuro }) {
 
   const [centroId, setCentroId] = useState(null);
   const [userId, setUserId] = useState(null);
+
+  // Opciones de ordenamiento
+  const OPCIONES_ORDEN = [
+    { value: 'apellidos_asc', label: 'Apellido (A → Z)' },
+    { value: 'apellidos_desc', label: 'Apellido (Z → A)' },
+    { value: 'nombre_asc', label: 'Nombre (A → Z)' },
+    { value: 'nombre_desc', label: 'Nombre (Z → A)' },
+    { value: 'recientes', label: 'Más recientes primero' },
+    { value: 'antiguos', label: 'Más antiguos primero' },
+    { value: 'diagnostico_asc', label: 'Diagnóstico (A → Z)' },
+  ];
 
   // Obtener perfil del usuario
   useEffect(() => {
@@ -39,7 +51,7 @@ export default function PacientesLista({ temaOscuro }) {
   useEffect(() => {
     if (userId === null) return;
     cargarPacientes();
-  }, [pagina, searchTerm, centroId, userId]);
+  }, [pagina, searchTerm, centroId, userId, orden]);
 
   const cargarPacientes = async () => {
     setLoading(true);
@@ -52,7 +64,7 @@ export default function PacientesLista({ temaOscuro }) {
         query = query.eq('user_id', userId);
       }
 
-      // Búsqueda simple (case-insensitive, sin acentos por ahora)
+      // Búsqueda simple
       if (searchTerm.trim()) {
         const term = searchTerm.trim().toLowerCase();
         query = query.or(
@@ -60,8 +72,32 @@ export default function PacientesLista({ temaOscuro }) {
         );
       }
 
+      // Ordenamiento dinámico
+      const [campo, dir] = orden.split('_');
+      let orderConfig = { column: 'apellidos', ascending: true };
+
+      switch (campo) {
+        case 'apellidos':
+          orderConfig = { column: 'apellidos', ascending: dir === 'asc' };
+          break;
+        case 'nombre':
+          orderConfig = { column: 'nombre', ascending: dir === 'asc' };
+          break;
+        case 'recientes':
+          orderConfig = { column: 'created_at', ascending: false };
+          break;
+        case 'antiguos':
+          orderConfig = { column: 'created_at', ascending: true };
+          break;
+        case 'diagnostico':
+          orderConfig = { column: 'diagnostico', ascending: true };
+          break;
+        default:
+          orderConfig = { column: 'apellidos', ascending: true };
+      }
+
       const desde = pagina * LIMITE;
-      query = query.range(desde, desde + LIMITE - 1).order('apellidos', { ascending: true });
+      query = query.range(desde, desde + LIMITE - 1).order(orderConfig.column, { ascending: orderConfig.ascending, nullsFirst: false });
 
       const { data, count, error } = await query;
       if (error) throw error;
@@ -187,16 +223,38 @@ export default function PacientesLista({ temaOscuro }) {
           </div>
         </div>
 
-        {/* Buscador */}
-        <div className="mb-6">
+        {/* Buscador + Ordenamiento */}
+        <div className="mb-6 flex flex-col md:flex-row gap-3">
           <input
             type="text"
             placeholder="Buscar por nombre, apellido o diagnóstico..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className={`w-full max-w-md px-4 py-3 rounded-xl border ${bgInput} outline-none focus:border-[#22d3ee] transition-all text-sm`}
+            onChange={(e) => { setSearchTerm(e.target.value); setPagina(0); }}
+            className={`flex-1 px-4 py-3 rounded-xl border ${bgInput} outline-none focus:border-[#22d3ee] transition-all text-sm`}
           />
+          <div className="flex items-center gap-2">
+            <label className={`text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} whitespace-nowrap`}>
+              Ordenar por:
+            </label>
+            <select
+              value={orden}
+              onChange={(e) => { setOrden(e.target.value); setPagina(0); }}
+              className={`px-3 py-3 rounded-xl border ${bgInput} outline-none focus:border-[#22d3ee] transition-all text-sm cursor-pointer min-w-[200px]`}
+            >
+              {OPCIONES_ORDEN.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
         </div>
+
+        {/* Contador */}
+        {!loading && (
+          <p className={`text-xs ${temaOscuro ? 'text-gray-400' : 'text-gray-600'} mb-3`}>
+            Mostrando {pacientes.length} paciente{pacientes.length !== 1 ? 's' : ''}
+            {searchTerm && ` para "${searchTerm}"`}
+          </p>
+        )}
 
         {/* Lista */}
         {loading ? (
@@ -224,7 +282,7 @@ export default function PacientesLista({ temaOscuro }) {
                 </thead>
                 <tbody>
                   {pacientes.map((p) => (
-                    <tr key={p.id} className={`border-b border-gray-700 hover:bg-[#22d3ee]/5 transition-colors`}>
+                    <tr key={p.id} className="border-b border-gray-700 hover:bg-[#22d3ee]/5 transition-colors">
                       <td className="px-4 py-3 font-medium">{p.nombre}</td>
                       <td className="px-4 py-3">{p.apellidos}</td>
                       <td className="px-4 py-3">{p.telefono || '—'}</td>
@@ -323,7 +381,7 @@ export default function PacientesLista({ temaOscuro }) {
               <input type="email" placeholder="Email" value={nuevoPaciente.email} onChange={(e) => setNuevoPaciente({...nuevoPaciente, email: e.target.value})} className={`w-full px-4 py-2 rounded-xl border ${bgInput} outline-none focus:border-[#22d3ee]`} />
               <input type="text" placeholder="Diagnóstico" value={nuevoPaciente.diagnostico} onChange={(e) => setNuevoPaciente({...nuevoPaciente, diagnostico: e.target.value})} className={`w-full px-4 py-2 rounded-xl border ${bgInput} outline-none focus:border-[#22d3ee]`} />
               <div className="flex justify-end gap-3 pt-2">
-                <button onClick={() => setModalAbierto(false)} className="px-4 py-2 rounded-xl border border-gray-300 text-sm font-bold hover:bg-gray-100">Cancelar</button>
+                <button onClick={() => setModalAbierto(false)} className={`px-4 py-2 rounded-xl border text-sm font-bold ${temaOscuro ? 'border-gray-600 hover:bg-gray-700/30' : 'border-gray-300 hover:bg-gray-100'}`}>Cancelar</button>
                 <button onClick={guardarPaciente} disabled={guardando} className="px-5 py-2 bg-[#22d3ee] text-black font-bold rounded-xl text-sm hover:scale-105 transition-all disabled:opacity-50">{guardando ? 'Guardando...' : 'Guardar'}</button>
               </div>
             </div>

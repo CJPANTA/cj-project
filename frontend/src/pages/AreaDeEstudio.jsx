@@ -157,6 +157,10 @@ export default function AreaDeEstudio({ temaOscuro }) {
     if (institucion === 'carrion') {
       return `BASE_DATOS/01_CARRION/CICLO_${nivelIntermedio}/${encodeURIComponent(cursoActivo)}/${encodeURIComponent(nombreArchivo)}`;
     } else if (institucion === 'esan') {
+      // Si es "Material General" (archivos en la raíz de 07_ESAN), no incluir carpeta intermedia
+      if (cursoActivo === '00-MATERIAL_GENERAL') {
+        return `BASE_DATOS/07_ESAN/${encodeURIComponent(nombreArchivo)}`;
+      }
       return `BASE_DATOS/07_ESAN/${encodeURIComponent(cursoActivo)}/${encodeURIComponent(nombreArchivo)}`;
     }
     return '';

@@ -438,18 +438,53 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
             ${diagnostico || '<span class="campo-vacio">Diagnóstico pendiente de registro.</span>'}
           </div>
 
-          <h1>2. Tus Ejercicios</h1>
+          <h1>2. Antes de Empezar</h1>
+          <div style="background:#f0f9ff; border-left:4px solid #22d3ee; padding:10px 14px; border-radius:6px; margin-bottom:10px;">
+            <ul style="margin:0; padding-left:20px; font-size:9.5pt; line-height:1.55; color:#1e293b;">
+              <li>Realiza los ejercicios en un lugar tranquilo, sin prisa.</li>
+              <li>Usa ropa cómoda y, si es necesario, una silla firme o colchoneta.</li>
+              <li>Nunca fuerces el movimiento. Trabaja dentro de un rango cómodo.</li>
+              <li><strong>Detente y consulta</strong> si sientes dolor intenso (más de 5/10).</li>
+              <li>Calienta 2-3 minutos antes (caminando o moviendo las articulaciones suavemente).</li>
+            </ul>
+          </div>
+
+          <h1>3. Tus Ejercicios</h1>
           <p style="font-size:10pt; color:#475569; margin-bottom:12px;">
             Realiza estos ejercicios en casa siguiendo las indicaciones. Si sientes dolor intenso, detente y consulta a tu terapeuta.
           </p>
           ${ejerciciosHTML}
+
+          ${planEjercicios.length > 0 ? `
+            <div style="margin-top:20px; padding:12px 14px; background:#fef3c7; border-left:4px solid #f59e0b; border-radius:6px; page-break-inside:avoid;">
+              <div style="font-size:10pt; font-weight:700; color:#78350f; margin-bottom:6px;">💡 Cómo sé que lo hago bien:</div>
+              <ul style="margin:0; padding-left:20px; font-size:9pt; line-height:1.55; color:#78350f;">
+                <li>Sientes un estiramiento o esfuerzo leve, no dolor agudo.</li>
+                <li>Puedes respirar con normalidad durante el ejercicio.</li>
+                <li>Al terminar, la zona se siente "trabajada" pero no adolorida.</li>
+                <li>Si sientes dolor que sube de 5/10, reduce el rango o detente.</li>
+              </ul>
+            </div>
+          ` : ''}
         </div>
         <div class="pie">Plan de Ejercicios — ${centroNombre} — Página 1</div>
-      </div>
+
+        <div style="margin-top:12px; padding:12px 14px; background:#fef2f2; border-left:4px solid #ef4444; border-radius:6px; page-break-inside:avoid;">
+  <div style="font-size:10pt; font-weight:700; color:#991b1b; margin-bottom:6px;">⚠️ Evita estos errores:</div>
+  <ul style="margin:0; padding-left:20px; font-size:9pt; line-height:1.55; color:#991b1b;">
+    <li>No hagas los ejercicios rápido ni con rebotes.</li>
+    <li>No aguantes la respiración durante el esfuerzo.</li>
+    <li>No ignores el dolor "para terminar la serie".</li>
+    <li>No hagas los ejercicios si tienes fiebre o inflamación aguda nueva.</li>
+  </ul>
+</div>
 
       <div class="pagina">
         <div class="contenido">
-          <h1>3. Cuidados en Casa</h1>
+          <<h1>4. Cuidados en Casa</h1>
+          <p style="font-size:10pt; color:#475569; margin-bottom:10px;">
+            Estas recomendaciones complementan tu tratamiento y ayudan a una mejor recuperación.
+          </p>
           ${recomendacionesHTML}
 
           <h1>4. Cuándo Consultar</h1>

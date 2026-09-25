@@ -1,5 +1,6 @@
 // src/utils/generarInforme.js
 import { supabase } from '../lib/supabaseClient';
+import { TIPOS_FORMULARIO } from '../components/clinica/Formularios/plantillas';
 
 export async function generarInformeDesdeEvaluacion(evaluacionId) {
   const { data: evaluacion, error: evalError } = await supabase
@@ -134,6 +135,75 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
   const gineco = datosRegiones._gineco_obstetricos || {};
   const uro = datosRegiones._urologicos || {};
 
+  // ============================================================
+  // RENDERIZAR EVALUACIÓN ESPECIALIZADA (por grupo)
+  // ============================================================
+  const renderizarEvaluacionEspecializada = () => {
+    const campos = datosRegiones._campos_extra || {};
+    const grupos = {};
+
+    // Mapear los campos guardados a grupos
+    Object.keys(campos).forEach(key => {
+      // Formato nuevo: especial_<tipo>_<idx>
+      if (!key.startsWith('especial_')) return;
+
+      const sinPrefijo = key.replace('especial_', '');
+      const primerGuion = sinPrefijo.indexOf('_');
+      if (primerGuion === -1) return;
+
+      const tipo = sinPrefijo.substring(0, primerGuion);
+      const idx = parseInt(sinPrefijo.substring(primerGuion + 1));
+      const valor = campos[key];
+
+      // Ignorar vacíos
+      if (!valor || valor.toString().trim() === '') return;
+      // Ignorar tipos que no existen en plantillas
+      if (!TIPOS_FORMULARIO[tipo]) return;
+      // Ignorar si el idx está fuera de rango
+      const preguntas = TIPOS_FORMULARIO[tipo].preguntas || [];
+      if (isNaN(idx) || idx < 0 || idx >= preguntas.length) return;
+
+      if (!grupos[tipo]) {
+        grupos[tipo] = {
+          nombre: TIPOS_FORMULARIO[tipo].nombre,
+          items: [],
+        };
+      }
+
+      grupos[tipo].items.push({
+        label: preguntas[idx].label,
+        valor: valor,
+      });
+    });
+
+    const tipos = Object.keys(grupos);
+    if (tipos.length === 0) return '';
+
+    let html = '<h1>3.5 Evaluación Especializada</h1>';
+    tipos.forEach(tipo => {
+      const g = grupos[tipo];
+      html += `
+        <div style="margin-bottom:10px; page-break-inside:avoid;">
+          <div style="font-size:10pt; font-weight:700; color:#0f172a; background:#f1f5f9; padding:5px 10px; border-left:4px solid #22d3ee; border-radius:3px; margin-bottom:6px;">
+            ${g.nombre}
+          </div>
+          <table>
+            <tbody>
+              ${g.items.map(item => `
+                <tr>
+                  <td style="width:45%; font-weight:600; background:#f8fafc;">${item.label}</td>
+                  <td>${item.valor}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    });
+
+    return html;
+  };
+  
   // ============================================================
   // FORMATEAR NOMBRES DE REGIONES
   // ============================================================
@@ -811,9 +881,19 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
           ${ginecoHTML}
           ${uroHTML}
           ${banderasRojasHTML}
+
+          ${(() => {
+            const notas = corregirTypos(datosRegiones._notas_clinicas || '');
+            if (!notas.trim()) return '';
+            return `
+              <h1>3.4 Notas Clínicas del Terapeuta</h1>
+              <div style="background:#f0f9ff; border-left:4px solid #22d3ee; padding:8px 12px; border-radius:4px; margin:4px 0; font-size:9.5pt; line-height:1.55; white-space:pre-wrap;">${notas}</div>
+            `;
+          })()}
+
+          ${renderizarEvaluacionEspecializada()}
         </div>
         <div class="pie">${tituloDocumento} - ${centroNombre} - Pág. 1</div>
-      </div>
 
       <div class="pagina">
         <div class="contenido">

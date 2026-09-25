@@ -73,6 +73,7 @@ export default function AnamnesisForm({
 
   const bgInput = temaOscuro ? 'bg-black/20 border-white/10 text-white' : 'bg-gray-100 border-gray-300 text-[#0f172a]';
   const textoPrincipal = temaOscuro ? 'text-white' : 'text-[#0f172a]';
+  const textoSecundario = temaOscuro ? 'text-gray-400' : 'text-gray-500';
   const bgSubtitulo = temaOscuro ? 'bg-[#0f1a24] border-gray-700' : 'bg-gray-50 border-gray-200';
   const bgCard = temaOscuro ? 'bg-[#0a141d] border-gray-700' : 'bg-white border-gray-200';
 
@@ -83,13 +84,32 @@ export default function AnamnesisForm({
     else setTipoFormulario([...tipoFormulario, tipoKey]);
   };
 
-  const preguntasAdicionales = tipoFormulario.reduce((acc, key) => {
-    const preguntas = TIPOS_FORMULARIO[key]?.preguntas || [];
-    return [...acc, ...preguntas];
-  }, []);
-  const preguntasUnicas = preguntasAdicionales.filter((p, idx, self) =>
-    idx === self.findIndex((p2) => p.label === p.label)
-  );
+  // ===== COLORES Y ESTRUCTURA POR TIPO DE FORMULARIO =====
+  const COLORS_FORM = {
+    algias:        { bg: 'bg-blue-500/10',    border: 'border-blue-500/40',    text: 'text-blue-400',    icon: '🩹' },
+    deportivo:     { bg: 'bg-orange-500/10',  border: 'border-orange-500/40',  text: 'text-orange-400',  icon: '⚽' },
+    geriatrico:    { bg: 'bg-teal-500/10',    border: 'border-teal-500/40',    text: 'text-teal-400',    icon: '👴' },
+    neurologico:   { bg: 'bg-purple-500/10',  border: 'border-purple-500/40',  text: 'text-purple-400',  icon: '🧠' },
+    oncologico:    { bg: 'bg-pink-500/10',    border: 'border-pink-500/40',    text: 'text-pink-400',    icon: '🎗️' },
+    pediatrico:    { bg: 'bg-yellow-500/10',  border: 'border-yellow-500/40',  text: 'text-yellow-400',  icon: '🧒' },
+    reumatologico: { bg: 'bg-red-500/10',     border: 'border-red-500/40',     text: 'text-red-400',     icon: '🦴' },
+    vestibular:    { bg: 'bg-cyan-500/10',    border: 'border-cyan-500/40',    text: 'text-cyan-400',    icon: '🌀' },
+    postquirurgico:{ bg: 'bg-indigo-500/10',  border: 'border-indigo-500/40',  text: 'text-indigo-400',  icon: '🏥' },
+    dolor_cronico: { bg: 'bg-amber-500/10',   border: 'border-amber-500/40',   text: 'text-amber-400',   icon: '⏳' },
+    laboral:       { bg: 'bg-slate-500/10',   border: 'border-slate-500/40',   text: 'text-slate-300',   icon: '💼' },
+    psicosocial:   { bg: 'bg-fuchsia-500/10', border: 'border-fuchsia-500/40', text: 'text-fuchsia-400', icon: '💭' },
+  };
+
+  // Agrupar preguntas por tipo de formulario
+  const gruposPreguntas = tipoFormulario
+    .filter(key => TIPOS_FORMULARIO[key] && key !== 'general' && (TIPOS_FORMULARIO[key].preguntas || []).length > 0)
+    .map(key => ({
+      tipo: key,
+      nombre: TIPOS_FORMULARIO[key].nombre,
+      preguntas: TIPOS_FORMULARIO[key].preguntas || [],
+    }));
+
+  const totalPreguntas = gruposPreguntas.reduce((sum, g) => sum + g.preguntas.length, 0);
 
   const tieneMicrofono = (tipo) => tipo === 'text' || tipo === 'textarea' || tipo === 'number' || tipo === 'tel' || !tipo;
 
@@ -129,7 +149,7 @@ export default function AnamnesisForm({
     handleInputChange('habitos', { ...habitos, [campo]: valor });
   };
 
-  // ===== GINECO-OBSTÉTRICOS / UROLÓGICOS (condicional) =====
+  // ===== GINECO-OBSTÉTRICOS / UROLÓGICOS =====
   const edadNum = parseInt(evaluacion.edad) || 0;
   const mostrarGineco = evaluacion.sexo === 'Femenino';
   const mostrarUro = evaluacion.sexo === 'Masculino' && edadNum >= 40;
@@ -158,6 +178,7 @@ export default function AnamnesisForm({
   const tieneDatosGineco = mostrarGineco
     ? (gineco.embarazo || gineco.fum)
     : (uro.visita_urologo || uro.hiperplasia_prostata);
+  const tieneNotasClinicas = !!(evaluacion.notas_clinicas && evaluacion.notas_clinicas.trim());
 
   // ===== TABS DINÁMICAS =====
   const tabs = [];
@@ -174,9 +195,15 @@ export default function AnamnesisForm({
     });
   }
   tabs.push({ key: 'banderas', label: `${n++}. Banderas Rojas`, completado: (evaluacion.banderas_rojas || []).length > 0 });
-  if (preguntasUnicas.length > 0) {
-    tabs.push({ key: 'especializada', label: `${n++}. Evaluación especializada`, completado: false });
+  if (gruposPreguntas.length > 0) {
+    tabs.push({ 
+      key: 'especializada', 
+      label: `${n++}. Evaluación especializada (${totalPreguntas})`, 
+      completado: false 
+    });
   }
+  // NUEVA TAB: Notas clínicas (siempre al final)
+  tabs.push({ key: 'notas_clinicas', label: `${n++}. Notas clínicas`, completado: tieneNotasClinicas });
 
   return (
     <div className="space-y-6">
@@ -301,7 +328,20 @@ export default function AnamnesisForm({
                   {hijos.map((hijo, idx) => (
                     <div key={idx} className="flex items-center gap-2">
                       <span className={`text-[10px] font-bold ${textoPrincipal} w-16`}>Hijo {idx + 1}:</span>
-                      <input type="number" placeholder="Edad" value={hijo.edad || ''} onChange={(e) => actualizarHijo(idx, 'edad', e.target.value)} className={`w-20 ${bgInput} border p-1.5 rounded-lg outline-none focus:border-[#22d3ee] text-xs`} />
+                      <input
+  type="number"
+  min="0"
+  max="120"
+  placeholder="Edad"
+  value={hijo.edad || ''}
+  onChange={(e) => {
+    const v = e.target.value;
+    if (v === '' || (parseInt(v) >= 0 && parseInt(v) <= 120)) {
+      actualizarHijo(idx, 'edad', v);
+    }
+  }}
+  className={`w-20 ${bgInput} border p-1.5 rounded-lg outline-none focus:border-[#22d3ee] text-xs`}
+/>
                       <select value={hijo.sexo || ''} onChange={(e) => actualizarHijo(idx, 'sexo', e.target.value)} className={`w-28 ${bgInput} border p-1.5 rounded-lg outline-none focus:border-[#22d3ee] text-xs`}>
                         <option value="">Sexo</option>
                         <option value="M">Masculino</option>
@@ -623,14 +663,40 @@ export default function AnamnesisForm({
             <div>
               <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>EVA en reposo</label>
               <div className="relative">
-                <input type="number" min="0" max="10" value={evaluacion.intensidad_reposo} onChange={(e) => handleInputChange('intensidad_reposo', parseInt(e.target.value) || 0)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} />
+                <input
+  type="number"
+  min="0"
+  max="10"
+  value={evaluacion.intensidad_reposo}
+  onChange={(e) => {
+    const v = e.target.value;
+    if (v === '') { handleInputChange('intensidad_reposo', 0); return; }
+    const n = parseInt(v);
+    if (!isNaN(n) && n >= 0 && n <= 10) handleInputChange('intensidad_reposo', n);
+  }}
+  onKeyDown={(e) => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }}
+  className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`}
+/>
                 <button onClick={() => iniciarDictado('intensidad_reposo')} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === 'intensidad_reposo' ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all`}><IconMic /></button>
               </div>
             </div>
             <div>
               <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>EVA en actividad</label>
               <div className="relative">
-                <input type="number" min="0" max="10" value={evaluacion.intensidad_actividad} onChange={(e) => handleInputChange('intensidad_actividad', parseInt(e.target.value) || 0)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} />
+                <input
+  type="number"
+  min="0"
+  max="10"
+  value={evaluacion.intensidad_actividad}
+  onChange={(e) => {
+    const v = e.target.value;
+    if (v === '') { handleInputChange('intensidad_actividad', 0); return; }
+    const n = parseInt(v);
+    if (!isNaN(n) && n >= 0 && n <= 10) handleInputChange('intensidad_actividad', n);
+  }}
+  onKeyDown={(e) => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }}
+  className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`}
+/>
                 <button onClick={() => iniciarDictado('intensidad_actividad')} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === 'intensidad_actividad' ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all`}><IconMic /></button>
               </div>
             </div>
@@ -659,7 +725,7 @@ export default function AnamnesisForm({
         </div>
       )}
 
-      {/* TAB 5: GINECO-OBSTÉTRICOS / UROLÓGICOS (condicional) */}
+      {/* TAB 5: GINECO-OBSTÉTRICOS / UROLÓGICOS */}
       {tabActiva === 'gineco' && mostrarGineco && (
         <div className="space-y-6">
           <h3 className={`text-sm font-bold ${textoPrincipal} uppercase tracking-wider border-b border-gray-600 pb-2`}>
@@ -736,11 +802,10 @@ export default function AnamnesisForm({
             </div>
           </div>
 
-          {/* Alerta de embarazo */}
           {gineco.embarazo === 'Sí' && (
             <div className="p-3 rounded-xl border border-red-500/30 bg-red-500/10">
               <p className="text-xs font-bold text-red-400">
-                ⚠️ Paciente embarazada: revisar contraindicaciones antes de aplicar agentes físicos, masoterapia profunda o electroterapia.
+                Paciente embarazada: revisar contraindicaciones antes de aplicar agentes físicos, masoterapia profunda o electroterapia.
               </p>
             </div>
           )}
@@ -781,7 +846,8 @@ export default function AnamnesisForm({
           </div>
         </div>
       )}
-      {/* TAB 5: BANDERAS ROJAS */}
+
+      {/* TAB BANDERAS ROJAS */}
       {tabActiva === 'banderas' && (
         <RedFlagsForm
           evaluacion={evaluacion}
@@ -790,40 +856,159 @@ export default function AnamnesisForm({
         />
       )}
 
-      {/* TAB 6: ESPECIALIZADA */}
-      {tabActiva === 'especializada' && preguntasUnicas.length > 0 && (
-        <div className="space-y-4">
-          <h3 className={`text-sm font-bold text-[#22d3ee] uppercase tracking-wider border-b border-[#22d3ee]/30 pb-2`}>Evaluación especializada combinada</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {preguntasUnicas.map((pregunta, idx) => {
-              const campoId = `especial_combinada_${idx}`;
-              const valor = evaluacion[campoId] || '';
-              const esSelect = pregunta.tipo === 'select';
-              const esCheckbox = pregunta.tipo === 'checkbox';
-              const esTextarea = pregunta.tipo === 'textarea';
-              const mostrarMicro = !esSelect && !esCheckbox && tieneMicrofono(pregunta.tipo);
-              return (
-                <div key={idx} className={esTextarea ? 'md:col-span-2' : ''}>
-                  <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>{pregunta.label}</label>
-                  <div className="relative">
-                    {esTextarea ? (
-                      <textarea value={valor} onChange={(e) => handleInputChange(campoId, e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm resize-none min-h-[60px]`} placeholder={pregunta.placeholder || ''} />
-                    ) : esSelect ? (
-                      <select value={valor} onChange={(e) => handleInputChange(campoId, e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`}>
-                        <option value="">Seleccionar</option>
-                        {pregunta.opciones.map((opt) => (<option key={opt} value={opt}>{opt}</option>))}
-                      </select>
-                    ) : (
-                      <input type={pregunta.tipo || 'text'} value={valor} onChange={(e) => handleInputChange(campoId, e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} placeholder={pregunta.placeholder || ''} />
-                    )}
-                    {mostrarMicro && (
-                      <button onClick={() => iniciarDictado(campoId)} className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${escuchando && campoActivo === campoId ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all`}><IconMic /></button>
-                    )}
+      {/* TAB ESPECIALIZADA */}
+      {tabActiva === 'especializada' && gruposPreguntas.length > 0 && (
+        <div className="space-y-6">
+          <h3 className={`text-sm font-bold text-[#22d3ee] uppercase tracking-wider border-b border-[#22d3ee]/30 pb-2`}>
+            Evaluación especializada · {gruposPreguntas.length} tipo{gruposPreguntas.length > 1 ? 's' : ''} · {totalPreguntas} preguntas
+          </h3>
+
+          {gruposPreguntas.map((grupo) => {
+            const c = COLORS_FORM[grupo.tipo] || { bg: 'bg-gray-500/10', border: 'border-gray-500/40', text: 'text-gray-400', icon: '📋' };
+            const respondidas = grupo.preguntas.filter((_, idx) => {
+              const campoId = `especial_${grupo.tipo}_${idx}`;
+              return evaluacion[campoId] && evaluacion[campoId].toString().trim() !== '';
+            }).length;
+
+            return (
+              <div key={grupo.tipo} className={`p-4 rounded-2xl border-2 ${c.border} ${c.bg}`}>
+                {/* Encabezado del grupo */}
+                <div className="flex items-center gap-3 mb-4 pb-3 border-b border-white/10">
+                  <span className="text-2xl">{c.icon}</span>
+                  <div className="flex-1">
+                    <h4 className={`text-sm font-black uppercase tracking-wider ${c.text}`}>
+                      {grupo.nombre}
+                    </h4>
+                    <p className="text-[10px] text-gray-400 mt-0.5">
+                      {respondidas} / {grupo.preguntas.length} respondidas
+                    </p>
                   </div>
-                  {pregunta.ayuda && (<p className="text-[9px] text-gray-400 mt-1">{pregunta.ayuda}</p>)}
+                  <div className={`text-[10px] font-black px-2 py-1 rounded-full ${c.bg} ${c.text} border ${c.border}`}>
+                    {grupo.tipo}
+                  </div>
                 </div>
-              );
-            })}
+
+                {/* Preguntas del grupo */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {grupo.preguntas.map((pregunta, idx) => {
+                    const campoId = `especial_${grupo.tipo}_${idx}`;
+                    const valor = evaluacion[campoId] || '';
+                    const esSelect = pregunta.tipo === 'select';
+                    const esCheckbox = pregunta.tipo === 'checkbox';
+                    const esTextarea = pregunta.tipo === 'textarea';
+                    const mostrarMicro = !esSelect && !esCheckbox && tieneMicrofono(pregunta.tipo);
+                    return (
+                      <div key={idx} className={esTextarea ? 'md:col-span-2' : ''}>
+                        <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>
+                          {pregunta.label}
+                        </label>
+                        <div className="relative">
+                          {esTextarea ? (
+                            <textarea
+                              value={valor}
+                              onChange={(e) => handleInputChange(campoId, e.target.value)}
+                              className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm resize-none min-h-[80px]`}
+                              placeholder={pregunta.placeholder || ''}
+                            />
+                          ) : esSelect ? (
+                            <select
+                              value={valor}
+                              onChange={(e) => handleInputChange(campoId, e.target.value)}
+                              className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`}
+                            >
+                              <option value="">Seleccionar</option>
+                              {pregunta.opciones.map((opt) => (
+                                <option key={opt} value={opt}>{opt}</option>
+                              ))}
+                            </select>
+                                                    ) : pregunta.tipo === 'number' ? (
+                            <input
+                              type="number"
+                              min={pregunta.min !== undefined ? pregunta.min : undefined}
+                              max={pregunta.max !== undefined ? pregunta.max : undefined}
+                              value={valor}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                if (v === '') { handleInputChange(campoId, ''); return; }
+                                const n = parseInt(v);
+                                const min = pregunta.min !== undefined ? pregunta.min : -Infinity;
+                                const max = pregunta.max !== undefined ? pregunta.max : Infinity;
+                                if (!isNaN(n) && n >= min && n <= max) {
+                                  handleInputChange(campoId, n);
+                                }
+                              }}
+                              onKeyDown={(e) => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }}
+                              className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`}
+                              placeholder={pregunta.placeholder || ''}
+                            />
+                          ) : (
+                            <input
+                              type={pregunta.tipo || 'text'}
+                              value={valor}
+                              onChange={(e) => handleInputChange(campoId, e.target.value)}
+                              className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`}
+                              placeholder={pregunta.placeholder || ''}
+                            />
+                          )}
+                          {mostrarMicro && (
+                            <button
+                              onClick={() => iniciarDictado(campoId)}
+                              className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full ${
+                                escuchando && campoActivo === campoId ? 'bg-red-500 animate-pulse' : 'bg-purple-600'
+                              } text-white hover:opacity-80 transition-all`}
+                            >
+                              <IconMic />
+                            </button>
+                          )}
+                        </div>
+                        {pregunta.ayuda && (
+                          <p className="text-[9px] text-gray-400 mt-1">{pregunta.ayuda}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* TAB NOTAS CLÍNICAS (NUEVA - SIEMPRE VISIBLE)                 */}
+      {/* ============================================================ */}
+      {tabActiva === 'notas_clinicas' && (
+        <div className="space-y-4">
+          <h3 className={`text-sm font-bold text-[#22d3ee] uppercase tracking-wider border-b border-[#22d3ee]/30 pb-2`}>
+            📝 Notas clínicas del terapeuta
+          </h3>
+          <p className={`text-xs ${textoSecundario} italic`}>
+            Anota aquí cualquier observación, contexto o detalle clínico relevante que no haya encajado en los campos estructurados. Esta información será considerada por la IA para el análisis clínico y el plan de tratamiento.
+          </p>
+          <div className="relative">
+            <textarea
+              value={evaluacion.notas_clinicas || ''}
+              onChange={(e) => handleInputChange('notas_clinicas', e.target.value)}
+              className={`w-full ${bgInput} border p-3 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm resize-none min-h-[240px] pr-14`}
+              placeholder="Ejemplo: El paciente refiere sentirse muy cansado últimamente. Sus abstinencias están controlándose. Le recomendaron cera/parafina en la zona lumbar hace 2 semanas y tuvo buena respuesta. Comenta que duerme mal desde el inicio del dolor..."
+            />
+            <button
+              onClick={() => iniciarDictado('notas_clinicas')}
+              className={`absolute right-3 top-3 p-2 rounded-full ${escuchando && campoActivo === 'notas_clinicas' ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all`}
+              title="Dictar por voz"
+            >
+              <IconMic />
+            </button>
+          </div>
+          {(evaluacion.notas_clinicas || '').length > 0 && (
+            <p className="text-[10px] text-gray-400 text-right">
+              {(evaluacion.notas_clinicas || '').length} caracteres
+            </p>
+          )}
+          <div className={`p-3 rounded-xl border ${bgSubtitulo}`}>
+            <p className="text-[10px] text-gray-400">
+              <strong>💡 Tip:</strong> Usa el micrófono 🎙️ para dictar mientras escuchas al paciente. La IA usará estas notas para dar contexto al plan de tratamiento.
+            </p>
           </div>
         </div>
       )}

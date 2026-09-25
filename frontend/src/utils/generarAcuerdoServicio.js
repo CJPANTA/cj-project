@@ -140,9 +140,9 @@ export async function generarAcuerdoServicio(pacienteId) {
         .aviso-tipo { text-align: center; padding: 6px 10px; font-size: 8pt; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; border-radius: 4px; margin-bottom: 10px; }
         .aviso-tipo.licenciado { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
         .aviso-tipo.tecnico { background: #fef3c7; color: #78350f; border: 1px solid #fcd34d; }
-        .firmas-container { display: flex; justify-content: space-around; gap: 40px; margin-top: 50px; page-break-inside: avoid; }
-        .firma-item { flex: 1; text-align: center; }
-        .firma-item .linea { border-top: 1.5px solid #475569; margin-bottom: 4px; padding-top: 4px; }
+                .firmas-container { display: flex; justify-content: space-around; gap: 40px; margin-top: 60px; margin-bottom: 30px; page-break-inside: avoid; }
+        .firma-item { flex: 1; text-align: center; padding-top: 80px; }
+        .firma-item .linea { border-top: 1.5px solid #475569; margin-bottom: 6px; padding-top: 0; }
         .firma-item .nombre { font-size: 10pt; font-weight: 700; color: #0f172a; margin: 0; }
         .firma-item .credenciales { font-size: 8pt; color: #64748b; margin: 2px 0 0 0; }
         .firma-item .rol { font-size: 9pt; color: #475569; font-weight: 600; margin: 6px 0 0 0; }

@@ -73,6 +73,7 @@ export default function EvaluacionPostural({ temaOscuro }) {
     recomendaciones: '',
     alertas: '',
     plan_tratamiento: '',
+    notas_clinicas: '',
     hijos: [],
     nivel_educativo: '',
     como_llego: '',
@@ -291,6 +292,7 @@ export default function EvaluacionPostural({ temaOscuro }) {
           recomendaciones: data.datos_regiones?._recomendaciones || '',
           alertas: data.datos_regiones?._alertas || '',
           plan_tratamiento: data.datos_regiones?._plan_tratamiento || '',
+          notas_clinicas: data.datos_regiones?._notas_clinicas || '',
           hijos: data.datos_regiones?._hijos || [],
           nivel_educativo: data.datos_regiones?._nivel_educativo || '',
           como_llego: data.datos_regiones?._como_llego || '',
@@ -593,6 +595,7 @@ export default function EvaluacionPostural({ temaOscuro }) {
         _gineco_obstetricos: evaluacion.gineco_obstetricos || {},
         _urologicos: evaluacion.urologicos || {},
         _banderas_rojas: evaluacion.banderas_rojas || [],
+        _notas_clinicas: evaluacion.notas_clinicas || '',
       };
 
       const datos = {
@@ -768,6 +771,7 @@ export default function EvaluacionPostural({ temaOscuro }) {
         cirugias_previas: evaluacion.cirugias_previas || 'Ninguna',
         embarazo: evaluacion.gineco_obstetricos?.embarazo || 'No',
         lactancia: evaluacion.gineco_obstetricos?.lactancia || 'No',
+        notas_clinicas: evaluacion.notas_clinicas || 'Sin notas adicionales',
         banderas_rojas: banderasTexto,
         regiones_afectadas: evaluacion.regiones.map(r => formatearNombreRegion(r)).join(', '),
         datos_por_region: evaluacion.regiones.map(r => {
