@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { registrarCambiosMultiples } from '../utils/auditoria';
+import { generarMensajeHumano, formatearFecha, iconoCampo, traducirValor } from '../utils/auditoriaTraducciones';
 
 export default function PanelDirector({ temaOscuro }) {
   const [usuarios, setUsuarios] = useState([]);
@@ -14,6 +16,9 @@ export default function PanelDirector({ temaOscuro }) {
   const [esDirectorGlobal, setEsDirectorGlobal] = useState(false);
   const [centroDirector, setCentroDirector] = useState(null);
   const [pestana, setPestana] = useState('usuarios');
+  const [historial, setHistorial] = useState([]);
+  const [cargandoHistorial, setCargandoHistorial] = useState(false);
+  const [filtroHistorial, setFiltroHistorial] = useState('');
 
   const [modalEditar, setModalEditar] = useState(false);
   const [usuarioEditando, setUsuarioEditando] = useState(null);
@@ -40,6 +45,12 @@ export default function PanelDirector({ temaOscuro }) {
   useEffect(() => {
     cargarDatos();
   }, []);
+
+  useEffect(() => {
+    if (pestana === 'historial') {
+      cargarHistorial();
+    }
+  }, [pestana]);
 
   const cargarDatos = async () => {
     setLoading(true);
@@ -78,9 +89,13 @@ export default function PanelDirector({ temaOscuro }) {
         licenciados: activos.filter(p => p.rol === 3 || p.rol === 4 || p.rol === 7).length,
       });
 
-      let evalQuery = supabase
+        let evalQuery = supabase
         .from('evaluaciones')
-        .select('*, pacientes(nombre, apellidos), profiles(nombre_completo)')
+        .select(`
+          *,
+          pacientes (nombre, apellidos),
+          profiles!evaluaciones_user_id_fkey (nombre_completo)
+        `)
         .eq('estado', 'pendiente');
       if (!esGlobal && perfil.centro_id) evalQuery = evalQuery.eq('centro_id', perfil.centro_id);
       const { data: evaluaciones } = await evalQuery.order('created_at', { ascending: false });
@@ -92,6 +107,54 @@ export default function PanelDirector({ temaOscuro }) {
       setLoading(false);
     }
   };
+
+  // ============================================================
+  // CARGAR HISTORIAL DE AUDITORÍA
+  // ============================================================
+  const cargarHistorial = async () => {
+    setCargandoHistorial(true);
+    try {
+      // 1. Traer últimos 100 registros
+      const { data: auditoriaData, error } = await supabase
+        .from('auditoria_perfiles')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (error) throw error;
+
+      if (!auditoriaData || auditoriaData.length === 0) {
+        setHistorial([]);
+        return;
+      }
+
+      // 2. Hidratar con nombre del perfil afectado
+      const ids = [...new Set(auditoriaData.map((a) => a.perfil_id).filter(Boolean))];
+      let perfilMap = {};
+      if (ids.length > 0) {
+        const { data: perfiles } = await supabase
+          .from('profiles')
+          .select('id, nombre_completo, email')
+          .in('id', ids);
+        (perfiles || []).forEach((p) => {
+          perfilMap[p.id] = p;
+        });
+      }
+
+      const hidratadas = auditoriaData.map((a) => ({
+        ...a,
+        perfil: perfilMap[a.perfil_id] || null,
+      }));
+
+      setHistorial(hidratadas);
+    } catch (err) {
+      console.error('Error cargando historial:', err);
+      alert('Error al cargar el historial: ' + err.message);
+    } finally {
+      setCargandoHistorial(false);
+    }
+  };
+
 
   const crearCentro = async () => {
     if (!nuevoCentro.id || !nuevoCentro.nombre) { alert('Código y nombre son obligatorios.'); return; }
@@ -143,15 +206,35 @@ export default function PanelDirector({ temaOscuro }) {
     }
   };
 
-  const aprobarUsuario = async (userId, nuevoRol, centroId) => {
+    const aprobarUsuario = async (userId, nuevoRol, centroId) => {
     if (!nuevoRol) { alert('Selecciona un rol.'); return; }
     try {
+      // 1. Obtener datos previos del perfil (para comparar)
+      const { data: perfilPrevio } = await supabase
+        .from('profiles')
+        .select('tipo_profesional, rol, estado, centro_id')
+        .eq('id', userId)
+        .single();
+
+      // 2. Preparar datos nuevos
       const updateData = { estado: 'aprobado', rol: parseInt(nuevoRol) };
       if (centroId) updateData.centro_id = centroId;
       const tipoMap = { 1: 'director', 2: 'estudiante', 3: 'licenciado', 4: 'licenciado', 5: 'paciente', 6: 'demo', 7: 'licenciado' };
       updateData.tipo_profesional = tipoMap[parseInt(nuevoRol)] || null;
+
+      // 3. Actualizar el perfil
       const { error } = await supabase.from('profiles').update(updateData).eq('id', userId);
       if (error) throw error;
+
+      // 4. Registrar auditoría
+      const audit = await registrarCambiosMultiples({
+        perfilId: userId,
+        datosAnteriores: perfilPrevio || {},
+        datosNuevos: updateData,
+        motivo: 'Aprobación de usuario por Director',
+      });
+      console.log('📝 [Auditoría] Aprobación registrada:', audit);
+
       alert('✅ Usuario aprobado.');
       cargarDatos();
     } catch (error) {
@@ -189,11 +272,12 @@ export default function PanelDirector({ temaOscuro }) {
     setModalEditar(true);
   };
 
-  const guardarEdicion = async () => {
+    const guardarEdicion = async () => {
     if (!usuarioEditando) return;
     setGuardandoEdicion(true);
     try {
-      const { error } = await supabase.from('profiles').update({
+      // 1. Datos nuevos (tal como vienen del formulario)
+      const datosNuevos = {
         nombre_completo: formEditar.nombre_completo,
         telefono: formEditar.telefono || null,
         rol: parseInt(formEditar.rol),
@@ -205,9 +289,39 @@ export default function PanelDirector({ temaOscuro }) {
         direccion_centro: formEditar.direccion_centro || null,
         centro_id: formEditar.centro_id || null,
         estado: formEditar.estado,
-      }).eq('id', usuarioEditando.id);
+      };
+
+      // 2. Datos anteriores (los tenemos guardados en usuarioEditando)
+      const datosAnteriores = {
+        tipo_profesional: usuarioEditando.tipo_profesional,
+        rol: usuarioEditando.rol,
+        estado: usuarioEditando.estado,
+        centro_id: usuarioEditando.centro_id,
+        dni: usuarioEditando.dni,
+        numero_colegiatura: usuarioEditando.numero_colegiatura,
+        registro_interno: usuarioEditando.registro_interno,
+        tipo_documento: usuarioEditando.tipo_documento,
+      };
+
+      // 3. Actualizar perfil
+      const { error } = await supabase.from('profiles').update(datosNuevos).eq('id', usuarioEditando.id);
       if (error) throw error;
-      alert('✅ Datos actualizados.');
+
+      // 4. Registrar auditoría de los cambios
+      const audit = await registrarCambiosMultiples({
+        perfilId: usuarioEditando.id,
+        datosAnteriores,
+        datosNuevos,
+        motivo: 'Edición manual por Director',
+      });
+      console.log('📝 [Auditoría] Edición registrada:', audit);
+
+      if (audit.cantidad > 0) {
+        alert(`✅ Datos actualizados. Se registraron ${audit.cantidad} cambio(s) en auditoría.`);
+      } else {
+        alert('✅ Datos actualizados (sin cambios relevantes).');
+      }
+
       setModalEditar(false);
       setUsuarioEditando(null);
       cargarDatos();
@@ -305,6 +419,7 @@ export default function PanelDirector({ temaOscuro }) {
         <div className={`flex border-b ${bordeTab} mb-6`}>
           <button onClick={() => setPestana('usuarios')} className={`px-4 py-2 text-sm font-bold uppercase tracking-wider border-b-2 transition-all ${pestana === 'usuarios' ? 'border-[#22d3ee] text-[#22d3ee]' : `border-transparent ${textoSecundario} hover:text-[#22d3ee]`}`}>👥 Usuarios</button>
           <button onClick={() => setPestana('evaluaciones')} className={`px-4 py-2 text-sm font-bold uppercase tracking-wider border-b-2 transition-all ${pestana === 'evaluaciones' ? 'border-[#22d3ee] text-[#22d3ee]' : `border-transparent ${textoSecundario} hover:text-[#22d3ee]`}`}>📋 Evaluaciones Pendientes ({evaluacionesPendientes.length})</button>
+          <button onClick={() => setPestana('historial')} className={`px-4 py-2 text-sm font-bold uppercase tracking-wider border-b-2 transition-all ${pestana === 'historial' ? 'border-[#22d3ee] text-[#22d3ee]' : `border-transparent ${textoSecundario} hover:text-[#22d3ee]`}`}>📜 Historial de Cambios</button>
         </div>
 
         {esDirectorGlobal && mostrarCentros && (
@@ -439,6 +554,118 @@ export default function PanelDirector({ temaOscuro }) {
                   </div>
                 )}
               </>
+            )}
+            {pestana === 'historial' && (
+              <div className={`${bgTarjeta} p-6 rounded-2xl border`}>
+                <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
+                  <div>
+                    <h2 className={`text-xl font-bold ${textoPrincipal}`}>📜 Historial de Cambios</h2>
+                    <p className={`text-xs ${textoSecundario} mt-1`}>
+                      Últimos 100 movimientos registrados en el sistema
+                    </p>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="text"
+                      placeholder="Buscar por nombre o editor..."
+                      value={filtroHistorial}
+                      onChange={(e) => setFiltroHistorial(e.target.value)}
+                      className={`px-3 py-2 rounded-xl border ${bgInput} text-xs outline-none focus:border-[#22d3ee] min-w-[220px]`}
+                    />
+                    <button
+                      onClick={cargarHistorial}
+                      disabled={cargandoHistorial}
+                      className="px-4 py-2 bg-[#22d3ee]/20 text-[#22d3ee] font-bold rounded-xl text-xs hover:bg-[#22d3ee] hover:text-black transition-all disabled:opacity-50"
+                    >
+                      {cargandoHistorial ? '⏳' : '🔄 Recargar'}
+                    </button>
+                  </div>
+                </div>
+
+                {cargandoHistorial ? (
+                  <div className="flex justify-center py-12">
+                    <div className="animate-spin rounded-full h-10 w-10 border-4 border-[#22d3ee] border-t-transparent"></div>
+                  </div>
+                ) : historial.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className={`text-sm ${textoSecundario}`}>No hay movimientos registrados aún.</p>
+                    <p className={`text-xs ${textoSecundario} mt-1`}>
+                      Los cambios aparecerán aquí cuando se edite algún usuario.
+                    </p>
+                  </div>
+                ) : (() => {
+                  const filtro = filtroHistorial.trim().toLowerCase();
+                  const filtrados = filtro
+                    ? historial.filter((h) =>
+                        (h.perfil?.nombre_completo || '').toLowerCase().includes(filtro) ||
+                        (h.editor_nombre || '').toLowerCase().includes(filtro) ||
+                        (h.campo_modificado || '').toLowerCase().includes(filtro)
+                      )
+                    : historial;
+
+                  if (filtrados.length === 0) {
+                    return (
+                      <div className="text-center py-12">
+                        <p className={`text-sm ${textoSecundario}`}>No se encontraron resultados para "{filtroHistorial}".</p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+                      {filtrados.map((h) => (
+                        <div
+                          key={h.id}
+                          className={`p-4 rounded-xl border-l-4 ${temaOscuro ? 'bg-[#0f1a24] border-[#22d3ee]/40' : 'bg-gray-50 border-[#22d3ee]'} ${bordeFila} border`}
+                        >
+                          <div className="flex justify-between items-start gap-3 flex-wrap">
+                            <div className="flex-1 min-w-[280px]">
+                              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                <span className={`text-xs font-mono ${textoSecundario}`}>
+                                  🕐 {formatearFecha(h.created_at)}
+                                </span>
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#22d3ee]/20 text-[#22d3ee]`}>
+                                  {iconoCampo(h.campo_modificado)} {h.campo_modificado}
+                                </span>
+                              </div>
+
+                              <p className={`text-sm ${textoPrincipal} mb-1`}>
+                                <strong className={textoPrincipal}>👤 {h.editor_nombre || 'Usuario desconocido'}</strong>
+                                {' '}modificó el perfil de{' '}
+                                <strong className="text-[#22d3ee]">
+                                  {h.perfil?.nombre_completo || 'Usuario desconocido'}
+                                </strong>
+                              </p>
+
+                              <p className={`text-xs ${textoSecundario} mb-2`}>
+                                {generarMensajeHumano(h)}
+                              </p>
+
+                              <div className="flex items-center gap-2 flex-wrap text-xs">
+                                <span className={`px-2 py-1 rounded-lg ${temaOscuro ? 'bg-red-500/10 text-red-400' : 'bg-red-50 text-red-700'} border border-red-500/20`}>
+  <span className="font-bold">Antes:</span>{' '}
+  {traducirValor(h.campo_modificado, h.valor_anterior)}
+</span>
+<span className={textoSecundario}>→</span>
+<span className={`px-2 py-1 rounded-lg ${temaOscuro ? 'bg-green-500/10 text-green-400' : 'bg-green-50 text-green-700'} border border-green-500/20`}>
+  <span className="font-bold">Después:</span>{' '}
+  {traducirValor(h.campo_modificado, h.valor_nuevo)}
+</span>
+                              </div>
+
+                              {h.motivo && (
+                                <p className={`text-[10px] mt-2 italic ${textoSecundario}`}>
+                                  💬 Motivo: {h.motivo}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
             )}
 
             {pestana === 'evaluaciones' && (

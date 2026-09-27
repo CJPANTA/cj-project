@@ -320,55 +320,164 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
   const regionesAnteriores = regiones.filter(esAnterior);
   const regionesPosteriores = regiones.filter(esPosterior);
 
+    // ============================================================
+  // CENTROIDES (coordenadas en vista ANTERIOR del stickman)
+  // Regla: _izq → cx > 100 | _der → cx < 100 | central → cx = 100
+  // En vista posterior se aplica mirror automático 200 - cx
+  // ============================================================
   const centroides = {
-    cabeza: { cx: 100, cy: 30 }, cuello: { cx: 100, cy: 50 }, nuca: { cx: 100, cy: 50 },
-    torax: { cx: 100, cy: 85 }, pecho: { cx: 100, cy: 85 }, espalda: { cx: 100, cy: 85 },
-    hombro_izq: { cx: 75, cy: 45 }, hombro_der: { cx: 125, cy: 45 },
-    brazo_izq: { cx: 60, cy: 80 }, brazo_der: { cx: 140, cy: 80 },
-    biceps: { cx: 60, cy: 80 }, biceps_izq: { cx: 60, cy: 80 }, biceps_der: { cx: 140, cy: 80 },
-    codo: { cx: 60, cy: 105 }, codo_izq: { cx: 60, cy: 105 }, codo_der: { cx: 140, cy: 105 },
-    antebrazo: { cx: 60, cy: 125 }, antebrazo_izq: { cx: 60, cy: 125 }, antebrazo_der: { cx: 140, cy: 125 },
-    muneca: { cx: 60, cy: 145 }, muneca_izq: { cx: 60, cy: 145 }, muneca_der: { cx: 140, cy: 145 },
-    mano: { cx: 60, cy: 155 }, mano_izq: { cx: 60, cy: 155 }, mano_der: { cx: 140, cy: 155 },
-    pelvis: { cx: 100, cy: 145 }, cadera: { cx: 100, cy: 145 },
-    sacro: { cx: 100, cy: 138 }, pubis: { cx: 100, cy: 158 },
-    pierna_izq: { cx: 80, cy: 200 }, pierna_der: { cx: 120, cy: 200 },
-    cuadriceps: { cx: 80, cy: 200 }, cuadriceps_izq: { cx: 80, cy: 200 }, cuadriceps_der: { cx: 120, cy: 200 },
-    isquiotibial: { cx: 80, cy: 200 }, isquiotibiales: { cx: 80, cy: 200 },
-    rodilla_izq: { cx: 80, cy: 235 }, rodilla_der: { cx: 120, cy: 235 },
-    rotula: { cx: 80, cy: 235 }, rotula_izq: { cx: 80, cy: 235 }, rotula_der: { cx: 120, cy: 235 },
-    gemelo: { cx: 80, cy: 260 }, gemelo_izq: { cx: 80, cy: 260 }, gemelo_der: { cx: 120, cy: 260 },
-    tobillo: { cx: 80, cy: 280 }, tobillo_izq: { cx: 80, cy: 280 }, tobillo_der: { cx: 120, cy: 280 },
-    pie_izq: { cx: 75, cy: 295 }, pie_der: { cx: 125, cy: 295 },
-    acromion: { cx: 75, cy: 45 }, acromion_izq: { cx: 75, cy: 45 }, acromion_der: { cx: 125, cy: 45 },
-    deltoides: { cx: 75, cy: 55 }, deltoides_ant: { cx: 75, cy: 55 }, deltoides_post: { cx: 75, cy: 55 },
-    manguito: { cx: 75, cy: 60 }, manguito_ant: { cx: 75, cy: 60 }, manguito_post: { cx: 75, cy: 60 },
-    clavicula_izq: { cx: 90, cy: 40 }, clavicula_der: { cx: 110, cy: 40 },
-    trapecio_izq: { cx: 90, cy: 45 }, trapecio_der: { cx: 110, cy: 45 },
-    escapula_izq: { cx: 90, cy: 55 }, escapula_der: { cx: 110, cy: 55 },
-    lumbar: { cx: 100, cy: 110 }, cervical: { cx: 100, cy: 30 }, dorsal: { cx: 100, cy: 70 }, abdomen: { cx: 100, cy: 118 },
-    poplitea_izq: { cx: 80, cy: 195 }, poplitea_der: { cx: 120, cy: 195 },
-    lca: { cx: 80, cy: 195 }, lcp: { cx: 80, cy: 195 },
-    menisco_med: { cx: 80, cy: 195 }, menisco_lat: { cx: 120, cy: 195 },
-    ilion_der: { cx: 130, cy: 140 }, isquion_der: { cx: 130, cy: 155 },
-    gluteo_der: { cx: 120, cy: 140 }, gluteo_izq: { cx: 80, cy: 140 },
-    carpo: { cx: 140, cy: 152 }, carpo_izq: { cx: 60, cy: 152 }, carpo_der: { cx: 140, cy: 152 },
-    metacarpo: { cx: 140, cy: 140 }, metacarpo_izq: { cx: 60, cy: 140 }, metacarpo_der: { cx: 140, cy: 140 },
-    falanges_prox: { cx: 140, cy: 128 }, falanges_prox_izq: { cx: 60, cy: 128 }, falanges_prox_der: { cx: 140, cy: 128 },
-    falanges_dist: { cx: 140, cy: 118 }, falanges_dist_izq: { cx: 60, cy: 118 }, falanges_dist_der: { cx: 140, cy: 118 },
-    pulgar: { cx: 148, cy: 145 }, pulgar_izq: { cx: 52, cy: 145 }, pulgar_der: { cx: 148, cy: 145 },
-    eminencia_tenar: { cx: 135, cy: 155 }, eminencia_tenar_izq: { cx: 65, cy: 155 }, eminencia_tenar_der: { cx: 135, cy: 155 },
-    retropie_calcaneo: { cx: 105, cy: 293 }, retropie_calcaneo_izq: { cx: 95, cy: 293 }, retropie_calcaneo_der: { cx: 105, cy: 293 },
-    mediopie_tarso: { cx: 115, cy: 285 }, mediopie_tarso_izq: { cx: 85, cy: 285 }, mediopie_tarso_der: { cx: 115, cy: 285 },
-    antepie_metatarso: { cx: 120, cy: 288 }, antepie_metatarso_izq: { cx: 80, cy: 288 }, antepie_metatarso_der: { cx: 120, cy: 288 },
-    falanges_lateral: { cx: 125, cy: 295 }, falanges_lateral_izq: { cx: 75, cy: 295 }, falanges_lateral_der: { cx: 125, cy: 295 },
-    talon_plantar: { cx: 105, cy: 295 }, talon_plantar_izq: { cx: 95, cy: 295 }, talon_plantar_der: { cx: 105, cy: 295 },
-    mediopie_plantar: { cx: 110, cy: 285 }, mediopie_plantar_izq: { cx: 90, cy: 285 }, mediopie_plantar_der: { cx: 110, cy: 285 },
-    metatarsianos_plantar: { cx: 115, cy: 290 }, metatarsianos_plantar_izq: { cx: 85, cy: 290 }, metatarsianos_plantar_der: { cx: 115, cy: 290 },
-    falanges_plantar: { cx: 120, cy: 298 }, falanges_plantar_izq: { cx: 80, cy: 298 }, falanges_plantar_der: { cx: 120, cy: 298 },
+    // ---- CABEZA Y CUELLO ----
+    cabeza: { cx: 100, cy: 30 },
+    frente: { cx: 100, cy: 25 },
+    ojo_izq: { cx: 112, cy: 32 },   ojo_der: { cx: 88, cy: 32 },
+    nariz: { cx: 100, cy: 38 },
+    boca: { cx: 100, cy: 44 },
+    oreja_izq: { cx: 120, cy: 32 }, oreja_der: { cx: 80, cy: 32 },
+    atm_izq: { cx: 115, cy: 42 },   atm_der: { cx: 85, cy: 42 },
+    ceja_izq: { cx: 112, cy: 28 },  ceja_der: { cx: 88, cy: 28 },
+    cuello: { cx: 100, cy: 50 },
+    nuca: { cx: 100, cy: 50 },
+    occipital: { cx: 100, cy: 30 },
+
+    // ---- HOMBROS Y CINTURA ESCAPULAR ----
+    hombro_izq: { cx: 125, cy: 45 },   hombro_der: { cx: 75, cy: 45 },
+    acromion_izq: { cx: 125, cy: 40 }, acromion_der: { cx: 75, cy: 40 },
+    acromion: { cx: 125, cy: 40 },
+    acromion_post: { cx: 125, cy: 40 },
+    deltoides_izq: { cx: 128, cy: 55 }, deltoides_der: { cx: 72, cy: 55 },
+    deltoides: { cx: 128, cy: 55 },
+    deltoides_ant: { cx: 128, cy: 55 }, deltoides_post: { cx: 128, cy: 55 },
+    manguito_izq: { cx: 125, cy: 60 },  manguito_der: { cx: 75, cy: 60 },
+    manguito_ant: { cx: 125, cy: 60 },  manguito_post: { cx: 125, cy: 60 },
+    capsula_izq: { cx: 125, cy: 65 },   capsula_der: { cx: 75, cy: 65 },
+    clavicula_izq: { cx: 115, cy: 42 }, clavicula_der: { cx: 85, cy: 42 },
+    trapecio_izq: { cx: 110, cy: 48 },  trapecio_der: { cx: 90, cy: 48 },
+    escapula_izq: { cx: 118, cy: 60 },  escapula_der: { cx: 82, cy: 60 },
+
+    // ---- BRAZOS ----
+    brazo_izq: { cx: 138, cy: 80 },     brazo_der: { cx: 62, cy: 80 },
+    biceps_izq: { cx: 138, cy: 80 },    biceps_der: { cx: 62, cy: 80 },
+    biceps: { cx: 138, cy: 80 },
+    triceps_izq: { cx: 138, cy: 80 },   triceps_der: { cx: 62, cy: 80 },
+    codo_izq: { cx: 138, cy: 105 },     codo_der: { cx: 62, cy: 105 },
+    codo: { cx: 138, cy: 105 },
+    olecranon_izq: { cx: 138, cy: 105 }, olecranon_der: { cx: 62, cy: 105 },
+    antebrazo_flex_izq: { cx: 138, cy: 125 }, antebrazo_flex_der: { cx: 62, cy: 125 },
+    antebrazo: { cx: 138, cy: 125 },
+    antebrazo_ext_izq: { cx: 138, cy: 125 },  antebrazo_ext_der: { cx: 62, cy: 125 },
+
+    // ---- MANOS ----
+    muneca_izq: { cx: 138, cy: 145 },   muneca_der: { cx: 62, cy: 145 },
+    muneca: { cx: 138, cy: 145 },
+    muneca_post_izq: { cx: 138, cy: 145 }, muneca_post_der: { cx: 62, cy: 145 },
+    mano_izq: { cx: 138, cy: 155 },     mano_der: { cx: 62, cy: 155 },
+    carpo: { cx: 138, cy: 152 },
+    carpo_izq: { cx: 138, cy: 152 },    carpo_der: { cx: 62, cy: 152 },
+    metacarpo: { cx: 138, cy: 140 },
+    metacarpo_izq: { cx: 138, cy: 140 }, metacarpo_der: { cx: 62, cy: 140 },
+    falanges_prox: { cx: 138, cy: 128 },
+    falanges_prox_izq: { cx: 138, cy: 128 }, falanges_prox_der: { cx: 62, cy: 128 },
+    falanges_dist: { cx: 138, cy: 118 },
+    falanges_dist_izq: { cx: 138, cy: 118 }, falanges_dist_der: { cx: 62, cy: 118 },
+    pulgar: { cx: 148, cy: 145 },
+    pulgar_izq: { cx: 148, cy: 145 },   pulgar_der: { cx: 52, cy: 145 },
+    eminencia_tenar: { cx: 132, cy: 155 },
+    eminencia_tenar_izq: { cx: 132, cy: 155 }, eminencia_tenar_der: { cx: 68, cy: 155 },
+
+    // ---- TRONCO ----
+    torax: { cx: 100, cy: 85 },
+    pecho: { cx: 100, cy: 85 },
+    espalda: { cx: 100, cy: 85 },
+    esternon: { cx: 100, cy: 85 },
+    pectoral_izq: { cx: 120, cy: 90 }, pectoral_der: { cx: 80, cy: 90 },
+    costillas_izq: { cx: 120, cy: 105 }, costillas_der: { cx: 80, cy: 105 },
+    dorsal_ancho_izq: { cx: 120, cy: 105 }, dorsal_ancho_der: { cx: 80, cy: 105 },
+    abdomen: { cx: 100, cy: 118 },
+
+    // ---- COLUMNA ----
+    columna: { cx: 100, cy: 90 },
+    columna_dorsal: { cx: 100, cy: 90 },
+    cervical: { cx: 100, cy: 30 },
+    dorsal: { cx: 100, cy: 70 },
+    lumbar: { cx: 100, cy: 110 },
+
+    // ---- PELVIS Y CADERA ----
+    pelvis: { cx: 100, cy: 145 },
+    cadera: { cx: 100, cy: 145 },
+    cadera_izq: { cx: 120, cy: 145 },  cadera_der: { cx: 80, cy: 145 },
+    sacro: { cx: 100, cy: 138 },
+    pubis: { cx: 100, cy: 155 },
+    gluteo: { cx: 120, cy: 140 },
+    gluteo_izq: { cx: 120, cy: 140 },  gluteo_der: { cx: 80, cy: 140 },
+    ilion_izq: { cx: 122, cy: 140 },   ilion_der: { cx: 78, cy: 140 },
+    isquion_izq: { cx: 120, cy: 152 }, isquion_der: { cx: 80, cy: 152 },
+    coxis: { cx: 100, cy: 155 },
+
+    // ---- PIERNAS ----
+    pierna_izq: { cx: 120, cy: 200 },  pierna_der: { cx: 80, cy: 200 },
+    muslo: { cx: 120, cy: 200 },
+    cuadriceps: { cx: 120, cy: 200 },
+    cuadriceps_izq: { cx: 120, cy: 200 }, cuadriceps_der: { cx: 80, cy: 200 },
+    isquiotibial: { cx: 120, cy: 200 },
+    isquiotibiales: { cx: 120, cy: 200 },
+    isquiotibiales_izq: { cx: 120, cy: 200 }, isquiotibiales_der: { cx: 80, cy: 200 },
+
+    // ---- RODILLAS ----
+    rodilla_izq: { cx: 120, cy: 235 }, rodilla_der: { cx: 80, cy: 235 },
+    rotula: { cx: 120, cy: 235 },
+    rotula_izq: { cx: 120, cy: 235 },  rotula_der: { cx: 80, cy: 235 },
+    poplitea: { cx: 120, cy: 235 },
+    poplitea_izq: { cx: 120, cy: 235 }, poplitea_der: { cx: 80, cy: 235 },
+    lca: { cx: 120, cy: 233 },
+    lcp: { cx: 120, cy: 237 },
+    menisco_med: { cx: 115, cy: 235 },
+    menisco_lat: { cx: 125, cy: 235 },
+    menisco_med_izq: { cx: 115, cy: 235 }, menisco_med_der: { cx: 85, cy: 235 },
+    menisco_lat_izq: { cx: 125, cy: 235 }, menisco_lat_der: { cx: 75, cy: 235 },
+    lig_cruzado_ant_izq: { cx: 120, cy: 233 }, lig_cruzado_ant_der: { cx: 80, cy: 233 },
+    lig_cruzado_post_izq: { cx: 120, cy: 237 }, lig_cruzado_post_der: { cx: 80, cy: 237 },
+    lig_colateral_med_izq: { cx: 115, cy: 235 }, lig_colateral_med_der: { cx: 85, cy: 235 },
+    lig_colateral_lat_izq: { cx: 125, cy: 235 }, lig_colateral_lat_der: { cx: 75, cy: 235 },
+
+    // ---- PANTORRILLAS ----
+    gemelo: { cx: 120, cy: 260 },
+    gemelo_izq: { cx: 120, cy: 260 },  gemelo_der: { cx: 80, cy: 260 },
+    gemelos_post: { cx: 120, cy: 260 },
+    gemelos_izq: { cx: 120, cy: 260 }, gemelos_der: { cx: 80, cy: 260 },
+    soleo: { cx: 120, cy: 275 },
+    soleo_izq: { cx: 120, cy: 275 },   soleo_der: { cx: 80, cy: 275 },
+    tibial: { cx: 120, cy: 260 },
+    tibial_ant_izq: { cx: 120, cy: 260 }, tibial_ant_der: { cx: 80, cy: 260 },
+    tendon_aquiles: { cx: 120, cy: 285 },
+    tendon_aquiles_izq: { cx: 120, cy: 285 }, tendon_aquiles_der: { cx: 80, cy: 285 },
+    tobillo: { cx: 120, cy: 280 },
+    tobillo_izq: { cx: 120, cy: 280 }, tobillo_der: { cx: 80, cy: 280 },
+
+    // ---- PIES ----
+    pie_izq: { cx: 125, cy: 295 },  pie_der: { cx: 75, cy: 295 },
+    talon: { cx: 120, cy: 295 },
+    talon_plantar: { cx: 120, cy: 295 },
+    talon_plantar_izq: { cx: 120, cy: 295 }, talon_plantar_der: { cx: 80, cy: 295 },
+    retropie_calcaneo: { cx: 120, cy: 293 },
+    retropie_calcaneo_izq: { cx: 120, cy: 293 }, retropie_calcaneo_der: { cx: 80, cy: 293 },
+    mediopie_tarso: { cx: 120, cy: 288 },
+    mediopie_tarso_izq: { cx: 120, cy: 288 }, mediopie_tarso_der: { cx: 80, cy: 288 },
+    mediopie_plantar: { cx: 120, cy: 288 },
+    mediopie_plantar_izq: { cx: 120, cy: 288 }, mediopie_plantar_der: { cx: 80, cy: 288 },
+    antepie_metatarso: { cx: 120, cy: 292 },
+    antepie_metatarso_izq: { cx: 120, cy: 292 }, antepie_metatarso_der: { cx: 80, cy: 292 },
+    metatarsianos_plantar: { cx: 120, cy: 290 },
+    metatarsianos_plantar_izq: { cx: 120, cy: 290 }, metatarsianos_plantar_der: { cx: 80, cy: 290 },
+    falanges_lateral: { cx: 125, cy: 298 },
+    falanges_lateral_izq: { cx: 125, cy: 298 }, falanges_lateral_der: { cx: 75, cy: 298 },
+    falanges_plantar: { cx: 120, cy: 300 },
+    falanges_plantar_izq: { cx: 120, cy: 300 }, falanges_plantar_der: { cx: 80, cy: 300 },
+    empeine: { cx: 120, cy: 290 },
+    metatarsos: { cx: 120, cy: 295 },
+    falanges_pie: { cx: 120, cy: 298 },
   };
 
-  const generarStickman = (regionesVista, tituloVista) => {
+    const generarStickman = (regionesVista, tituloVista, esPosterior) => {
     if (regionesVista.length === 0) return '';
     const puntosHTML = regionesVista.map(r => {
       let coords = centroides[r];
@@ -377,8 +486,11 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
         coords = centroides[baseKey];
       }
       if (!coords) coords = { cx: 100, cy: 100 };
-      return `<circle cx="${coords.cx}" cy="${coords.cy}" r="5" fill="#ef4444" stroke="#fff" stroke-width="1.5"/>`;
+      // En vista posterior aplicamos mirror horizontal
+      const cxFinal = esPosterior ? (200 - coords.cx) : coords.cx;
+      return `<circle cx="${cxFinal}" cy="${coords.cy}" r="5" fill="#ef4444" stroke="#fff" stroke-width="1.5"/>`;
     }).join('');
+
     const siluetaPaths = `
       <path d="M 87,22 C 87,7 113,7 113,22 C 113,34 107,42 105,46 C 106,50 112,52 115,55 L 85,55 C 88,52 94,50 95,46 C 93,42 87,34 87,22 Z"/>
       <path d="M 85,55 C 98,58 115,55 115,55 C 122,68 118,98 112,120 L 88,120 C 82,98 78,68 85,55 Z"/>
@@ -394,20 +506,21 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
       <path d="M 103,288 L 111,288 C 115,294 119,303 113,308 C 107,311 101,304 103,288 Z"/>
       <path d="M 97,288 L 89,288 C 85,294 81,303 87,308 C 93,311 99,304 97,288 Z"/>
     `;
+
     return `
       <div style="text-align:center; margin: 5px 0;">
         <h3 style="font-size:11pt; margin: 3px 0;">${tituloVista}</h3>
         <svg viewBox="0 0 200 320" width="140" height="224" xmlns="http://www.w3.org/2000/svg" style="max-width:160px; height:auto;">
-          <defs><linearGradient id="bodyGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#f8fafc"/><stop offset="100%" stopColor="#e2e8f0"/></linearGradient></defs>
-          <g fill="url(#bodyGrad)" stroke="#94a3b8" stroke-width="1.2" opacity="0.8">${siluetaPaths}</g>
+          <defs><linearGradient id="bodyGrad${esPosterior ? 'P' : 'A'}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#f8fafc"/><stop offset="100%" stopColor="#e2e8f0"/></linearGradient></defs>
+          <g fill="url(#bodyGrad${esPosterior ? 'P' : 'A'})" stroke="#94a3b8" stroke-width="1.2" opacity="0.8">${siluetaPaths}</g>
           ${puntosHTML}
         </svg>
       </div>
     `;
   };
 
-  const stickmanAnterior = generarStickman(regionesAnteriores, 'Vista Anterior');
-  const stickmanPosterior = generarStickman(regionesPosteriores, 'Vista Posterior');
+const stickmanAnterior = generarStickman(regionesAnteriores, 'Vista Anterior', false);
+const stickmanPosterior = generarStickman(regionesPosteriores, 'Vista Posterior', true);
 
   // ============================================================
   // PUNTO 6: EVALUACIÓN POR REGIÓN

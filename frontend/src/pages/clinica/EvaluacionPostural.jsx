@@ -5,6 +5,22 @@ import BodyChartContainer from '../../components/clinica/BodyChart/BodyChartCont
 import { RANGOS_ROM, TESTS_POR_REGION } from '../../components/clinica/BodyChart/regionesConfig';
 import AnamnesisForm from '../../components/clinica/Formularios/AnamnesisForm';
 import { consultarAuraIA } from '../../services/iaService';
+import { filtrarEjerciciosPorRegion } from '../../utils/filtrarEjerciciosPorRegion';
+import EjercicioPreview from '../../components/clinica/EjercicioPreview';
+
+// ============================================================
+// HELPER: Calcular edad exacta desde fecha de nacimiento
+// ============================================================
+const calcularEdadExacta = (fechaNac) => {
+  if (!fechaNac) return '';
+  const hoy = new Date();
+  const nac = new Date(fechaNac);
+  if (isNaN(nac)) return '';
+  let edad = hoy.getFullYear() - nac.getFullYear();
+  const m = hoy.getMonth() - nac.getMonth();
+  if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--;
+  return edad.toString();
+};
 
 export default function EvaluacionPostural({ temaOscuro }) {
   const { pacienteId } = useParams();
@@ -31,6 +47,19 @@ export default function EvaluacionPostural({ temaOscuro }) {
   const [plan, setPlan] = useState(null);
   const [mostrarPlan, setMostrarPlan] = useState(false);
   const [generandoPlan, setGenerandoPlan] = useState(false);
+  const [ejerciciosIncompatibles, setEjerciciosIncompatibles] = useState([]);
+  const [ejerciciosCompatibles, setEjerciciosCompatibles] = useState([]);
+    // ===== AUTO-GUARDADO =====
+  const [autoGuardadoEstado, setAutoGuardadoEstado] = useState('idle'); // idle | saving | saved | error
+  const [ultimoAutoGuardado, setUltimoAutoGuardado] = useState(null);
+  const ultimoSnapshotRef = useRef(null);
+  const autoSaveRef = useRef({
+    evaluacion: null,
+    planEditado: null,
+    parametrosEjercicios: null,
+    tipoFormulario: null,
+    guardarFn: null,
+  });
 
   // ===== ESTADO PARA LA EDICIÓN DEL PLAN =====
   const [planEditado, setPlanEditado] = useState({
@@ -133,6 +162,58 @@ export default function EvaluacionPostural({ temaOscuro }) {
     };
     cargarCatalogos();
   }, []);
+
+    // ============================================================
+  // AUTO-GUARDADO CADA 30 SEGUNDOS
+  // ============================================================
+  useEffect(() => {
+    autoSaveRef.current.evaluacion = evaluacion;
+    autoSaveRef.current.planEditado = planEditado;
+    autoSaveRef.current.parametrosEjercicios = parametrosEjercicios;
+    autoSaveRef.current.tipoFormulario = tipoFormulario;
+    autoSaveRef.current.guardarFn = guardarEvaluacion;
+  });
+
+  useEffect(() => {
+    if (loading) return;
+    if (evaluacionId && estadoActual !== 'borrador' && estadoActual !== 'rechazado') return;
+
+    const intervalo = setInterval(async () => {
+      const ref = autoSaveRef.current;
+      const ev = ref.evaluacion;
+      if (!ev || ev.regiones.length === 0) return;
+
+      const snapshotActual = JSON.stringify({
+        evaluacion: ev,
+        planEditado: ref.planEditado,
+        parametrosEjercicios: ref.parametrosEjercicios,
+        tipoFormulario: ref.tipoFormulario,
+      });
+
+      if (snapshotActual === ultimoSnapshotRef.current) return;
+
+      console.log('💾 [Auto-guardado] Cambios detectados, guardando...');
+      setAutoGuardadoEstado('saving');
+
+      const resultado = await ref.guardarFn?.('borrador', { silencioso: true, navegar: false });
+
+      if (resultado?.ok) {
+        console.log('✅ [Auto-guardado] Guardado exitoso');
+        setAutoGuardadoEstado('saved');
+        setUltimoAutoGuardado(new Date());
+        ultimoSnapshotRef.current = snapshotActual;
+        setTimeout(() => setAutoGuardadoEstado('idle'), 3000);
+      } else if (resultado?.error) {
+        console.warn('⚠️ [Auto-guardado] Error:', resultado.error);
+        setAutoGuardadoEstado('error');
+        setTimeout(() => setAutoGuardadoEstado('idle'), 5000);
+      } else {
+        setAutoGuardadoEstado('idle');
+      }
+    }, 30000);
+
+    return () => clearInterval(intervalo);
+  }, [loading, evaluacionId, estadoActual]);
 
   // ========== Dictado de voz ==========
   const [escuchando, setEscuchando] = useState(false);
@@ -237,24 +318,45 @@ export default function EvaluacionPostural({ temaOscuro }) {
     recognitionRef.current.start();
   };
 
-  // ========== Carga de paciente y evaluación ==========
+    // ========== Carga de paciente y evaluación ==========
   useEffect(() => {
+    const query = new URLSearchParams(window.location.search);
+    const evalId = query.get('evaluacion_id');
+    const esNuevaEvaluacion = !evalId;
+
     const cargarPaciente = async () => {
       if (!pacienteId) { setLoading(false); return; }
       const { data, error } = await supabase.from('pacientes').select('*').eq('id', pacienteId).single();
       if (!error && data) {
         setPaciente(data);
-        if (data.fecha_nacimiento) {
-          const edad = new Date().getFullYear() - new Date(data.fecha_nacimiento).getFullYear();
-          setEvaluacion(prev => ({ ...prev, edad: edad.toString() }));
+
+        // ============================================================
+        // AUTO-RELLENAR CAMPOS DESDE EL PACIENTE
+        // Solo si es una evaluación NUEVA (no editar existente)
+        // Y solo si el campo está vacío (no pisar datos ya escritos)
+        // ============================================================
+        if (esNuevaEvaluacion) {
+          setEvaluacion(prev => ({
+            ...prev,
+            // Edad desde fecha de nacimiento (cálculo exacto)
+            edad: prev.edad || calcularEdadExacta(data.fecha_nacimiento),
+            // Datos de contacto
+            telefono: prev.telefono || data.telefono || '',
+            direccion: prev.direccion || data.direccion || '',
+            // Motivo: usar el motivo_de_visita del paciente
+            motivo_consulta: prev.motivo_consulta || data.motivo_de_visita || '',
+          }));
+        } else {
+          // Es edición: solo auto-rellenamos edad si está vacía
+          if (!evaluacion.edad && data.fecha_nacimiento) {
+            setEvaluacion(prev => ({ ...prev, edad: calcularEdadExacta(data.fecha_nacimiento) }));
+          }
         }
       }
       setLoading(false);
     };
-    cargarPaciente();
 
-    const query = new URLSearchParams(window.location.search);
-    const evalId = query.get('evaluacion_id');
+    cargarPaciente();
     if (evalId) cargarEvaluacion(evalId);
   }, [pacienteId]);
 
@@ -483,10 +585,12 @@ export default function EvaluacionPostural({ temaOscuro }) {
   // ============================================================
   // GUARDAR EVALUACIÓN
   // ============================================================
-  const guardarEvaluacion = async (nuevoEstado) => {
+    const guardarEvaluacion = async (nuevoEstado, opciones = {}) => {
+    const { silencioso = false, navegar = true } = opciones;
+
     if (evaluacion.regiones.length === 0) {
-      alert('Selecciona al menos una región afectada.');
-      return;
+      if (!silencioso) alert('Selecciona al menos una región afectada.');
+      return { ok: false, error: 'Sin regiones seleccionadas' };
     }
     setGuardando(true);
     try {
@@ -655,13 +759,21 @@ export default function EvaluacionPostural({ temaOscuro }) {
           if (newData) setEvaluacionId(newData.id);
         }
       }
-      if (error) throw error;
+            if (error) throw error;
 
-      alert(`✅ Evaluación guardada como "${nuevoEstado === 'borrador' ? 'borrador' : 'enviada a aprobación'}" correctamente.`);
-      navigate(`/clinica/pacientes/${pacienteId}`);
+      if (!silencioso) {
+        alert(`✅ Evaluación guardada como "${nuevoEstado === 'borrador' ? 'borrador' : 'enviada a aprobación'}" correctamente.`);
+      }
+      if (navegar) {
+        navigate(`/clinica/pacientes/${pacienteId}`);
+      }
+      return { ok: true };
     } catch (error) {
       console.error(error);
-      alert('Error al guardar: ' + error.message);
+      if (!silencioso) {
+        alert('Error al guardar: ' + error.message);
+      }
+      return { ok: false, error: error.message };
     } finally {
       setGuardando(false);
     }
@@ -914,16 +1026,46 @@ Responde AHORA con el JSON.`;
 
       setPlan(planEnriquecido);
 
+      // ============================================================
+      // FILTRO POR ZONA: validar ejercicios vs regiones del paciente
+      // ============================================================
+      const filtro = filtrarEjerciciosPorRegion(
+        planEnriquecido.ejercicios_detalle.map((e) => e.nombre),
+        catalogos.ejercicios,
+        evaluacion.regiones
+      );
+
+      setEjerciciosCompatibles(filtro.compatibles);
+      setEjerciciosIncompatibles(filtro.incompatibles);
+
+      if (filtro.incompatibles.length > 0) {
+        console.warn('⚠️ Ejercicios fuera de zona detectados:', filtro.incompatibles);
+      }
+
+      // Ejercicios aprobados = solo los compatibles (inicialmente)
+      const nombresCompatibles = filtro.compatibles.map((c) => c.nombre);
+
       setPlanEditado({
         diagnostico_sugerido: planEnriquecido.diagnostico_sugerido || '',
         justificacion: planEnriquecido.justificacion || '',
-        agentes_fisicos: planEnriquecido.agentes_detalle.map(a => a.nombre) || [],
-        masoterapia: planEnriquecido.masoterapia_detalle.map(m => m.nombre) || [],
-        ejercicios: planEnriquecido.ejercicios_detalle.map(e => e.nombre) || [],
+        agentes_fisicos: planEnriquecido.agentes_detalle.map((a) => a.nombre) || [],
+        masoterapia: planEnriquecido.masoterapia_detalle.map((m) => m.nombre) || [],
+        ejercicios: nombresCompatibles,
         recomendaciones_naturales: planEnriquecido.recomendaciones_naturales || [],
         recomendaciones_generales: planEnriquecido.recomendaciones_generales || [],
         alertas_seguridad: planEnriquecido.alertas_seguridad || [],
       });
+
+      // Aviso al usuario si hubo descartes
+      if (filtro.incompatibles.length > 0) {
+        setTimeout(() => {
+          alert(
+            `⚠️ La IA sugirió ${filtro.incompatibles.length} ejercicio(s) que NO coinciden con las regiones afectadas.\n\n` +
+            `Fueron movidos a la sección "Fuera de zona" para que decidas manualmente.\n\n` +
+            `Ejercicios compatibles: ${filtro.compatibles.length}`
+          );
+        }, 300);
+      }
 
       setEvaluacion(prev => ({
         ...prev,
@@ -997,9 +1139,34 @@ Responde AHORA con el JSON.`;
             Estado: {estadoActual}
           </div>
         )}
-        <div className="flex justify-between items-center mb-4">
+                <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
           <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Paso {paso} de 3</p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Indicador de auto-guardado */}
+            {autoGuardadoEstado === 'saving' && (
+              <span className="text-[10px] text-yellow-400 font-bold uppercase flex items-center gap-1 animate-pulse">
+                <span className="inline-block w-2 h-2 rounded-full bg-yellow-400"></span>
+                Guardando...
+              </span>
+            )}
+            {autoGuardadoEstado === 'saved' && (
+              <span className="text-[10px] text-green-400 font-bold uppercase flex items-center gap-1">
+                <span>✓</span>
+                Guardado
+              </span>
+            )}
+            {autoGuardadoEstado === 'error' && (
+              <span className="text-[10px] text-red-400 font-bold uppercase flex items-center gap-1">
+                <span>⚠</span>
+                Error al guardar
+              </span>
+            )}
+            {autoGuardadoEstado === 'idle' && ultimoAutoGuardado && (
+              <span className="text-[10px] text-gray-500 font-bold uppercase">
+                🕐 Auto: {ultimoAutoGuardado.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
+
             <span className={`text-xs font-bold uppercase ${microfonoActivo ? 'text-green-400' : 'text-yellow-400'}`}>
               {microfonoActivo ? '🎤 Micrófono activo' : '🔇 Micrófono inactivo'}
             </span>
@@ -1251,53 +1418,131 @@ Responde AHORA con el JSON.`;
                           ))}
                         </div>
                       </div>
+
+                      {/* ============================================================ */}
+                      {/* EJERCICIOS: con filtro por zona y badges                     */}
+                      {/* ============================================================ */}
                       <div>
                         <label className="text-xs text-gray-400">Ejercicios</label>
-                        {catalogos.ejercicios.map((ej) => (
-                          <div key={ej.id} className="mt-2 border border-purple-500/20 rounded-xl p-2 bg-black/10">
-                            <label className="flex items-center gap-1 text-sm text-white">
-                              <input
-                                type="checkbox"
-                                checked={planEditado.ejercicios?.includes(ej.nombre) || false}
-                                onChange={() => toggleItemPlan('ejercicios', ej.nombre)}
-                                className="accent-purple-500"
-                              />
-                              <span className="font-semibold">{ej.nombre}</span>
-                            </label>
-                            {planEditado.ejercicios?.includes(ej.nombre) && (
-                              <div className="ml-6 mt-1 grid grid-cols-3 gap-2 text-xs">
-                                <div>
-                                  <label className="text-gray-400">Series</label>
+
+                        {/* ⚠️ AVISO DE EJERCICIOS FUERA DE ZONA */}
+                        {ejerciciosIncompatibles.length > 0 && (
+                          <div className="mt-2 mb-3 p-3 rounded-xl border-2 border-yellow-500/50 bg-yellow-500/10">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-yellow-400 text-lg">⚠️</span>
+                              <span className="text-yellow-300 text-xs font-bold uppercase tracking-wider">
+                                {ejerciciosIncompatibles.length} ejercicio(s) sugerido(s) fuera de zona
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-yellow-200/80 mb-3">
+                              La IA sugirió estos ejercicios, pero no coinciden con las regiones afectadas del paciente.
+                              Márcalos solo si consideras que aportan al tratamiento.
+                            </p>
+                            <div className="space-y-2">
+                              {ejerciciosIncompatibles.map((inc) => (
+                                <div key={inc.nombre} className="flex items-start gap-2 p-2 rounded-lg bg-black/20">
                                   <input
-                                    type="number"
-                                    value={parametrosEjercicios[ej.nombre]?.series || 3}
-                                    onChange={(e) => handleParametroEjercicio(ej.nombre, 'series', parseInt(e.target.value) || 0)}
-                                    className="w-full p-1 rounded border border-purple-500/30 bg-black/20 text-white"
+                                    type="checkbox"
+                                    checked={planEditado.ejercicios?.includes(inc.nombre) || false}
+                                    onChange={() => toggleItemPlan('ejercicios', inc.nombre)}
+                                    className="accent-yellow-500 mt-0.5"
                                   />
+                                  <div className="flex-1">
+                                    <p className="text-xs text-white font-semibold">{inc.nombre}</p>
+                                    <p className="text-[9px] text-yellow-300/70 italic mt-0.5">{inc.razon}</p>
+                                  </div>
                                 </div>
-                                <div>
-                                  <label className="text-gray-400">Repeticiones</label>
-                                  <input
-                                    type="number"
-                                    value={parametrosEjercicios[ej.nombre]?.repeticiones || 10}
-                                    onChange={(e) => handleParametroEjercicio(ej.nombre, 'repeticiones', parseInt(e.target.value) || 0)}
-                                    className="w-full p-1 rounded border border-purple-500/30 bg-black/20 text-white"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="text-gray-400">Frecuencia</label>
-                                  <input
-                                    type="text"
-                                    value={parametrosEjercicios[ej.nombre]?.frecuencia || 'diaria'}
-                                    onChange={(e) => handleParametroEjercicio(ej.nombre, 'frecuencia', e.target.value)}
-                                    className="w-full p-1 rounded border border-purple-500/30 bg-black/20 text-white"
-                                  />
-                                </div>
-                              </div>
-                            )}
+                              ))}
+                            </div>
                           </div>
-                        ))}
+                        )}
+
+                        {/* ✅ EJERCICIOS DEL CATÁLOGO */}
+                        {catalogos.ejercicios.map((ej) => {
+  const esCompatible = ejerciciosCompatibles.some((c) => c.nombre === ej.nombre);
+  const esIncompatible = ejerciciosIncompatibles.some((i) => i.nombre === ej.nombre);
+  const badgeInfo = ejerciciosCompatibles.find((c) => c.nombre === ej.nombre);
+  const estaSeleccionado = planEditado.ejercicios?.includes(ej.nombre) || false;
+
+  return (
+    <div
+      key={ej.id}
+      className={`mt-2 border rounded-xl p-3 flex gap-3 ${
+        esCompatible
+          ? 'border-green-500/30 bg-green-500/5'
+          : esIncompatible
+          ? 'border-yellow-500/20 bg-yellow-500/5'
+          : 'border-purple-500/20 bg-black/10'
+      }`}
+    >
+      {/* VISTA PREVIA STICKMAN */}
+      <div className="flex-shrink-0">
+        <EjercicioPreview
+          posicion={ej.posicion || 'bipedo'}
+          tamaño="small"
+          temaOscuro={true}
+        />
+      </div>
+
+      {/* INFO + CONTROLES */}
+      <div className="flex-1 min-w-0">
+        <label className="flex items-center gap-2 text-sm text-white cursor-pointer">
+          <input
+            type="checkbox"
+            checked={estaSeleccionado}
+            onChange={() => toggleItemPlan('ejercicios', ej.nombre)}
+            className="accent-purple-500 flex-shrink-0"
+          />
+          <span className="font-semibold flex-1 min-w-0">{ej.nombre}</span>
+          {esCompatible && badgeInfo && (
+            <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-green-500/20 text-green-400 uppercase whitespace-nowrap">
+              ✓ Recomendado
+            </span>
+          )}
+          {esIncompatible && (
+            <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 uppercase whitespace-nowrap">
+              ⚠ Fuera de zona
+            </span>
+          )}
+        </label>
+
+        {estaSeleccionado && (
+          <div className="ml-6 mt-2 grid grid-cols-3 gap-2 text-xs">
+            <div>
+              <label className="text-gray-400">Series</label>
+              <input
+                type="number"
+                value={parametrosEjercicios[ej.nombre]?.series || 3}
+                onChange={(e) => handleParametroEjercicio(ej.nombre, 'series', parseInt(e.target.value) || 0)}
+                className="w-full p-1 rounded border border-purple-500/30 bg-black/20 text-white"
+              />
+            </div>
+            <div>
+              <label className="text-gray-400">Repeticiones</label>
+              <input
+                type="number"
+                value={parametrosEjercicios[ej.nombre]?.repeticiones || 10}
+                onChange={(e) => handleParametroEjercicio(ej.nombre, 'repeticiones', parseInt(e.target.value) || 0)}
+                className="w-full p-1 rounded border border-purple-500/30 bg-black/20 text-white"
+              />
+            </div>
+            <div>
+              <label className="text-gray-400">Frecuencia</label>
+              <input
+                type="text"
+                value={parametrosEjercicios[ej.nombre]?.frecuencia || 'diaria'}
+                onChange={(e) => handleParametroEjercicio(ej.nombre, 'frecuencia', e.target.value)}
+                className="w-full p-1 rounded border border-purple-500/30 bg-black/20 text-white"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+})}
                       </div>
+
                       <div>
                         <label className="text-xs text-gray-400">Recomendaciones naturales (atención en casa)</label>
                         {planEditado.recomendaciones_naturales?.map((rec, idx) => (

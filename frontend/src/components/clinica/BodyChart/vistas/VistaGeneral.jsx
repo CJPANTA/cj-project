@@ -8,15 +8,26 @@ export default function VistaGeneral({
   onRegionToggle,
   temaOscuro
 }) {
-  const transformacion = cara === 'posterior' ? 'scale(-1, 1) translate(-200, 0)' : '';
+  const esPosterior = cara === 'posterior';
+  const transformacion = esPosterior ? 'scale(-1, 1) translate(-200, 0)' : '';
 
   const Hotspot = ({ x, y, regionId, label, isMacro }) => {
     const selected = regionesSeleccionadas?.includes(regionId) || false;
     const isMacroRegion = isMacro || false;
 
-    // Color según estado: seleccionado > macrorregión > normal
     const colorCirculo = selected ? '#22d3ee' : (isMacroRegion ? '#facc15' : '#475569');
     const colorPunto = selected ? '#22d3ee' : (isMacroRegion ? '#facc15' : '#94a3b8');
+    const colorTexto = selected ? '#22d3ee' : (isMacroRegion ? '#facc15' : '#94a3b8');
+    const textY = y + (selected ? 15 : 12);
+
+    // En vista posterior el SVG está espejado → contra-transformamos el texto
+    const textProps = esPosterior
+      ? { x: 0, y: 0, transform: `translate(${x}, ${textY}) scale(-1, 1)` }
+      : { x: x, y: textY };
+
+    const arrowProps = esPosterior
+      ? { x: 0, y: 0, transform: `translate(${x}, ${y + 7}) scale(-1, 1)` }
+      : { x: x, y: y + 7 };
 
     return (
       <g
@@ -38,26 +49,28 @@ export default function VistaGeneral({
           stroke={colorCirculo}
           strokeWidth="1.2"
           className="group-hover:stroke-[#38bdf8] transition-all duration-200"
-          opacity={selected ? "1" : (isMacroRegion ? "0.9" : "0.4")}
+          opacity={selected ? '1' : (isMacroRegion ? '0.9' : '0.4')}
         />
-        <circle
-          cx={x}
-          cy={y}
-          r="1.8"
-          fill={colorPunto}
-        />
+        <circle cx={x} cy={y} r="1.8" fill={colorPunto} />
         <text
-          x={x}
-          y={y + (selected ? 15 : 12)}
+          {...textProps}
           textAnchor="middle"
           fontSize="3.2"
-          fill={selected ? '#22d3ee' : (isMacroRegion ? '#facc15' : '#94a3b8')}
+          fill={colorTexto}
           className="font-bold"
         >
           {label}
         </text>
         {isMacroRegion && (
-          <text x={x} y={y + 7} textAnchor="middle" fontSize="2.8" fill="#facc15" className="font-bold">▼</text>
+          <text
+            {...arrowProps}
+            textAnchor="middle"
+            fontSize="2.8"
+            fill="#facc15"
+            className="font-bold"
+          >
+            ▼
+          </text>
         )}
       </g>
     );
@@ -122,7 +135,7 @@ export default function VistaGeneral({
           <Hotspot x={75} y={154} regionId="mano_der" label="Mano D" isMacro={true} />
         </g>
 
-        {/* COLUMNA (NUEVO HOTSPOT EN LA LÍNEA MEDIA) */}
+        {/* COLUMNA */}
         <g>
           <Hotspot x={100} y={105} regionId="columna" label="Columna" isMacro={true} />
         </g>

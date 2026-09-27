@@ -2,6 +2,30 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 
+// ============================================================
+// HELPER: Calcular edad a partir de fecha de nacimiento
+// ============================================================
+const calcularEdad = (fechaNac) => {
+  if (!fechaNac) return '—';
+  const hoy = new Date();
+  const nac = new Date(fechaNac);
+  if (isNaN(nac)) return '—';
+  let edad = hoy.getFullYear() - nac.getFullYear();
+  const mes = hoy.getMonth() - nac.getMonth();
+  if (mes < 0 || (mes === 0 && hoy.getDate() < nac.getDate())) edad--;
+  return edad;
+};
+
+// ============================================================
+// HELPER: Detectar si faltan datos clave del paciente
+// ============================================================
+const datosIncompletos = (paciente) => {
+  const faltantes = [];
+  if (!paciente.fecha_nacimiento) faltantes.push('fecha nac.');
+  if (!paciente.motivo_de_visita) faltantes.push('motivo');
+  return faltantes;
+};
+
 export default function PacientesLista({ temaOscuro }) {
   const navigate = useNavigate();
   const [pacientes, setPacientes] = useState([]);
@@ -11,7 +35,17 @@ export default function PacientesLista({ temaOscuro }) {
   const [pagina, setPagina] = useState(0);
   const [totalPaginas, setTotalPaginas] = useState(0);
   const [modalAbierto, setModalAbierto] = useState(false);
-  const [nuevoPaciente, setNuevoPaciente] = useState({ nombre: '', apellidos: '', telefono: '', email: '', diagnostico: '' });
+  const [nuevoPaciente, setNuevoPaciente] = useState({
+    nombre: '',
+    apellidos: '',
+    fecha_nacimiento: '',
+    motivo_de_visita: '',
+    telefono: '',
+    email: '',
+    dni: '',
+    direccion: '',
+    diagnostico: '',
+  });
   const [guardando, setGuardando] = useState(false);
   const [eliminando, setEliminando] = useState(null);
   const LIMITE = 10;
@@ -68,7 +102,7 @@ export default function PacientesLista({ temaOscuro }) {
       if (searchTerm.trim()) {
         const term = searchTerm.trim().toLowerCase();
         query = query.or(
-          `nombre.ilike.%${term}%,apellidos.ilike.%${term}%,diagnostico.ilike.%${term}%`
+          `nombre.ilike.%${term}%,apellidos.ilike.%${term}%,diagnostico.ilike.%${term}%,motivo_de_visita.ilike.%${term}%`
         );
       }
 
@@ -97,7 +131,9 @@ export default function PacientesLista({ temaOscuro }) {
       }
 
       const desde = pagina * LIMITE;
-      query = query.range(desde, desde + LIMITE - 1).order(orderConfig.column, { ascending: orderConfig.ascending, nullsFirst: false });
+      query = query
+        .range(desde, desde + LIMITE - 1)
+        .order(orderConfig.column, { ascending: orderConfig.ascending, nullsFirst: false });
 
       const { data, count, error } = await query;
       if (error) throw error;
@@ -120,6 +156,7 @@ export default function PacientesLista({ temaOscuro }) {
     const nombres = ['María', 'José', 'Ana', 'Carlos', 'Laura', 'Pedro', 'Sofía', 'Diego', 'Valentina', 'Andrés', 'Isabel', 'Javier', 'Carmen', 'Luis', 'Elena'];
     const apellidos = ['García', 'Rodríguez', 'Fernández', 'López', 'Martínez', 'González', 'Pérez', 'Sánchez', 'Ramírez', 'Torres', 'Rivera', 'Morales', 'Ortiz', 'Cruz', 'Reyes'];
     const diagnosticos = ['Lumbalgia Crónica', 'Recuperación ACL', 'Esguince de Tobillo', 'Tendinitis de Hombro', 'Síndrome del Túnel Carpiano', 'Artrosis de Rodilla', 'Cervicalgia', 'Fascitis Plantar', 'Epicondilitis', 'Hernia Discal Lumbar'];
+    const motivos = ['Dolor al caminar', 'Consulta por lumbalgia', 'Rehabilitación post-quirúrgica', 'Dolor cervical', 'Revisión general', 'Sobrecarga muscular'];
     const telefonos = ['987654321', '912345678', '965432187', '987123456', '965432100', '985674123', '912345600', '967891234', '956781234', '945678912'];
     const estados = ['Activo', 'Activo', 'Activo', 'Pendiente', 'Inactivo', 'Activo'];
 
@@ -127,16 +164,23 @@ export default function PacientesLista({ temaOscuro }) {
     for (let i = 0; i < 15; i++) {
       const nombre = nombres[Math.floor(Math.random() * nombres.length)];
       const apellido = apellidos[Math.floor(Math.random() * apellidos.length)];
+      // Fecha de nacimiento aleatoria entre 1950 y 2005
+      const anioNac = 1950 + Math.floor(Math.random() * 56);
+      const mesNac = String(1 + Math.floor(Math.random() * 12)).padStart(2, '0');
+      const diaNac = String(1 + Math.floor(Math.random() * 28)).padStart(2, '0');
+
       pacientesEjemplo.push({
         nombre: nombre,
         apellidos: apellido,
         telefono: telefonos[Math.floor(Math.random() * telefonos.length)],
         email: `${nombre.toLowerCase()}.${apellido.toLowerCase()}@gmail.com`,
         diagnostico: diagnosticos[Math.floor(Math.random() * diagnosticos.length)],
+        motivo_de_visita: motivos[Math.floor(Math.random() * motivos.length)],
+        fecha_nacimiento: `${anioNac}-${mesNac}-${diaNac}`,
         estado: estados[Math.floor(Math.random() * estados.length)],
         user_id: userId,
         centro_id: centroId,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       });
     }
 
@@ -152,21 +196,49 @@ export default function PacientesLista({ temaOscuro }) {
     }
   };
 
+  // Guardar nuevo paciente
   const guardarPaciente = async () => {
-    if (!nuevoPaciente.nombre || !nuevoPaciente.apellidos) {
+    // Validaciones
+    if (!nuevoPaciente.nombre.trim() || !nuevoPaciente.apellidos.trim()) {
       return alert('Nombre y apellidos son obligatorios.');
     }
+    if (!nuevoPaciente.fecha_nacimiento) {
+      return alert('La fecha de nacimiento es obligatoria.');
+    }
+    if (!nuevoPaciente.motivo_de_visita.trim()) {
+      return alert('El motivo de visita es obligatorio.');
+    }
+
     setGuardando(true);
     try {
       const { error } = await supabase.from('pacientes').insert([{
-        ...nuevoPaciente,
+        nombre: nuevoPaciente.nombre.trim(),
+        apellidos: nuevoPaciente.apellidos.trim(),
+        fecha_nacimiento: nuevoPaciente.fecha_nacimiento,
+        motivo_de_visita: nuevoPaciente.motivo_de_visita.trim(),
+        telefono: nuevoPaciente.telefono?.trim() || null,
+        email: nuevoPaciente.email?.trim() || null,
+        dni: nuevoPaciente.dni?.trim() || null,
+        direccion: nuevoPaciente.direccion?.trim() || null,
+        diagnostico: nuevoPaciente.diagnostico?.trim() || null,
         user_id: userId,
         centro_id: centroId,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       }]);
       if (error) throw error;
+
       setModalAbierto(false);
-      setNuevoPaciente({ nombre: '', apellidos: '', telefono: '', email: '', diagnostico: '' });
+      setNuevoPaciente({
+        nombre: '',
+        apellidos: '',
+        fecha_nacimiento: '',
+        motivo_de_visita: '',
+        telefono: '',
+        email: '',
+        dni: '',
+        direccion: '',
+        diagnostico: '',
+      });
       alert('✅ Paciente guardado correctamente.');
       await cargarPacientes();
     } catch (error) {
@@ -228,7 +300,7 @@ export default function PacientesLista({ temaOscuro }) {
         <div className="mb-6 flex flex-col md:flex-row gap-3">
           <input
             type="text"
-            placeholder="Buscar por nombre, apellido o diagnóstico..."
+            placeholder="Buscar por nombre, apellido, motivo o diagnóstico..."
             value={searchTerm}
             onChange={(e) => { setSearchTerm(e.target.value); setPagina(0); }}
             className={`flex-1 px-4 py-3 rounded-xl border ${bgInput} outline-none focus:border-[#22d3ee] transition-all text-sm`}
@@ -274,75 +346,111 @@ export default function PacientesLista({ temaOscuro }) {
               <table className="w-full text-sm">
                 <thead className={`${temaOscuro ? 'bg-[#0f1a24] border-gray-700' : 'bg-gray-100 border-gray-300'} border-b`}>
                   <tr>
-                    <th className={`px-4 py-3 text-left font-bold text-xs uppercase tracking-wider ${temaOscuro ? 'text-gray-400' : 'text-gray-700'}`}>Nombre</th>
-                    <th className={`px-4 py-3 text-left font-bold text-xs uppercase tracking-wider ${temaOscuro ? 'text-gray-400' : 'text-gray-700'}`}>Apellidos</th>
-                    <th className={`px-4 py-3 text-left font-bold text-xs uppercase tracking-wider ${temaOscuro ? 'text-gray-400' : 'text-gray-700'}`}>Teléfono</th>
-                    <th className={`px-4 py-3 text-left font-bold text-xs uppercase tracking-wider ${temaOscuro ? 'text-gray-400' : 'text-gray-700'}`}>Diagnóstico</th>
-                    <th className={`px-4 py-3 text-center font-bold text-xs uppercase tracking-wider ${temaOscuro ? 'text-gray-400' : 'text-gray-700'}`}>Acciones</th>
+                    <th className={`px-3 py-3 text-left font-bold text-xs uppercase tracking-wider ${temaOscuro ? 'text-gray-400' : 'text-gray-700'}`}>Nombre</th>
+                    <th className={`px-3 py-3 text-left font-bold text-xs uppercase tracking-wider ${temaOscuro ? 'text-gray-400' : 'text-gray-700'}`}>Apellidos</th>
+                    <th className={`px-3 py-3 text-center font-bold text-xs uppercase tracking-wider ${temaOscuro ? 'text-gray-400' : 'text-gray-700'}`}>Edad</th>
+                    <th className={`px-3 py-3 text-left font-bold text-xs uppercase tracking-wider ${temaOscuro ? 'text-gray-400' : 'text-gray-700'}`}>Teléfono</th>
+                    <th className={`px-3 py-3 text-left font-bold text-xs uppercase tracking-wider ${temaOscuro ? 'text-gray-400' : 'text-gray-700'}`}>Motivo</th>
+                    <th className={`px-3 py-3 text-left font-bold text-xs uppercase tracking-wider ${temaOscuro ? 'text-gray-400' : 'text-gray-700'}`}>Diagnóstico</th>
+                    <th className={`px-3 py-3 text-center font-bold text-xs uppercase tracking-wider ${temaOscuro ? 'text-gray-400' : 'text-gray-700'}`}>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {pacientes.map((p) => (
-                    <tr key={p.id} className={`border-b ${temaOscuro ? 'border-gray-700 hover:bg-[#22d3ee]/5' : 'border-gray-200 hover:bg-[#22d3ee]/10'} transition-colors`}>
-                      <td className={`px-4 py-3 font-medium ${textoPrincipal}`}>{p.nombre}</td>
-                      <td className={`px-4 py-3 ${textoPrincipal}`}>{p.apellidos}</td>
-                      <td className={`px-4 py-3 ${textoPrincipal}`}>{p.telefono || '—'}</td>
-                      <td className={`px-4 py-3 text-xs ${textoSecundario}`}>{p.diagnostico || 'Pendiente'}</td>
-                      <td className="px-4 py-3 text-center">
-                        <div className="flex justify-center gap-2">
-                          <button
-                            onClick={() => navigate(`/clinica/pacientes/${p.id}`)}
-                            className="px-3 py-1 bg-[#22d3ee]/20 text-[#22d3ee] font-bold rounded-lg text-xs hover:bg-[#22d3ee] hover:text-black transition-all"
-                          >
-                            Ver ficha
-                          </button>
-                          <button
-                            onClick={() => eliminarPaciente(p.id)}
-                            disabled={eliminando === p.id}
-                            className="px-3 py-1 bg-red-500/20 text-red-400 font-bold rounded-lg text-xs hover:bg-red-500 hover:text-white transition-all disabled:opacity-50"
-                          >
-                            {eliminando === p.id ? '...' : 'Eliminar'}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {pacientes.map((p) => {
+                    const faltantes = datosIncompletos(p);
+                    return (
+                      <tr key={p.id} className={`border-b ${temaOscuro ? 'border-gray-700 hover:bg-[#22d3ee]/5' : 'border-gray-200 hover:bg-[#22d3ee]/10'} transition-colors`}>
+                        <td className={`px-3 py-3 font-medium ${textoPrincipal}`}>
+                          <div className="flex items-center gap-2">
+                            {p.nombre}
+                            {faltantes.length > 0 && (
+                              <span
+                                className="text-yellow-500 text-xs"
+                                title={`Falta: ${faltantes.join(', ')}`}
+                              >
+                                ⚠️
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className={`px-3 py-3 ${textoPrincipal}`}>{p.apellidos}</td>
+                        <td className={`px-3 py-3 text-center ${textoPrincipal}`}>
+                          {calcularEdad(p.fecha_nacimiento)}
+                        </td>
+                        <td className={`px-3 py-3 ${textoPrincipal}`}>{p.telefono || '—'}</td>
+                        <td className={`px-3 py-3 text-xs ${textoSecundario} max-w-[200px] truncate`} title={p.motivo_de_visita || ''}>
+                          {p.motivo_de_visita || <span className="text-yellow-500">Sin registrar</span>}
+                        </td>
+                        <td className={`px-3 py-3 text-xs ${textoSecundario} max-w-[180px] truncate`} title={p.diagnostico || ''}>
+                          {p.diagnostico || 'Pendiente'}
+                        </td>
+                        <td className="px-3 py-3 text-center">
+                          <div className="flex justify-center gap-2">
+                            <button
+                              onClick={() => navigate(`/clinica/pacientes/${p.id}`)}
+                              className="px-3 py-1 bg-[#22d3ee]/20 text-[#22d3ee] font-bold rounded-lg text-xs hover:bg-[#22d3ee] hover:text-black transition-all"
+                            >
+                              Ver ficha
+                            </button>
+                            <button
+                              onClick={() => eliminarPaciente(p.id)}
+                              disabled={eliminando === p.id}
+                              className="px-3 py-1 bg-red-500/20 text-red-400 font-bold rounded-lg text-xs hover:bg-red-500 hover:text-white transition-all disabled:opacity-50"
+                            >
+                              {eliminando === p.id ? '...' : 'Eliminar'}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
 
             {/* --- TARJETAS (tablet/móvil) --- */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:hidden">
-              {pacientes.map((p) => (
-                <div key={p.id} className={`${bgCard} p-4 rounded-2xl border shadow-sm hover:shadow-md transition-all`}>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className={`${textoPrincipal} font-bold text-base`}>{p.nombre} {p.apellidos}</h3>
-                      <p className="text-sm text-gray-400">{p.diagnostico || 'Sin diagnóstico'}</p>
-                      <p className="text-xs text-gray-500 mt-1">📞 {p.telefono || 'Sin teléfono'}</p>
-                      <p className="text-xs text-gray-500 truncate">✉️ {p.email || 'Sin email'}</p>
+              {pacientes.map((p) => {
+                const faltantes = datosIncompletos(p);
+                return (
+                  <div key={p.id} className={`${bgCard} p-4 rounded-2xl border shadow-sm hover:shadow-md transition-all`}>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className={`${textoPrincipal} font-bold text-base flex items-center gap-1`}>
+                          {p.nombre} {p.apellidos}
+                          {faltantes.length > 0 && <span className="text-yellow-500 text-xs" title={`Falta: ${faltantes.join(', ')}`}>⚠️</span>}
+                        </h3>
+                        <p className="text-xs text-gray-400">
+                          {calcularEdad(p.fecha_nacimiento)} años · {p.diagnostico || 'Sin diagnóstico'}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1 truncate">
+                          📝 {p.motivo_de_visita || 'Sin motivo registrado'}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">📞 {p.telefono || 'Sin teléfono'}</p>
+                        <p className="text-xs text-gray-500 truncate">✉️ {p.email || 'Sin email'}</p>
+                      </div>
+                      <span className={`text-[10px] font-black px-2 py-1 rounded-full ${p.estado === 'Activo' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                        {p.estado || 'Activo'}
+                      </span>
                     </div>
-                    <span className={`text-[10px] font-black px-2 py-1 rounded-full ${p.estado === 'Activo' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
-                      {p.estado || 'Activo'}
-                    </span>
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={() => navigate(`/clinica/pacientes/${p.id}`)}
+                        className="flex-1 py-2 bg-[#22d3ee]/10 text-[#22d3ee] font-bold rounded-xl text-xs hover:bg-[#22d3ee] hover:text-black transition-all"
+                      >
+                        Ver ficha →
+                      </button>
+                      <button
+                        onClick={() => eliminarPaciente(p.id)}
+                        disabled={eliminando === p.id}
+                        className="flex-1 py-2 bg-red-500/10 text-red-400 font-bold rounded-xl text-xs hover:bg-red-500 hover:text-white transition-all disabled:opacity-50"
+                      >
+                        {eliminando === p.id ? '...' : 'Eliminar'}
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex gap-2 mt-3">
-                    <button
-                      onClick={() => navigate(`/clinica/pacientes/${p.id}`)}
-                      className="flex-1 py-2 bg-[#22d3ee]/10 text-[#22d3ee] font-bold rounded-xl text-xs hover:bg-[#22d3ee] hover:text-black transition-all"
-                    >
-                      Ver ficha →
-                    </button>
-                    <button
-                      onClick={() => eliminarPaciente(p.id)}
-                      disabled={eliminando === p.id}
-                      className="flex-1 py-2 bg-red-500/10 text-red-400 font-bold rounded-xl text-xs hover:bg-red-500 hover:text-white transition-all disabled:opacity-50"
-                    >
-                      {eliminando === p.id ? '...' : 'Eliminar'}
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </>
         )}
@@ -369,22 +477,169 @@ export default function PacientesLista({ temaOscuro }) {
         )}
       </div>
 
-      {/* Modal */}
+      {/* ============================================================ */}
+      {/* MODAL: Nuevo Paciente                                        */}
+      {/* ============================================================ */}
       {modalAbierto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className={`relative w-full max-w-md rounded-3xl border ${bgTarjeta} p-6 shadow-2xl animate-fade-in`}>
-            <button onClick={() => setModalAbierto(false)} className="absolute top-4 right-4 text-gray-400 hover:text-white">✕</button>
-            <h2 className={`text-xl font-black ${textoPrincipal} mb-6`}>Nuevo Paciente</h2>
-            <div className="space-y-4">
-              <input type="text" placeholder="Nombre *" value={nuevoPaciente.nombre} onChange={(e) => setNuevoPaciente({...nuevoPaciente, nombre: e.target.value})} className={`w-full px-4 py-2 rounded-xl border ${bgInput} outline-none focus:border-[#22d3ee]`} />
-              <input type="text" placeholder="Apellidos *" value={nuevoPaciente.apellidos} onChange={(e) => setNuevoPaciente({...nuevoPaciente, apellidos: e.target.value})} className={`w-full px-4 py-2 rounded-xl border ${bgInput} outline-none focus:border-[#22d3ee]`} />
-              <input type="text" placeholder="Teléfono" value={nuevoPaciente.telefono} onChange={(e) => setNuevoPaciente({...nuevoPaciente, telefono: e.target.value})} className={`w-full px-4 py-2 rounded-xl border ${bgInput} outline-none focus:border-[#22d3ee]`} />
-              <input type="email" placeholder="Email" value={nuevoPaciente.email} onChange={(e) => setNuevoPaciente({...nuevoPaciente, email: e.target.value})} className={`w-full px-4 py-2 rounded-xl border ${bgInput} outline-none focus:border-[#22d3ee]`} />
-              <input type="text" placeholder="Diagnóstico" value={nuevoPaciente.diagnostico} onChange={(e) => setNuevoPaciente({...nuevoPaciente, diagnostico: e.target.value})} className={`w-full px-4 py-2 rounded-xl border ${bgInput} outline-none focus:border-[#22d3ee]`} />
-              <div className="flex justify-end gap-3 pt-2">
-                <button onClick={() => setModalAbierto(false)} className={`px-4 py-2 rounded-xl border text-sm font-bold ${temaOscuro ? 'border-gray-600 hover:bg-gray-700/30' : 'border-gray-300 hover:bg-gray-100'}`}>Cancelar</button>
-                <button onClick={guardarPaciente} disabled={guardando} className="px-5 py-2 bg-[#22d3ee] text-black font-bold rounded-xl text-sm hover:scale-105 transition-all disabled:opacity-50">{guardando ? 'Guardando...' : 'Guardar'}</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className={`relative w-full max-w-2xl rounded-3xl border ${bgTarjeta} p-6 shadow-2xl animate-fade-in my-8`}>
+            <button
+              onClick={() => setModalAbierto(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white text-xl"
+            >
+              ✕
+            </button>
+            <h2 className={`text-xl font-black ${textoPrincipal} mb-1`}>Nuevo Paciente</h2>
+            <p className={`text-xs ${textoSecundario} mb-6`}>
+              Los campos marcados con <span className="text-red-400">*</span> son obligatorios
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Nombre */}
+              <div>
+                <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>
+                  Nombre <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ej: Rosa Elena"
+                  value={nuevoPaciente.nombre}
+                  onChange={(e) => setNuevoPaciente({ ...nuevoPaciente, nombre: e.target.value })}
+                  className={`w-full px-4 py-2 rounded-xl border ${bgInput} outline-none focus:border-[#22d3ee] text-sm`}
+                />
               </div>
+
+              {/* Apellidos */}
+              <div>
+                <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>
+                  Apellidos <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ej: Quispe Mamani"
+                  value={nuevoPaciente.apellidos}
+                  onChange={(e) => setNuevoPaciente({ ...nuevoPaciente, apellidos: e.target.value })}
+                  className={`w-full px-4 py-2 rounded-xl border ${bgInput} outline-none focus:border-[#22d3ee] text-sm`}
+                />
+              </div>
+
+              {/* Fecha de nacimiento */}
+              <div>
+                <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>
+                  Fecha de nacimiento <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={nuevoPaciente.fecha_nacimiento}
+                  onChange={(e) => setNuevoPaciente({ ...nuevoPaciente, fecha_nacimiento: e.target.value })}
+                  className={`w-full px-4 py-2 rounded-xl border ${bgInput} outline-none focus:border-[#22d3ee] text-sm`}
+                />
+                {nuevoPaciente.fecha_nacimiento && (
+                  <p className="text-[10px] text-[#22d3ee] mt-1">
+                    Edad: {calcularEdad(nuevoPaciente.fecha_nacimiento)} años
+                  </p>
+                )}
+              </div>
+
+              {/* DNI */}
+              <div>
+                <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>
+                  DNI / Documento
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ej: 12345678"
+                  value={nuevoPaciente.dni}
+                  onChange={(e) => setNuevoPaciente({ ...nuevoPaciente, dni: e.target.value })}
+                  className={`w-full px-4 py-2 rounded-xl border ${bgInput} outline-none focus:border-[#22d3ee] text-sm`}
+                />
+              </div>
+
+              {/* Motivo de visita */}
+              <div className="md:col-span-2">
+                <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>
+                  Motivo de visita <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ej: Dolor de rodilla derecha al caminar"
+                  value={nuevoPaciente.motivo_de_visita}
+                  onChange={(e) => setNuevoPaciente({ ...nuevoPaciente, motivo_de_visita: e.target.value })}
+                  className={`w-full px-4 py-2 rounded-xl border ${bgInput} outline-none focus:border-[#22d3ee] text-sm`}
+                />
+              </div>
+
+              {/* Dirección */}
+              <div className="md:col-span-2">
+                <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>
+                  Dirección
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ej: Av. Los Álamos 234, San Juan de Lurigancho"
+                  value={nuevoPaciente.direccion}
+                  onChange={(e) => setNuevoPaciente({ ...nuevoPaciente, direccion: e.target.value })}
+                  className={`w-full px-4 py-2 rounded-xl border ${bgInput} outline-none focus:border-[#22d3ee] text-sm`}
+                />
+              </div>
+
+              {/* Teléfono */}
+              <div>
+                <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>
+                  Teléfono
+                </label>
+                <input
+                  type="tel"
+                  placeholder="Ej: 987654321"
+                  value={nuevoPaciente.telefono}
+                  onChange={(e) => setNuevoPaciente({ ...nuevoPaciente, telefono: e.target.value })}
+                  className={`w-full px-4 py-2 rounded-xl border ${bgInput} outline-none focus:border-[#22d3ee] text-sm`}
+                />
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>
+                  Email
+                </label>
+                <input
+                  type="email"
+                  placeholder="Ej: paciente@correo.com"
+                  value={nuevoPaciente.email}
+                  onChange={(e) => setNuevoPaciente({ ...nuevoPaciente, email: e.target.value })}
+                  className={`w-full px-4 py-2 rounded-xl border ${bgInput} outline-none focus:border-[#22d3ee] text-sm`}
+                />
+              </div>
+
+              {/* Diagnóstico inicial */}
+              <div className="md:col-span-2">
+                <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>
+                  Diagnóstico inicial <span className="text-gray-500">(opcional, se actualiza al aprobar evaluaciones)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Dejar vacío si aún no se conoce"
+                  value={nuevoPaciente.diagnostico}
+                  onChange={(e) => setNuevoPaciente({ ...nuevoPaciente, diagnostico: e.target.value })}
+                  className={`w-full px-4 py-2 rounded-xl border ${bgInput} outline-none focus:border-[#22d3ee] text-sm`}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-6 mt-4 border-t border-gray-700/30">
+              <button
+                onClick={() => setModalAbierto(false)}
+                className={`px-5 py-2 rounded-xl border text-sm font-bold ${temaOscuro ? 'border-gray-600 hover:bg-gray-700/30' : 'border-gray-300 hover:bg-gray-100'} ${textoPrincipal}`}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={guardarPaciente}
+                disabled={guardando}
+                className="px-6 py-2 bg-[#22d3ee] text-black font-black rounded-xl text-sm hover:scale-105 transition-all disabled:opacity-50"
+              >
+                {guardando ? 'Guardando...' : '💾 Guardar Paciente'}
+              </button>
             </div>
           </div>
         </div>

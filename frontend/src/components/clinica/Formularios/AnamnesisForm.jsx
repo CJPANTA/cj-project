@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { TIPOS_FORMULARIO } from './plantillas';
 import RedFlagsForm from './RedFlagsForm';
+import { detectarPlantillas } from '../../../utils/detectarPlantillas';
 
 const IconMic = () => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
@@ -69,7 +70,66 @@ export default function AnamnesisForm({
   evaluacion, handleInputChange, iniciarDictado, escuchando, campoActivo,
   temaOscuro, tipoFormulario, setTipoFormulario, setPaso,
 }) {
-  const [tabActiva, setTabActiva] = useState('datos');
+
+const [tabActiva, setTabActiva] = useState('datos');
+const [sugerenciaToast, setSugerenciaToast] = useState(null);
+const ultimoTextoRef = useRef('');
+const sugerenciasAplicadasRef = useRef(new Set());
+
+// ============================================================
+// DETECCIÓN AUTOMÁTICA DE PLANTILLAS POR PALABRAS CLAVE
+// ============================================================
+useEffect(() => {
+  const motivo = evaluacion.motivo_consulta || '';
+  const mecanismo = evaluacion.mecanismo_lesion || '';
+  const texto = `${motivo} ${mecanismo}`.trim();
+
+  // Debug: ver qué texto se está analizando
+  if (texto.length > 0) {
+    console.log('🔍 [Detección] Texto analizado:', texto);
+  }
+
+  if (texto.length < 4) return;
+  if (texto === ultimoTextoRef.current) return;
+
+  const timer = setTimeout(() => {
+    ultimoTextoRef.current = texto;
+    const sugeridas = detectarPlantillas(texto);
+
+    console.log('🔍 [Detección] Plantillas sugeridas:', sugeridas);
+    console.log('🔍 [Detección] Ya seleccionadas:', tipoFormulario);
+    console.log('🔍 [Detección] Ya aplicadas previamente:', Array.from(sugerenciasAplicadasRef.current));
+
+    // Filtrar: quitar las que ya están seleccionadas o ya fueron sugeridas antes
+    const nuevas = sugeridas.filter(
+      (t) =>
+        !tipoFormulario.includes(t) &&
+        TIPOS_FORMULARIO[t] &&
+        !sugerenciasAplicadasRef.current.has(t)
+    );
+
+    console.log('🔍 [Detección] Nuevas a aplicar:', nuevas);
+
+    if (nuevas.length === 0) return;
+
+    // Marcar como aplicadas
+    nuevas.forEach((t) => sugerenciasAplicadasRef.current.add(t));
+
+    // Aplicar automáticamente usando la función del padre (functional update)
+    setTipoFormulario((prev) => {
+      const combinado = [...new Set([...prev, ...nuevas])];
+      console.log('🔍 [Detección] tipoFormulario final:', combinado);
+      return combinado;
+    });
+
+    // Mostrar toast informativo
+    setSugerenciaToast(nuevas);
+    setTimeout(() => setSugerenciaToast(null), 6000);
+  }, 1200); // debounce
+
+  return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [evaluacion.motivo_consulta, evaluacion.mecanismo_lesion]);
 
   const bgInput = temaOscuro ? 'bg-black/20 border-white/10 text-white' : 'bg-gray-100 border-gray-300 text-[#0f172a]';
   const textoPrincipal = temaOscuro ? 'text-white' : 'text-[#0f172a]';
@@ -206,21 +266,62 @@ export default function AnamnesisForm({
   tabs.push({ key: 'notas_clinicas', label: `${n++}. Notas clínicas`, completado: tieneNotasClinicas });
 
   return (
-    <div className="space-y-6">
-      {/* SELECTOR DE FORMULARIOS */}
+  <div className="space-y-6">
+    {/* TOAST: Formularios sugeridos automáticamente */}
+    {sugerenciaToast && sugerenciaToast.length > 0 && (
+      <div className={`fixed top-6 right-6 z-[100] max-w-sm p-4 rounded-2xl shadow-2xl border-2 animate-fade-in ${
+        temaOscuro
+          ? 'bg-[#0a141d]/95 backdrop-blur-md border-[#22d3ee]/50 text-white'
+          : 'bg-white/95 backdrop-blur-md border-[#22d3ee] text-[#0f172a]'
+      }`}>
+        <div className="flex items-start gap-3">
+          <span className="text-[#22d3ee] text-2xl">🤖</span>
+          <div className="flex-1">
+            <p className="text-xs font-black uppercase tracking-wider text-[#22d3ee] mb-1">
+              Formularios sugeridos
+            </p>
+            <p className={`text-[11px] ${temaOscuro ? 'text-gray-300' : 'text-gray-600'} leading-snug`}>
+              Detectamos que podrías necesitar:
+            </p>
+            <div className="flex flex-wrap gap-1 mt-2">
+              {sugerenciaToast.map((t) => (
+                <span
+                  key={t}
+                  className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#22d3ee]/20 text-[#22d3ee] border border-[#22d3ee]/40"
+                >
+                  {TIPOS_FORMULARIO[t]?.nombre || t}
+                </span>
+              ))}
+            </div>
+            <button
+              onClick={() => setSugerenciaToast(null)}
+              className="mt-2 text-[10px] font-bold text-gray-400 hover:text-[#22d3ee] transition-all"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* SELECTOR DE FORMULARIOS */}
       <div className="mb-4">
         <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>
           Tipos de formulario especializado (puedes elegir varios)
         </label>
         <div className="flex flex-wrap gap-2">
-          {Object.entries(TIPOS_FORMULARIO).map(([key, { nombre }]) => (
-            <button key={key} onClick={() => toggleTipo(key)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                tipoFormulario.includes(key) ? 'bg-[#22d3ee] text-black shadow-lg shadow-[#22d3ee]/30' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
-              }`}>
-              {nombre}
-            </button>
-          ))}
+          {Object.entries(TIPOS_FORMULARIO).map(([key, { nombre }]) => {
+  const activo = tipoFormulario.includes(key);
+  const claseBoton = activo
+    ? 'bg-[#22d3ee] text-black shadow-lg shadow-[#22d3ee]/30'
+    : (temaOscuro ? 'bg-gray-700 text-gray-400 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300');
+  return (
+    <button key={key} onClick={() => toggleTipo(key)}
+      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${claseBoton}`}>
+      {nombre}
+    </button>
+  );
+})}
         </div>
         {tipoFormulario.length > 0 && (<p className="text-[9px] text-[#22d3ee] mt-2">{tipoFormulario.length} tipo(s) seleccionado(s)</p>)}
       </div>
