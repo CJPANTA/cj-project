@@ -29,9 +29,10 @@ export default defineConfig({
       workbox: {
         // Eliminamos 'cleanUrls' y otras opciones problemáticas
         // Simplificamos al máximo
-        navigateFallback: 'index.html',
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,json,woff2}'],
-        runtimeCaching: [
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+  navigateFallback: 'index.html',
+  globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,json,woff2}'],
+  runtimeCaching: [
           {
             urlPattern: /^https:\/\/raw\.githubusercontent\.com\/CJPANTA\/cj-project\/main\/BASE_DATOS\/03_CONFIG\/mapa_carrion\.json/,
             handler: 'NetworkFirst',
