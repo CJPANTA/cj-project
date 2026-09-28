@@ -94,7 +94,7 @@ const [customEditando, setCustomEditando] = useState(null);
       setPerfil(perfilData);
 
       // 2. Cargar catálogo JSON
-      const resCatalogo = await fetch('/src/data/catalogo_agentes_fisicos.json');
+      const resCatalogo = await fetch('/data/catalogo_agentes_fisicos.json');
       if (!resCatalogo.ok) throw new Error('No se pudo cargar el catálogo de agentes');
       const catalogoData = await resCatalogo.json();
       setCatalogo(catalogoData);

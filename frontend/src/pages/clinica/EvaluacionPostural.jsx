@@ -147,15 +147,15 @@ const [equipamientoCargado, setEquipamientoCargado] = useState(false);
     const cargarCatalogos = async () => {
       try {
         const [ejercicios, agentes, masoterapia] = await Promise.all([
-          fetch('/src/data/catalogo_ejercicios.json').then(res => {
+          fetch('/data/catalogo_ejercicios.json').then(res => {
             if (!res.ok) throw new Error('No se pudo cargar ejercicios');
             return res.json();
           }),
-          fetch('/src/data/catalogo_agentes_fisicos.json').then(res => {
+          fetch('/data/catalogo_agentes_fisicos.json').then(res => {
             if (!res.ok) throw new Error('No se pudo cargar agentes');
             return res.json();
           }),
-          fetch('/src/data/catalogo_masoterapia.json').then(res => {
+          fetch('/data/catalogo_masoterapia.json').then(res => {
             if (!res.ok) throw new Error('No se pudo cargar masoterapia');
             return res.json();
           }),

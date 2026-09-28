@@ -42,7 +42,7 @@ export default function WizardCentro({ abierto, onCerrar, onCreado, temaOscuro }
   // ===== CARGAR CATÁLOGO =====
   useEffect(() => {
     if (!abierto) return;
-    fetch('/src/data/catalogo_agentes_fisicos.json')
+    fetch('/data/catalogo_agentes_fisicos.json')
       .then((r) => r.json())
       .then((data) => {
         setCatalogo(data || []);

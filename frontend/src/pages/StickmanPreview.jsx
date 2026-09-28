@@ -121,7 +121,7 @@ export default function StickmanPreview({ temaOscuro }) {
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
-    fetch('/src/data/catalogo_ejercicios.json')
+    fetch('/data/catalogo_ejercicios.json')
       .then(res => res.json())
       .then(data => {
         setEjercicios(data);

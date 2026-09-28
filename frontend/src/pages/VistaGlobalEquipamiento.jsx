@@ -46,7 +46,7 @@ export default function VistaGlobalEquipamiento({ temaOscuro }) {
 
   const cargarTodo = async () => {
     try {
-      const res = await fetch('/src/data/catalogo_agentes_fisicos.json');
+      const res = await fetch('/data/catalogo_agentes_fisicos.json');
       const cat = await res.json();
       setCatalogo(cat);
 
