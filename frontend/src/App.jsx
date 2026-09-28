@@ -25,6 +25,9 @@ import PacienteDetalle from './pages/clinica/PacienteDetalle';
 import EvaluacionPostural from './pages/clinica/EvaluacionPostural';
 import StickmanPreview from './pages/StickmanPreview';
 import MiEquipamiento from './pages/MiEquipamiento';
+import Landing from './pages/Landing';
+import Terminos from './pages/Terminos';
+import Privacidad from './pages/Privacidad';
 
 const RutaProtegida = ({ children }) => {
   const estaLogueado = localStorage.getItem('usuario_cj');
@@ -34,7 +37,11 @@ const RutaProtegida = ({ children }) => {
 
 function LayoutConSidebar({ children, temaOscuro, setTemaOscuro }) {
   const location = useLocation();
-  const esRutaLogin = location.pathname === '/login';
+    const esRutaPublica =
+    location.pathname === '/login' ||
+    location.pathname === '/' ||
+    location.pathname === '/terminos' ||
+    location.pathname === '/privacidad';
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [esMovil, setEsMovil] = useState(window.innerWidth < 768);
 
@@ -49,7 +56,7 @@ function LayoutConSidebar({ children, temaOscuro, setTemaOscuro }) {
   const bgCaja = temaOscuro ? 'bg-[#0a141d]' : 'bg-white';
   const bordeColor = temaOscuro ? 'border-gray-800' : 'border-gray-300';
 
-  if (esRutaLogin) return <div className={`min-h-screen ${bgPrincipal}`}>{children}</div>;
+    if (esRutaPublica) return <>{children}</>;
 
   return (
     <div className={`min-h-screen ${bgPrincipal} flex flex-col md:flex-row relative overflow-hidden transition-colors duration-500`}>
@@ -128,7 +135,10 @@ function App() {
           <LayoutConSidebar temaOscuro={temaOscuro} setTemaOscuro={setTemaOscuro}>
             <Routes>
               <Route path="/login" element={<Login />} />
-              <Route path="/" element={<RutaProtegida><Dashboard temaOscuro={temaOscuro} /></RutaProtegida>} />
+              <Route path="/" element={<Landing />} />
+<Route path="/inicio" element={<RutaProtegida><Dashboard temaOscuro={temaOscuro} /></RutaProtegida>} />
+<Route path="/terminos" element={<Terminos />} />
+<Route path="/privacidad" element={<Privacidad />} />
               <Route path="/area-estudio" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
               <Route path="/biblioteca" element={<RutaProtegida><Biblioteca temaOscuro={temaOscuro} /></RutaProtegida>} />
               <Route path="/horario" element={<RutaProtegida><Horario temaOscuro={temaOscuro} /></RutaProtegida>} />

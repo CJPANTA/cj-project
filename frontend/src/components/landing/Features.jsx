@@ -1,3 +1,5 @@
+import IconIA from '../icons/IconIA';
+
 // ============================================================
 // src/components/landing/Features.jsx
 // ============================================================
@@ -9,10 +11,11 @@ const FEATURES = [
       'Adiós al papel. Todo el historial del paciente — evaluaciones, sesiones, informes — accesible en segundos.',
   },
   {
-    icono: '🧠',
-    titulo: 'IA que sugiere tratamientos',
+    icono: '✨',
+  titulo: 'Asistente clínico con IA',
+  esIA: true,
     descripcion:
-      'Planes personalizados según diagnóstico, fase clínica y equipamiento real de tu centro. Ahorra tiempo, mejora resultados.',
+      'Herramienta de apoyo que acompaña tus decisiones clínicas. Sugiere opciones según diagnóstico, fase y equipamiento del centro. Tú siempre decides.',
   },
   {
     icono: '🩺',
@@ -60,8 +63,12 @@ export default function Features() {
               className="group p-6 rounded-3xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 hover:border-[#22d3ee]/40 transition-all"
             >
               <div className="w-14 h-14 rounded-2xl bg-[#22d3ee]/10 border border-[#22d3ee]/20 flex items-center justify-center text-3xl mb-4 group-hover:scale-110 transition-transform">
-                {f.icono}
-              </div>
+  {f.esIA ? (
+    <IconIA className="w-7 h-7 text-[#22d3ee]" />
+  ) : (
+    f.icono
+  )}
+</div>
               <h3 className="text-lg font-black mb-2">{f.titulo}</h3>
               <p className="text-sm text-gray-400 leading-relaxed">
                 {f.descripcion}

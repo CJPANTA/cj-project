@@ -118,7 +118,7 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
           </div>
         </div>
         <nav className="flex-1 space-y-1">
-          <Link to="/" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${path === '/' ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}>
+          <Link to="/inicio" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${path === '/inicio' ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}>
             <IconDashboard /><span className="text-xs font-bold uppercase tracking-wider">Mi Ficha</span>
           </Link>
           <Link to="/clinica/pacientes" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${path.startsWith('/clinica/pacientes') ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}>
@@ -163,7 +163,7 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
       )}
 
       <nav className="flex-1 space-y-1">
-        <Link to="/" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${path === '/' ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}>
+        <Link to="/inicio" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${path === '/inicio' ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}>
           <IconDashboard /><span className="text-xs font-bold uppercase tracking-wider">Centro de Mando</span>
         </Link>
 

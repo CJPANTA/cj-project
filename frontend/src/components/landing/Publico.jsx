@@ -21,7 +21,7 @@ const PUBLICOS = [
     puntos: [
       'Tu propio espacio digital',
       'Pacientes e historial completo',
-      'IA que acorta tus tratamientos',
+      'Asistente clínico con IA',
     ],
   },
   {
