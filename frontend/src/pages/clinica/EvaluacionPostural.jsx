@@ -7,6 +7,7 @@ import AnamnesisForm from '../../components/clinica/Formularios/AnamnesisForm';
 import { consultarAuraIA } from '../../services/iaService';
 import { filtrarEjerciciosPorRegion } from '../../utils/filtrarEjerciciosPorRegion';
 import EjercicioPreview from '../../components/clinica/EjercicioPreview';
+import { nombresAgentesDisponibles } from '../../utils/aparatologia';
 
 // ============================================================
 // HELPER: Calcular edad exacta desde fecha de nacimiento
@@ -49,6 +50,12 @@ export default function EvaluacionPostural({ temaOscuro }) {
   const [generandoPlan, setGenerandoPlan] = useState(false);
   const [ejerciciosIncompatibles, setEjerciciosIncompatibles] = useState([]);
   const [ejerciciosCompatibles, setEjerciciosCompatibles] = useState([]);
+
+  // ===== EQUIPAMIENTO DEL CENTRO (para el prompt IA) =====
+const [agentesDisponiblesCentro, setAgentesDisponiblesCentro] = useState([]);
+const [centroTerapeuta, setCentroTerapeuta] = useState(null);
+const [equipamientoCargado, setEquipamientoCargado] = useState(false);
+
     // ===== AUTO-GUARDADO =====
   const [autoGuardadoEstado, setAutoGuardadoEstado] = useState('idle'); // idle | saving | saved | error
   const [ultimoAutoGuardado, setUltimoAutoGuardado] = useState(null);
@@ -162,6 +169,44 @@ export default function EvaluacionPostural({ temaOscuro }) {
     };
     cargarCatalogos();
   }, []);
+
+  // ============================================================
+// CARGAR EQUIPAMIENTO DEL CENTRO DEL TERAPEUTA
+// (para que la IA solo sugiera agentes disponibles)
+// ============================================================
+useEffect(() => {
+  const cargarEquipamiento = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setEquipamientoCargado(true);
+        return;
+      }
+
+      const { data: perfil } = await supabase
+        .from('profiles')
+        .select('centro_id')
+        .eq('id', user.id)
+        .single();
+
+      if (perfil?.centro_id) {
+        setCentroTerapeuta(perfil.centro_id);
+        const nombres = await nombresAgentesDisponibles(perfil.centro_id);
+        setAgentesDisponiblesCentro(nombres);
+        console.log('🔧 [Equipamiento] Agentes disponibles del centro', perfil.centro_id, ':', nombres);
+      } else {
+        console.warn('⚠️ [Equipamiento] Usuario sin centro_id. La IA usará el catálogo completo.');
+        setAgentesDisponiblesCentro([]);
+      }
+    } catch (err) {
+      console.error('❌ [Equipamiento] Error cargando:', err);
+      setAgentesDisponiblesCentro([]);
+    } finally {
+      setEquipamientoCargado(true);
+    }
+  };
+  cargarEquipamiento();
+}, []);
 
     // ============================================================
   // AUTO-GUARDADO CADA 30 SEGUNDOS
@@ -903,6 +948,15 @@ export default function EvaluacionPostural({ temaOscuro }) {
       else if (tiempo.includes('semana') && !tiempo.includes('mes')) fase = 'subaguda';
       else if (tiempo.includes('mes')) fase = 'cronica';
 
+      // ===== AGENTES DISPONIBLES DEL CENTRO =====
+const listaAgentesParaIA = agentesDisponiblesCentro.length > 0
+  ? agentesDisponiblesCentro.join(', ')
+  : 'NINGUNO (el centro no tiene equipamiento disponible)';
+
+const bloqueoAgentes = agentesDisponiblesCentro.length === 0
+  ? `\n⚠️ REGLA CRÍTICA: El centro NO tiene agentes físicos disponibles. Devuelve "agentes_fisicos": [] SIEMPRE. No sugieras ninguno.\n`
+  : `\n⚠️ REGLA CRÍTICA: Solo puedes usar agentes de la lista de arriba. Si un agente no está en la lista, NO lo sugieras (no existen en el centro).\n`;
+
       // ===== SYSTEM PROMPT MEJORADO =====
       const systemPrompt = `Eres un fisioterapeuta experto. Genera un plan de tratamiento en formato JSON ESTRICTO.
 
@@ -932,7 +986,8 @@ REGLAS GENERALES:
 - NO uses la palabra "IA".
 - Devuelve ÚNICAMENTE el JSON, sin texto antes ni después, sin bloques de código markdown.
 
-CATÁLOGO DE AGENTES FÍSICOS DISPONIBLES: Ultrasonido terapéutico, Termoterapia (calor húmedo), Electroterapia TENS, Electroterapia de corriente interferencial.
+CATÁLOGO DE AGENTES FÍSICOS DISPONIBLES EN ESTE CENTRO: ${listaAgentesParaIA}
+${bloqueoAgentes}
 CATÁLOGO DE MASOTERAPIA DISPONIBLE: Masaje de tejido profundo, Liberación miofascial, Técnica de punto gatillo, Fricción transversal profunda.
 CATÁLOGO DE EJERCICIOS DISPONIBLES: Estiramiento cervical lateral, Retracción cervical, Estiramiento de fascia plantar y tendón de Aquiles, Estiramiento de isquiotibiales en decúbito supino, Estiramiento de pectoral en marco de puerta, Estiramiento de extensores de muñeca, Estiramiento lumbar (rodillas al pecho), Basculación pélvica, Isométrico de cuádriceps, Elevación de pierna recta (Straight Leg Raise), Puente glúteo, Retracción escapular con banda elástica, Rotación externa de hombro con banda, Alfabeto con el tobillo, Toe curls (agarre con los dedos del pie).
 
@@ -979,12 +1034,29 @@ Responde AHORA con el JSON.`;
           });
         }
 
-        planGenerado.agentes_fisicos = planGenerado.agentes_fisicos || [];
+                planGenerado.agentes_fisicos = planGenerado.agentes_fisicos || [];
         planGenerado.masoterapia = planGenerado.masoterapia || [];
         planGenerado.ejercicios = planGenerado.ejercicios || [];
         planGenerado.recomendaciones_naturales = planGenerado.recomendaciones_naturales || [];
         planGenerado.recomendaciones_generales = planGenerado.recomendaciones_generales || [];
         planGenerado.alertas_seguridad = planGenerado.alertas_seguridad || [];
+
+        // ===== FILTRO DEFENSIVO: descartar agentes no disponibles en el centro =====
+        if (agentesDisponiblesCentro.length > 0) {
+          const agentesOriginales = planGenerado.agentes_fisicos || [];
+          const agentesAceptados = agentesOriginales.filter((a) =>
+            agentesDisponiblesCentro.some((d) => d.toLowerCase() === a.toLowerCase())
+          );
+          const agentesRechazados = agentesOriginales.filter((a) =>
+            !agentesDisponiblesCentro.some((d) => d.toLowerCase() === a.toLowerCase())
+          );
+
+          if (agentesRechazados.length > 0) {
+            console.warn('⚠️ [IA] Agentes rechazados (no disponibles en el centro):', agentesRechazados);
+          }
+
+          planGenerado.agentes_fisicos = agentesAceptados;
+        }
 
       } catch (e) {
         console.error('❌ [IA] Error parseando JSON:', e);
@@ -1341,9 +1413,31 @@ Responde AHORA con el JSON.`;
               <button
                 onClick={generarPlan}
                 disabled={generandoPlan}
-                className="px-6 py-3 bg-purple-600 text-white font-black rounded-xl text-sm hover:scale-105 transition-all disabled:opacity-50"
+                className="px-6 py-3 bg-amber-700 hover:bg-amber-600 text-white font-black rounded-xl text-sm transition-all disabled:opacity-50 border border-amber-500/30 shadow-md shadow-amber-900/20"
               >
-                {generandoPlan ? '⏳ Generando plan...' : '🧠 Generar Plan'}
+                {generandoPlan ? '⏳ Generando plan...' : '📋 Generar Plan'}
+                {/* Info: agentes que la IA podrá sugerir */}
+{equipamientoCargado && (
+  <div className={`mt-3 flex items-start gap-2 text-[11px] ${
+    agentesDisponiblesCentro.length > 0 ? 'text-emerald-300/90' : 'text-amber-300/90'
+  }`}>
+    <span className="text-base leading-none">
+      {agentesDisponiblesCentro.length > 0 ? '🔧' : '⚠️'}
+    </span>
+    <span className="leading-snug">
+      {agentesDisponiblesCentro.length > 0 ? (
+        <>
+          <span className="font-bold uppercase tracking-wider">Solo se usarán agentes activos: </span>
+          <span className="opacity-80">{agentesDisponiblesCentro.join(' · ')}</span>
+        </>
+      ) : (
+        <span className="font-bold uppercase tracking-wider">
+          Tu centro no tiene equipamiento activo. No se sugerirán agentes físicos.
+        </span>
+      )}
+    </span>
+  </div>
+)}
               </button>
 
               {mostrarPlan && plan && (

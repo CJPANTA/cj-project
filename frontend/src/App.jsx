@@ -24,6 +24,7 @@ import PacientesLista from './pages/clinica/PacientesLista';
 import PacienteDetalle from './pages/clinica/PacienteDetalle';
 import EvaluacionPostural from './pages/clinica/EvaluacionPostural';
 import StickmanPreview from './pages/StickmanPreview';
+import MiEquipamiento from './pages/MiEquipamiento';
 
 const RutaProtegida = ({ children }) => {
   const estaLogueado = localStorage.getItem('usuario_cj');
@@ -148,6 +149,7 @@ function App() {
               <Route path="/ciclo-06" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
               <Route path="/clinica/evaluacion/:pacienteId" element={<RutaProtegida><EvaluacionPostural temaOscuro={temaOscuro} /></RutaProtegida>} />
               <Route path="/stickman-preview" element={<RutaProtegida><StickmanPreview temaOscuro={temaOscuro} /></RutaProtegida>} />
+              <Route path="/mi-equipamiento" element={<MiEquipamiento temaOscuro={temaOscuro} />} />
             </Routes>
           </LayoutConSidebar>
         </BrowserRouter>

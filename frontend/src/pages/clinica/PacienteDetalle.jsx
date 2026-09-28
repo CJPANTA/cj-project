@@ -4,6 +4,10 @@ import { supabase } from '../../lib/supabaseClient';
 import { generarInformeDesdeEvaluacion } from '../../utils/generarInforme';
 import { generarInformePaciente } from '../../utils/generarInformePaciente';
 import { generarAcuerdoServicio } from '../../utils/generarAcuerdoServicio';
+import SesionModal from '../../components/clinica/SesionModal';
+import { listarSesionesPorPaciente, eliminarSesion, resumenProgreso } from '../../utils/sesiones';
+import GraficoEVA from '../../components/clinica/GraficoEVA';
+import TimelinePaciente from '../../components/clinica/TimelinePaciente';
 
 // Helper para edad
 const calcularEdad = (fechaNac) => {
@@ -30,6 +34,12 @@ export default function PacienteDetalle({ temaOscuro }) {
   const [usuarioRol, setUsuarioRol] = useState(null);
   const [toast, setToast] = useState(null);
 
+  // ===== SESIONES SOAP =====
+const [sesiones, setSesiones] = useState([]);
+const [cargandoSesiones, setCargandoSesiones] = useState(false);
+const [resumenSesiones, setResumenSesiones] = useState(null);
+const [modalSesionAbierto, setModalSesionAbierto] = useState(false);
+
   // ===== MODAL EDITAR FICHA =====
   const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
   const [formEditar, setFormEditar] = useState({
@@ -55,6 +65,7 @@ export default function PacienteDetalle({ temaOscuro }) {
         if (!data) { setError('Paciente no encontrado'); return; }
         setPaciente(data);
         cargarEvaluaciones(id);
+        cargarSesiones(id);
 
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
@@ -71,65 +82,39 @@ export default function PacienteDetalle({ temaOscuro }) {
     if (id) cargarPaciente();
   }, [id]);
 
-      const cargarEvaluaciones = async (pacienteId) => {
+        const cargarEvaluaciones = async (pacienteId) => {
     setCargandoEval(true);
     try {
-      // ============================================================
-      // PASO 1: Traer evaluaciones del paciente
-      // ============================================================
-      const { data: evaluacionesData, error: evalError } = await supabase
+      const { data, error } = await supabase
         .from('evaluaciones')
-        .select('*')
+        .select(`
+          *,
+          profesional:profiles!evaluaciones_user_id_fkey (
+            id,
+            nombre_completo,
+            tipo_profesional,
+            numero_colegiatura,
+            dni
+          ),
+          aprobador:profiles!evaluaciones_aprobado_por_fkey (
+            id,
+            nombre_completo,
+            tipo_profesional
+          )
+        `)
         .eq('paciente_id', pacienteId)
         .order('created_at', { ascending: false });
 
-      if (evalError) throw evalError;
-
-      if (!evaluacionesData || evaluacionesData.length === 0) {
+      if (error) {
+        console.error('❌ Error cargando evaluaciones:', error);
         setEvaluaciones([]);
         return;
       }
 
-      // ============================================================
-      // PASO 2: Traer los perfiles de TODOS los evaluadores
-      // ============================================================
-      const userIds = [...new Set(evaluacionesData.map((e) => e.user_id).filter(Boolean))];
-      const aprobadoresIds = [...new Set(evaluacionesData.map((e) => e.aprobado_por).filter(Boolean))];
-      const todosIds = [...new Set([...userIds, ...aprobadoresIds])];
-
-      let perfilMap = {};
-      if (todosIds.length > 0) {
-        const { data: perfilesData, error: perfilesError } = await supabase
-          .from('profiles')
-          .select('id, nombre_completo, tipo_profesional, numero_colegiatura, dni')
-          .in('id', todosIds);
-
-        if (perfilesError) {
-          console.warn('⚠️ No se pudieron cargar los perfiles:', perfilesError.message);
-        }
-
-        (perfilesData || []).forEach((p) => {
-          perfilMap[p.id] = p;
-        });
-      }
-
-      // ============================================================
-      // PASO 3: Hidratar cada evaluación con su evaluador y aprobador
-      // ============================================================
-      const hidratadas = evaluacionesData.map((ev) => ({
-        ...ev,
-        profesional: perfilMap[ev.user_id] || null,
-        aprobador: perfilMap[ev.aprobado_por] || null,
-      }));
-
-      console.log('📋 [Evaluaciones] Hidratadas:', hidratadas.length, 'evaluaciones');
-      if (hidratadas[0]) {
-        console.log('📋 [Evaluaciones] Ejemplo evaluador:', hidratadas[0].profesional);
-      }
-
-      setEvaluaciones(hidratadas);
-    } catch (error) {
-      console.error('❌ Error cargando evaluaciones:', error);
+      console.log('📋 [Evaluaciones] Cargadas:', data?.length || 0);
+      setEvaluaciones(data || []);
+    } catch (e) {
+      console.error(e);
       setEvaluaciones([]);
     } finally {
       setCargandoEval(false);
@@ -233,6 +218,24 @@ export default function PacienteDetalle({ temaOscuro }) {
       setGenerandoInforme(null);
     }
   };
+
+  // ============================================================
+// CARGAR SESIONES SOAP
+// ============================================================
+const cargarSesiones = async (pacienteId) => {
+  setCargandoSesiones(true);
+  try {
+    const lista = await listarSesionesPorPaciente(pacienteId);
+    setSesiones(lista);
+    const resumen = await resumenProgreso(pacienteId);
+    setResumenSesiones(resumen);
+  } catch (err) {
+    console.error('❌ Error cargando sesiones:', err);
+    setSesiones([]);
+  } finally {
+    setCargandoSesiones(false);
+  }
+};
 
   // ===== ABRIR MODAL DE EDICIÓN =====
   const abrirModalEditar = () => {
@@ -361,7 +364,13 @@ export default function PacienteDetalle({ temaOscuro }) {
             >
               📄 Acuerdo de Servicio
             </button>
-            <button className="px-4 py-2 bg-purple-600/20 text-purple-400 font-bold rounded-xl text-xs hover:bg-purple-600 hover:text-white transition-all opacity-60 cursor-not-allowed" title="Próximamente (Fase 4)">+ Nueva Sesión</button>
+            <button
+  onClick={() => setModalSesionAbierto(true)}
+  className="px-4 py-2 bg-purple-600/20 text-purple-400 font-bold rounded-xl text-xs hover:bg-purple-600 hover:text-white transition-all"
+  title="Registrar una nueva sesión de tratamiento"
+>
+  + Nueva Sesión
+</button>
             <button
               onClick={abrirModalEditar}
               className="px-4 py-2 bg-yellow-600/20 text-yellow-400 font-bold rounded-xl text-xs hover:bg-yellow-600 hover:text-white transition-all"
@@ -397,7 +406,6 @@ export default function PacienteDetalle({ temaOscuro }) {
           {[
             { key: 'resumen', label: 'Resumen' },
             { key: 'evaluaciones', label: `Evaluaciones (${evaluaciones.length})` },
-            { key: 'planes', label: 'Planes' },
             { key: 'sesiones', label: 'Sesiones' },
           ].map((tab) => (
             <button key={tab.key} onClick={() => setPestanaActiva(tab.key)} className={`px-6 py-3 text-sm font-bold uppercase tracking-wider transition-all border-b-2 whitespace-nowrap ${pestanaActiva === tab.key ? bgPestanaActiva : bgPestanaInactiva}`}>
@@ -408,78 +416,165 @@ export default function PacienteDetalle({ temaOscuro }) {
 
         <div className="space-y-6">
           {pestanaActiva === 'resumen' && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className={`${bgTarjeta} p-5 rounded-2xl border col-span-2`}>
-                <h3 className={`text-xs font-black uppercase tracking-wider text-[#22d3ee] mb-2`}>Motivo de consulta</h3>
-                <p className={`text-sm ${textoPrincipal}`}>{paciente.motivo_de_visita || 'No registrado'}</p>
-              </div>
-              <div className={`${bgTarjeta} p-5 rounded-2xl border space-y-4`}>
-                <div>
-                  <h4 className={`text-[10px] font-black uppercase tracking-wider text-gray-400`}>Antecedentes médicos</h4>
-                  <p className={`text-sm ${textoPrincipal}`}>{paciente.antecedentes_medicos || 'No registrados'}</p>
-                </div>
-                <div>
-                  <h4 className={`text-[10px] font-black uppercase tracking-wider text-gray-400`}>Alergias</h4>
-                  <p className={`text-sm ${textoPrincipal}`}>{paciente.alergias || 'No registradas'}</p>
-                </div>
-              </div>
+  <div className="space-y-4">
 
-              {/* Datos personales */}
-              <div className={`${bgTarjeta} p-5 rounded-2xl border col-span-full`}>
-                <h3 className={`text-xs font-black uppercase tracking-wider text-[#22d3ee] mb-4`}>Datos personales</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">DNI / Documento</p>
-                    <p className={textoPrincipal}>{paciente.dni || <span className="text-yellow-500 italic text-xs">No registrado</span>}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Fecha de nacimiento</p>
-                    <p className={textoPrincipal}>
-                      {paciente.fecha_nacimiento
-                        ? new Date(paciente.fecha_nacimiento).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
-                        : <span className="text-yellow-500 italic text-xs">No registrada</span>}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Teléfono</p>
-                    <p className={textoPrincipal}>{paciente.telefono || '—'}</p>
-                  </div>
-                  <div className="md:col-span-2">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Dirección</p>
-                    <p className={textoPrincipal}>{paciente.direccion || <span className="text-yellow-500 italic text-xs">No registrada</span>}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Email</p>
-                    <p className={textoPrincipal}>{paciente.email || '—'}</p>
-                  </div>
-                </div>
-              </div>
+    {/* ===== FILA 1: KPIs rápidos ===== */}
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {/* Diagnóstico actual */}
+      <div className={`${bgTarjeta} p-4 rounded-2xl border col-span-2 md:col-span-1`}>
+        <p className={`text-[9px] font-bold uppercase tracking-wider ${textoSecundario} mb-1`}>
+          🎯 Diagnóstico
+        </p>
+        <p className={`text-sm font-black ${textoPrincipal} leading-tight line-clamp-2`}>
+          {paciente.diagnostico || 'Pendiente'}
+        </p>
+      </div>
 
-              {/* Línea de tiempo */}
-              <div className={`${bgTarjeta} p-5 rounded-2xl border col-span-full`}>
-                <h3 className={`text-xs font-black uppercase tracking-wider text-[#22d3ee] mb-4`}>Línea de tiempo</h3>
-                <div className="relative pl-6 border-l-2 border-[#22d3ee] space-y-4">
-                  <div className="relative">
-                    <div className="absolute -left-8 top-1 w-4 h-4 rounded-full bg-[#22d3ee] border-2 border-[#0a141d]"></div>
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
-                      <span className="text-xs font-mono text-gray-400">{new Date(paciente.created_at).toLocaleDateString()}</span>
-                      <span className={`text-sm font-medium ${textoPrincipal}`}>Fecha de apertura</span>
-                    </div>
-                  </div>
-                  {evaluaciones.slice(0, 3).map((ev) => (
-                    <div key={ev.id} className="relative">
-                      <div className="absolute -left-8 top-1 w-4 h-4 rounded-full bg-purple-400 border-2 border-[#0a141d]"></div>
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
-                        <span className="text-xs font-mono text-gray-400">{new Date(ev.created_at).toLocaleDateString()}</span>
-                        <span className={`text-sm font-medium ${textoPrincipal}`}>Evaluación postural</span>
-                        <span className="text-[10px] text-purple-400">Regiones: {(ev.regiones || []).join(', ')}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
+      {/* Sesiones totales */}
+      <div className={`${bgTarjeta} p-4 rounded-2xl border text-center`}>
+        <p className="text-2xl font-black text-purple-400">
+          {resumenSesiones?.total || 0}
+        </p>
+        <p className={`text-[9px] font-bold uppercase tracking-wider ${textoSecundario}`}>
+          Sesiones
+        </p>
+      </div>
+
+      {/* Mejora EVA */}
+      <div className={`${bgTarjeta} p-4 rounded-2xl border text-center`}>
+        <p className={`text-2xl font-black ${
+          resumenSesiones?.mejora_promedio > 0
+            ? 'text-emerald-400'
+            : resumenSesiones?.mejora_promedio < 0
+            ? 'text-red-400'
+            : 'text-gray-400'
+        }`}>
+          {resumenSesiones?.mejora_promedio != null
+            ? `${resumenSesiones.mejora_promedio > 0 ? '-' : ''}${resumenSesiones.mejora_promedio}`
+            : '—'}
+        </p>
+        <p className={`text-[9px] font-bold uppercase tracking-wider ${textoSecundario}`}>
+          Mejora EVA
+        </p>
+      </div>
+
+      {/* Adherencia */}
+      <div className={`${bgTarjeta} p-4 rounded-2xl border text-center`}>
+        <p className={`text-2xl font-black ${
+          resumenSesiones?.adherencia_promedio >= 75
+            ? 'text-emerald-400'
+            : resumenSesiones?.adherencia_promedio >= 50
+            ? 'text-yellow-400'
+            : resumenSesiones?.adherencia_promedio != null
+            ? 'text-red-400'
+            : 'text-gray-400'
+        }`}>
+          {resumenSesiones?.adherencia_promedio != null
+            ? `${resumenSesiones.adherencia_promedio}%`
+            : '—'}
+        </p>
+        <p className={`text-[9px] font-bold uppercase tracking-wider ${textoSecundario}`}>
+          Adherencia casa
+        </p>
+      </div>
+    </div>
+
+    {/* ===== FILA 2: Gráfico EVA ===== */}
+    <div className={`${bgTarjeta} p-5 rounded-2xl border`}>
+      <GraficoEVA pacienteId={paciente.id} temaOscuro={temaOscuro} />
+    </div>
+
+    {/* ===== FILA 3: Motivo + Antecedentes ===== */}
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className={`${bgTarjeta} p-5 rounded-2xl border md:col-span-2`}>
+        <h3 className="text-xs font-black uppercase tracking-wider text-[#22d3ee] mb-2">
+          📝 Motivo de consulta
+        </h3>
+        <p className={`text-sm ${textoPrincipal}`}>
+          {paciente.motivo_de_visita || 'No registrado'}
+        </p>
+      </div>
+
+      <div className={`${bgTarjeta} p-5 rounded-2xl border space-y-3`}>
+        <div>
+          <h4 className={`text-[10px] font-black uppercase tracking-wider text-gray-400`}>
+            Antecedentes médicos
+          </h4>
+          <p className={`text-xs ${textoPrincipal}`}>
+            {paciente.antecedentes_medicos || 'No registrados'}
+          </p>
+        </div>
+        <div>
+          <h4 className={`text-[10px] font-black uppercase tracking-wider text-gray-400`}>
+            Alergias
+          </h4>
+          <p className={`text-xs ${textoPrincipal}`}>
+            {paciente.alergias || 'No registradas'}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    {/* ===== FILA 4: Timeline ===== */}
+    <div className={`${bgTarjeta} p-5 rounded-2xl border`}>
+      <TimelinePaciente
+        paciente={paciente}
+        evaluaciones={evaluaciones}
+        sesiones={sesiones}
+        temaOscuro={temaOscuro}
+        maxEventos={20}
+      />
+    </div>
+
+    {/* ===== FILA 5: Datos personales ===== */}
+    <div className={`${bgTarjeta} p-5 rounded-2xl border`}>
+      <h3 className="text-xs font-black uppercase tracking-wider text-[#22d3ee] mb-4">
+        👤 Datos personales
+      </h3>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+            DNI / Documento
+          </p>
+          <p className={textoPrincipal}>
+            {paciente.dni || <span className="text-yellow-500 italic text-xs">No registrado</span>}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+            Fecha de nacimiento
+          </p>
+          <p className={textoPrincipal}>
+            {paciente.fecha_nacimiento
+              ? new Date(paciente.fecha_nacimiento).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+              : <span className="text-yellow-500 italic text-xs">No registrada</span>}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+            Teléfono
+          </p>
+          <p className={textoPrincipal}>{paciente.telefono || '—'}</p>
+        </div>
+        <div className="md:col-span-2">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+            Dirección
+          </p>
+          <p className={textoPrincipal}>
+            {paciente.direccion || <span className="text-yellow-500 italic text-xs">No registrada</span>}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+            Email
+          </p>
+          <p className={textoPrincipal}>{paciente.email || '—'}</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+)}
 
           {pestanaActiva === 'evaluaciones' && (
             <div className={`${bgTarjeta} p-5 rounded-2xl border`}>
@@ -603,25 +698,212 @@ export default function PacienteDetalle({ temaOscuro }) {
             </div>
           )}
 
-          {pestanaActiva === 'planes' && (
-            <div className={`${bgTarjeta} p-10 rounded-2xl border text-center`}>
-              <p className="text-gray-400">Planes de tratamiento se mostrarán aquí.</p>
-              <p className="text-sm text-gray-500 mt-2">(Módulo en construcción – Fase 4)</p>
-            </div>
-          )}
-
           {pestanaActiva === 'sesiones' && (
-            <div className={`${bgTarjeta} p-10 rounded-2xl border text-center`}>
-              <p className="text-gray-400">Historial de sesiones del paciente.</p>
-              <p className="text-sm text-gray-500 mt-2">(Módulo en construcción – Fase 4)</p>
-            </div>
-          )}
+  <div className="space-y-4">
+    {/* Resumen de progreso */}
+    {resumenSesiones && resumenSesiones.total > 0 && (
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className={`${bgTarjeta} p-4 rounded-2xl border text-center`}>
+          <p className="text-2xl font-black text-purple-400">{resumenSesiones.total}</p>
+          <p className={`text-[10px] font-bold uppercase tracking-wider ${textoSecundario}`}>Sesiones</p>
+        </div>
+        <div className={`${bgTarjeta} p-4 rounded-2xl border text-center`}>
+          <p className="text-2xl font-black text-red-400">
+            {resumenSesiones.eva_promedio_inicial ?? '—'}
+          </p>
+          <p className={`text-[10px] font-bold uppercase tracking-wider ${textoSecundario}`}>EVA inicial prom.</p>
+        </div>
+        <div className={`${bgTarjeta} p-4 rounded-2xl border text-center`}>
+          <p className="text-2xl font-black text-emerald-400">
+            {resumenSesiones.eva_promedio_final ?? '—'}
+          </p>
+          <p className={`text-[10px] font-bold uppercase tracking-wider ${textoSecundario}`}>EVA final prom.</p>
+        </div>
+        <div className={`${bgTarjeta} p-4 rounded-2xl border text-center`}>
+          <p className="text-2xl font-black text-[#22d3ee]">
+            {resumenSesiones.mejora_promedio != null ? `-${resumenSesiones.mejora_promedio}` : '—'}
+          </p>
+          <p className={`text-[10px] font-bold uppercase tracking-wider ${textoSecundario}`}>Mejora prom.</p>
+        </div>
+      </div>
+    )}
+
+    {/* Lista de sesiones */}
+    <div className={`${bgTarjeta} p-5 rounded-2xl border`}>
+      <div className="flex justify-between items-center mb-4">
+        <h3 className={`text-sm font-black uppercase tracking-wider text-[#22d3ee]`}>
+          Historial de sesiones
+        </h3>
+        <button
+          onClick={() => setModalSesionAbierto(true)}
+          className="px-3 py-1 bg-purple-600/20 text-purple-400 font-bold rounded-lg text-xs hover:bg-purple-600 hover:text-white transition-all"
+        >
+          + Nueva
+        </button>
+      </div>
+
+      {cargandoSesiones ? (
+        <p className={`text-center py-8 ${textoSecundario}`}>Cargando sesiones...</p>
+      ) : sesiones.length === 0 ? (
+        <div className="text-center py-8">
+          <p className={textoSecundario}>No hay sesiones registradas aún.</p>
+          <button
+            onClick={() => setModalSesionAbierto(true)}
+            className="mt-4 inline-block px-4 py-2 bg-purple-600/20 text-purple-400 font-bold rounded-xl text-xs hover:bg-purple-600 hover:text-white transition-all"
+          >
+            + Registrar primera sesión
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {sesiones.map((s) => {
+            const fecha = new Date(s.fecha_sesion);
+            const mejora = (s.eva_inicial != null && s.eva_final != null)
+              ? s.eva_inicial - s.eva_final
+              : null;
+            return (
+              <div
+                key={s.id}
+                className={`p-4 rounded-xl border ${temaOscuro ? 'border-gray-700' : 'border-gray-200'} hover:border-purple-500/40 transition-all`}
+              >
+                <div className="flex justify-between items-start gap-2 flex-wrap mb-2">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="text-xs font-black px-2 py-1 rounded-full bg-purple-500/20 text-purple-400">
+                      #{s.numero_sesion}
+                    </span>
+                    <span className={`text-sm font-bold ${textoPrincipal}`}>
+                      {fecha.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </span>
+                    {s.duracion_min && (
+                      <span className={`text-xs ${textoSecundario}`}>⏱️ {s.duracion_min} min</span>
+                    )}
+                    {s.terapeuta?.nombre_completo && (
+                      <span className="text-[10px] text-emerald-400 font-bold">
+                        🩺 {s.terapeuta.nombre_completo}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {s.eva_inicial != null && s.eva_final != null && (
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          mejora > 0
+                            ? 'bg-emerald-500/20 text-emerald-400'
+                            : mejora < 0
+                            ? 'bg-red-500/20 text-red-400'
+                            : 'bg-gray-500/20 text-gray-400'
+                        }`}
+                      >
+                        EVA {s.eva_inicial} → {s.eva_final}
+                        {mejora > 0 && ` (-${mejora})`}
+                        {mejora < 0 && ` (+${Math.abs(mejora)})`}
+                      </span>
+                    )}
+                    <button
+                      onClick={async () => {
+                        if (!confirm(`¿Eliminar la sesión #${s.numero_sesion}?`)) return;
+                        try {
+                          await eliminarSesion(s.id);
+                          setToast({ tipo: 'info', mensaje: 'Sesión eliminada.' });
+                          setTimeout(() => setToast(null), 3000);
+                          cargarSesiones(id);
+                        } catch (err) {
+                          alert('Error: ' + err.message);
+                        }
+                      }}
+                      className="text-red-400 hover:text-red-300 text-xs"
+                      title="Eliminar sesión"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+
+                {/* SOAP resumido */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                  {s.subjetivo && (
+                    <div className={`text-[11px] ${textoSecundario}`}>
+                      <span className="text-[#22d3ee] font-black">S:</span> {s.subjetivo}
+                    </div>
+                  )}
+                  {s.objetivo && (
+                    <div className={`text-[11px] ${textoSecundario}`}>
+                      <span className="text-[#22d3ee] font-black">O:</span> {s.objetivo}
+                    </div>
+                  )}
+                  {s.analisis && (
+                    <div className={`text-[11px] ${textoSecundario}`}>
+                      <span className="text-[#22d3ee] font-black">A:</span> {s.analisis}
+                    </div>
+                  )}
+                  {s.plan && (
+                    <div className={`text-[11px] ${textoSecundario}`}>
+                      <span className="text-[#22d3ee] font-black">P:</span> {s.plan}
+                    </div>
+                  )}
+                </div>
+
+                {/* Chips de tratamiento */}
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {(s.agentes_aplicados || []).map((a, i) => (
+                    <span key={i} className="text-[9px] px-2 py-0.5 rounded-full bg-[#22d3ee]/20 text-[#22d3ee]">
+                      🔧 {a.nombre}
+                    </span>
+                  ))}
+                  {(s.masoterapia_aplicada || []).map((m, i) => (
+                    <span key={i} className="text-[9px] px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400">
+                      💆 {m.nombre}
+                    </span>
+                  ))}
+                  {(s.ejercicios_realizados || []).slice(0, 4).map((e, i) => (
+                    <span key={i} className="text-[9px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400">
+                      🏋️ {e.nombre}
+                    </span>
+                  ))}
+                  {(s.ejercicios_realizados || []).length > 4 && (
+                    <span className="text-[9px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400">
+                      +{s.ejercicios_realizados.length - 4} más
+                    </span>
+                  )}
+                </div>
+
+                {s.notas_adicionales && (
+                  <p className={`text-[10px] italic mt-2 ${textoSecundario}`}>
+                    📝 {s.notas_adicionales}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  </div>
+)}
+
         </div>
 
         <div className="mt-8">
           <button onClick={() => navigate('/clinica/pacientes')} className="px-6 py-2 bg-gray-600 text-white font-bold rounded-xl text-sm hover:bg-gray-700 transition-all">Volver a la lista</button>
         </div>
       </div>
+
+          {/* ============================================================ */}
+{/* MODAL: Nueva Sesión SOAP                                     */}
+{/* ============================================================ */}
+<SesionModal
+  abierto={modalSesionAbierto}
+  onCerrar={() => setModalSesionAbierto(false)}
+  paciente={paciente}
+  centroId={paciente?.centro_id || null}
+  evaluacionAprobada={evaluaciones.find((e) => e.estado === 'aprobado') || null}
+  onGuardada={() => {
+    cargarSesiones(id);
+    setToast({ tipo: 'exito', mensaje: '✅ Sesión guardada correctamente.' });
+    setTimeout(() => setToast(null), 4000);
+  }}
+  temaOscuro={temaOscuro}
+/>
 
       {/* ============================================================ */}
       {/* MODAL: Editar Ficha                                          */}

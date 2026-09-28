@@ -85,7 +85,7 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
   const IconDirector = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>;
   const IconPacientes = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>;
   const IconStickman = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>;
-
+  const IconEquipamiento = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"/></svg>;
   const getRolLabel = (rol) => {
     if (rol === 1) return 'Director';
     if (rol === 2) return 'Estudiante';
@@ -195,17 +195,25 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
         )}
 
         {((soloClinica) || (modoNavegacion === 'clinica' && !soloAcademia) || esDirector) && (
-          <div className="space-y-1 mt-2">
-            <div className="text-[9px] font-black uppercase tracking-[0.3em] text-emerald-400 px-4 py-1">Gestión Clínica</div>
-            <Link to="/clinica/pacientes" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/clinica/pacientes') ? 'bg-emerald-500/10 text-emerald-400' : `${textoSecundario} ${hoverBg}`}`}><IconPacientes /> Pacientes</Link>
-            <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase text-gray-500 opacity-60 cursor-not-allowed">
-              <IconPacientes /> Evaluaciones <span className="text-[8px] text-gray-400">(próximamente)</span>
-            </div>
-            <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase text-gray-500 opacity-60 cursor-not-allowed">
-              <IconPacientes /> Tratamientos <span className="text-[8px] text-gray-400">(próximamente)</span>
-            </div>
-          </div>
-        )}
+  <div className="space-y-1 mt-2">
+    <div className="text-[9px] font-black uppercase tracking-[0.3em] text-emerald-400 px-4 py-1">Gestión Clínica</div>
+    <Link to="/clinica/pacientes" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/clinica/pacientes') ? 'bg-emerald-500/10 text-emerald-400' : `${textoSecundario} ${hoverBg}`}`}><IconPacientes /> Pacientes</Link>
+
+    {/* 🔧 NUEVO: Mi Equipamiento — solo para Director (1) y Admin Centro (7) */}
+    {(rolUsuario === 1 || rolUsuario === 7) && (
+      <Link to="/mi-equipamiento" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/mi-equipamiento') ? 'bg-purple-500/10 text-purple-400' : `${textoSecundario} ${hoverBg}`}`}>
+        <IconEquipamiento /> Mi Equipamiento
+      </Link>
+    )}
+
+    <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase text-gray-500 opacity-60 cursor-not-allowed">
+      <IconPacientes /> Evaluaciones <span className="text-[8px] text-gray-400">(próximamente)</span>
+    </div>
+    <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase text-gray-500 opacity-60 cursor-not-allowed">
+      <IconPacientes /> Tratamientos <span className="text-[8px] text-gray-400">(próximamente)</span>
+    </div>
+  </div>
+)}
 
         <div className={`mt-4 pt-4 border-t ${bordeColor}`}>
           <Link to="/configuracion-ia" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${path.startsWith('/configuracion-ia') ? 'bg-blue-500/10 text-blue-400' : `${textoSecundario} ${hoverBg}`}`}>

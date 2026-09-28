@@ -9,6 +9,7 @@ import CalendarioWidget from '../components/CalendarioWidget';
 import { supabase } from '../lib/supabaseClient';
 import FavoritosWidget from '../components/FavoritosWidget';
 import NotificacionesActivador from '../components/NotificacionesActivador';
+import DashboardGerencial from '../components/clinica/DashboardGerencial';
 
 export default function Dashboard({ temaOscuro }) {
   const [saludo, setSaludo] = useState('');
@@ -370,31 +371,12 @@ export default function Dashboard({ temaOscuro }) {
           </div>
         </header>
 
-        {/* KPIs Clínicos con datos reales del centro */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className={`${bgTarjeta} p-4 rounded-2xl border flex items-center gap-4`}>
-            <div className="text-4xl">👥</div>
-            <div>
-              <h3 className={`text-xs font-bold ${textoColor}`}>Pacientes activos</h3>
-              <p className="text-2xl font-black text-[#22d3ee]">{kpisClinicos.pacientesActivos}</p>
-            </div>
-          </div>
-          <div className={`${bgTarjeta} p-4 rounded-2xl border flex items-center gap-4`}>
-            <div className="text-4xl">📋</div>
-            <div>
-              <h3 className={`text-xs font-bold ${textoColor}`}>Evaluaciones pendientes</h3>
-              <p className="text-2xl font-black text-[#22d3ee]">{kpisClinicos.evaluacionesPendientes}</p>
-            </div>
-          </div>
-          <div className={`${bgTarjeta} p-4 rounded-2xl border flex items-center gap-4`}>
-            <div className="text-4xl">📅</div>
-            <div>
-              <h3 className={`text-xs font-bold ${textoColor}`}>Citas hoy</h3>
-              <p className="text-2xl font-black text-[#22d3ee]">{kpisClinicos.citasHoy}</p>
-            </div>
-          </div>
-        </div>
-
+        {/* Dashboard Gerencial con gráficos */}
+<DashboardGerencial
+  centroId={centroId}
+  temaOscuro={temaOscuro}
+  esDirectorGlobal={false}
+/>
         {/* Oráculo Aura IA */}
         <section className={`${bgTarjeta} p-6 rounded-3xl border transition-all`}>
           <div className="flex items-center gap-4 mb-6">
@@ -572,6 +554,15 @@ export default function Dashboard({ temaOscuro }) {
           </div>
         )}
       </section>
+
+        {/* Dashboard Gerencial: solo si NO es estudiante puro */}
+{(rolUsuario === 1 || rolUsuario === 4) && (
+  <DashboardGerencial
+    centroId={centroId}
+    temaOscuro={temaOscuro}
+    esDirectorGlobal={esAdmin}
+  />
+)}
 
       <HistorialWidget temaOscuro={temaOscuro} />
       <CalendarioWidget temaOscuro={temaOscuro} />
