@@ -209,40 +209,119 @@ export default function PanelDirector({ temaOscuro }) {
   };
 
     const aprobarUsuario = async (userId, nuevoRol, centroId) => {
-    if (!nuevoRol) { alert('Selecciona un rol.'); return; }
-    try {
-      // 1. Obtener datos previos del perfil (para comparar)
-      const { data: perfilPrevio } = await supabase
+  if (!nuevoRol) { alert('Selecciona un rol.'); return; }
+  try {
+    // 1. Obtener datos del perfil completo (necesitamos nombre para el Centro Personal)
+    const { data: perfilPrevio } = await supabase
+      .from('profiles')
+      .select('tipo_profesional, rol, estado, centro_id, nombre_completo')
+      .eq('id', userId)
+      .single();
+
+    const rolNum = parseInt(nuevoRol);
+
+    // 2. Preparar datos nuevos
+    const updateData = { estado: 'aprobado', rol: rolNum };
+    if (centroId) updateData.centro_id = centroId;
+    const tipoMap = {
+      1: 'director', 2: 'estudiante', 3: 'licenciado',
+      4: 'licenciado', 5: 'paciente', 6: 'demo',
+      7: 'licenciado', 8: perfilPrevio?.tipo_profesional || 'licenciado',
+    };
+    updateData.tipo_profesional = tipoMap[rolNum] || null;
+
+        // ============================================================
+    // CASO ESPECIAL: Rol 8 (Independiente) → Crear Centro Personal
+    // ============================================================
+    if (rolNum === 8 && !centroId && !perfilPrevio?.centro_id) {
+      const nombreCompleto = perfilPrevio?.nombre_completo || 'Independiente';
+      const tipo = perfilPrevio?.tipo_profesional || 'licenciado';
+
+      // Traer CTMP y DNI del perfil (para construir el ID)
+      const { data: perfilExtra } = await supabase
         .from('profiles')
-        .select('tipo_profesional, rol, estado, centro_id')
+        .select('dni, numero_colegiatura, registro_interno')
         .eq('id', userId)
         .single();
 
-      // 2. Preparar datos nuevos
-      const updateData = { estado: 'aprobado', rol: parseInt(nuevoRol) };
-      if (centroId) updateData.centro_id = centroId;
-      const tipoMap = { 1: 'director', 2: 'estudiante', 3: 'licenciado', 4: 'licenciado', 5: 'paciente', 6: 'demo', 7: 'licenciado' };
-      updateData.tipo_profesional = tipoMap[parseInt(nuevoRol)] || null;
+      // Calcular iniciales (primeras 3 palabras del nombre)
+      const palabras = nombreCompleto.trim().split(/\s+/).filter((w) => w.length > 0);
+      const iniciales = palabras
+        .slice(0, 3)
+        .map((w) => w[0])
+        .join('')
+        .toUpperCase() || 'XX';
 
-      // 3. Actualizar el perfil
-      const { error } = await supabase.from('profiles').update(updateData).eq('id', userId);
-      if (error) throw error;
+      // Identificador según tipo de profesional
+      let identificador = '';
+      if (tipo === 'licenciado') {
+        identificador = (perfilExtra?.numero_colegiatura || '').replace(/\D/g, '');
+      } else if (tipo === 'tecnico') {
+        identificador = (perfilExtra?.dni || '').replace(/\D/g, '');
+      }
 
-      // 4. Registrar auditoría
-      const audit = await registrarCambiosMultiples({
-        perfilId: userId,
-        datosAnteriores: perfilPrevio || {},
-        datosNuevos: updateData,
-        motivo: 'Aprobación de usuario por Director',
-      });
-      console.log('📝 [Auditoría] Aprobación registrada:', audit);
+      // Fallback si no hay identificador válido
+      if (!identificador || identificador.length < 3) {
+        identificador = String(Date.now()).slice(-6);
+        console.warn('⚠️ Sin CTMP/DNI válido, usando fallback timestamp:', identificador);
+      }
 
-      alert('✅ Usuario aprobado.');
-      cargarDatos();
-    } catch (error) {
-      alert('Error al aprobar: ' + error.message);
+      // ID final: IND-{INICIALES}{IDENTIFICADOR}
+      const centroPersonalId = `IND-${iniciales}${identificador}`;
+
+      // Verificar si ya existe (por si el usuario reintenta)
+      const { data: existente } = await supabase
+        .from('centros')
+        .select('id')
+        .eq('id', centroPersonalId)
+        .maybeSingle();
+
+      if (existente) {
+        // Ya existe, solo lo asignamos
+        updateData.centro_id = centroPersonalId;
+        console.log('🏥 [Independiente] Centro Personal ya existía:', centroPersonalId);
+      } else {
+        // Crear el Centro Personal
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        const { error: errCentro } = await supabase.from('centros').insert([{
+          id: centroPersonalId,
+          nombre: `Consultorio ${nombreCompleto}`,
+          tipo_centro: 'independiente',
+          created_by: currentUser?.id || null,
+        }]);
+
+        if (errCentro) throw errCentro;
+
+        updateData.centro_id = centroPersonalId;
+        console.log('🏥 [Independiente] Centro Personal creado:', centroPersonalId);
+      }
     }
-  };
+
+    // 3. Actualizar el perfil
+    const { error } = await supabase.from('profiles').update(updateData).eq('id', userId);
+    if (error) throw error;
+
+    // 4. Registrar auditoría
+    const audit = await registrarCambiosMultiples({
+      perfilId: userId,
+      datosAnteriores: perfilPrevio || {},
+      datosNuevos: updateData,
+      motivo: rolNum === 8
+        ? `Aprobación de Independiente — Centro Personal: ${updateData.centro_id}`
+        : 'Aprobación de usuario por Director',
+    });
+    console.log('📝 [Auditoría] Aprobación registrada:', audit);
+
+    if (rolNum === 8) {
+      alert(`✅ Independiente aprobado.\n\n🏥 Se creó su Centro Personal: ${updateData.centro_id}\n\nPídele que ingrese a "Mi Equipamiento" para configurar su inventario.`);
+    } else {
+      alert('✅ Usuario aprobado.');
+    }
+    cargarDatos();
+  } catch (error) {
+    alert('Error al aprobar: ' + error.message);
+  }
+};
 
   const eliminarUsuario = async (userId) => {
     if (!confirm('¿Eliminar usuario?')) return;
@@ -356,14 +435,15 @@ export default function PanelDirector({ temaOscuro }) {
   };
 
   const ROLES = [
-    { valor: 1, label: 'Director' },
-    { valor: 2, label: 'Estudiante' },
-    { valor: 3, label: 'Licenciado' },
-    { valor: 4, label: 'Híbrido' },
-    { valor: 5, label: 'Paciente' },
-    { valor: 6, label: 'Demo' },
-    { valor: 7, label: 'Admin Centro' },
-  ];
+  { valor: 1, label: 'Director' },
+  { valor: 2, label: 'Estudiante' },
+  { valor: 3, label: 'Licenciado' },
+  { valor: 4, label: 'Híbrido' },
+  { valor: 5, label: 'Paciente' },
+  { valor: 6, label: 'Demo' },
+  { valor: 7, label: 'Admin Centro' },
+  { valor: 8, label: 'Independiente' },
+];
 
   const TIPOS_PROFESIONALES = [
     { valor: 'director', label: 'Director', color: 'text-yellow-400 bg-yellow-500/20' },

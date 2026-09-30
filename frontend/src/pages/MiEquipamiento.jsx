@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // src/pages/MiEquipamiento.jsx
 // Bloque 3.1 — Aparatología del centro
 // Solo accesible para Director (rol 1) y Admin Centro (rol 7)
@@ -85,11 +85,11 @@ const [customEditando, setCustomEditando] = useState(null);
 
       if (perfilError) throw perfilError;
 
-      if (!perfilData || (perfilData.rol !== 1 && perfilData.rol !== 7)) {
-        alert('⛔ Solo el Director o el Admin Centro pueden gestionar el equipamiento.');
-        navigate('/');
-        return;
-      }
+      if (!perfilData || (perfilData.rol !== 1 && perfilData.rol !== 7 && perfilData.rol !== 8)) {
+  alert('⛔ Solo el Director, Admin Centro o Independiente pueden gestionar el equipamiento.');
+  navigate('/inicio');
+  return;
+}
 
       setPerfil(perfilData);
 
@@ -342,7 +342,7 @@ const centroObjetivo = centroQuery || perfil?.centro_id;
               {centroObjetivo ? `${centro?.nombre || ''} (${centroObjetivo})` : 'Sin centro asignado'}
               {perfil && (
                 <span className="ml-2 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#22d3ee]/20 text-[#22d3ee]">
-                  {perfil.rol === 1 ? 'Director' : 'Admin Centro'}
+                  {perfil.rol === 1 ? 'Director' : perfil.rol === 8 ? 'Independiente' : 'Admin Centro'}
                 </span>
               )}
             </p>

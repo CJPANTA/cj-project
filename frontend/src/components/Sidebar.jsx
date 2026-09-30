@@ -28,7 +28,7 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
             setRolUsuario(perfil.rol);
             setNombreUsuario(perfil.nombre_completo || 'Usuario');
             setCentroId(perfil.centro_id || null);
-            if (perfil.rol === 3 || perfil.rol === 5 || perfil.rol === 6 || perfil.rol === 7) {
+            if (perfil.rol === 3 || perfil.rol === 5 || perfil.rol === 6 || perfil.rol === 7 || perfil.rol === 8) {
               setModoNavegacion('clinica');
             } else if (perfil.rol === 2) {
               setModoNavegacion('academia');
@@ -64,10 +64,10 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
 
   const esDirector = rolUsuario === 1;
   const puedeCambiarModo = esDirector || rolUsuario === 4;
-  const soloClinica = rolUsuario === 3 || rolUsuario === 5 || rolUsuario === 6 || rolUsuario === 7;
+  const soloClinica = rolUsuario === 3 || rolUsuario === 5 || rolUsuario === 6 || rolUsuario === 7 || rolUsuario === 8;
   const soloAcademia = rolUsuario === 2;
 
-  const bgSidebar = temaOscuro ? 'bg-[#0a141d]/95 backdrop-blur-sm' : 'bg-white/95 backdrop-blur-sm';
+  const bgSidebar = temaOscuro ? 'bg-[#0a141d]' : 'bg-white';
   const textoPrincipal = temaOscuro ? 'text-white' : 'text-[#0f172a]';
   const textoSecundario = temaOscuro ? 'text-[#94a3b8]' : 'text-gray-600';
   const bordeColor = temaOscuro ? 'border-gray-800' : 'border-gray-200';
@@ -87,15 +87,16 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
   const IconStickman = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>;
   const IconEquipamiento = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"/></svg>;
   const getRolLabel = (rol) => {
-    if (rol === 1) return 'Director';
-    if (rol === 2) return 'Estudiante';
-    if (rol === 3) return 'Licenciado';
-    if (rol === 4) return 'Híbrido';
-    if (rol === 5) return 'Paciente';
-    if (rol === 6) return 'Demo';
-    if (rol === 7) return 'Admin Centro';
-    return 'Usuario';
-  };
+  if (rol === 1) return 'Director';
+  if (rol === 2) return 'Estudiante';
+  if (rol === 3) return 'Licenciado';
+  if (rol === 4) return 'Híbrido';
+  if (rol === 5) return 'Paciente';
+  if (rol === 6) return 'Demo';
+  if (rol === 7) return 'Admin Centro';
+  if (rol === 8) return 'Independiente';
+  return 'Usuario';
+};
 
   if (cargando) {
     return (
@@ -200,7 +201,7 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
     <Link to="/clinica/pacientes" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/clinica/pacientes') ? 'bg-emerald-500/10 text-emerald-400' : `${textoSecundario} ${hoverBg}`}`}><IconPacientes /> Pacientes</Link>
 
     {/* 🔧 NUEVO: Mi Equipamiento — solo para Director (1) y Admin Centro (7) */}
-    {(rolUsuario === 1 || rolUsuario === 7) && (
+    {(rolUsuario === 1 || rolUsuario === 7 || rolUsuario === 8) && (
       <Link to="/mi-equipamiento" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/mi-equipamiento') ? 'bg-purple-500/10 text-purple-400' : `${textoSecundario} ${hoverBg}`}`}>
         <IconEquipamiento /> Mi Equipamiento
       </Link>

@@ -17,15 +17,14 @@
 }
 html, body, #root {
   width: 100%;
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100%;
   margin: 0;
   padding: 0;
-  overflow-x: hidden;
+  overflow: hidden;
   background-color: var(--color-cj-dark);
   color: white;
   transition: background-color 0.3s, color 0.3s;
-}
+} 
 
 /* Asegurar que los contenedores principales no tengan max-width fijo */
 .min-h-screen {
@@ -186,4 +185,27 @@ html, body, #root {
 
 .animate-fade-in {
   animation: fade-in 0.3s ease-out;
+}
+/* ============================================================
+   FIX TABLET ANDROID — prevenir glitches de renderizado
+   ============================================================ */
+
+/* Forzar aceleración GPU en SVGs (body chart, stickman) */
+svg {
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* Optimizar contenedores de scroll en Android */
+.custom-scrollbar {
+  -webkit-overflow-scrolling: touch;
+  transform: translateZ(0);
+  will-change: scroll-position;
+}
+
+/* Contener repintado del área principal (evita glitches al hacer scroll) */
+main {
+  contain: paint;
+  isolation: isolate;
 }

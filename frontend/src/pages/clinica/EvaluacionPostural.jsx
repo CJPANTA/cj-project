@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import BodyChartContainer from '../../components/clinica/BodyChart/BodyChartContainer';
@@ -7,6 +7,7 @@ import AnamnesisForm from '../../components/clinica/Formularios/AnamnesisForm';
 import { consultarAuraIA } from '../../services/iaService';
 import { filtrarEjerciciosPorRegion } from '../../utils/filtrarEjerciciosPorRegion';
 import EjercicioPreview from '../../components/clinica/EjercicioPreview';
+import IconIA from '../../components/icons/IconIA';
 import { nombresAgentesDisponibles } from '../../utils/aparatologia';
 
 // ============================================================
@@ -282,7 +283,7 @@ useEffect(() => {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
       const recognition = new SpeechRecognition();
-      recognition.lang = 'es-ES';
+      recognition.lang = 'es-MX';
       recognition.continuous = false;
       recognition.interimResults = false;
 
@@ -1411,12 +1412,22 @@ Responde AHORA con el JSON.`;
 
             <div className="mt-6 border-t border-gray-700 pt-6">
               <button
-                onClick={generarPlan}
-                disabled={generandoPlan}
-                className="px-6 py-3 bg-amber-700 hover:bg-amber-600 text-white font-black rounded-xl text-sm transition-all disabled:opacity-50 border border-amber-500/30 shadow-md shadow-amber-900/20"
-              >
-                {generandoPlan ? '⏳ Generando plan...' : '📋 Generar Plan'}
-                {/* Info: agentes que la IA podrá sugerir */}
+  type="button"
+  onClick={generarPlan}
+  disabled={generandoPlan}
+  className="inline-flex items-center gap-2 px-6 py-3 bg-[#22d3ee]/10 hover:bg-[#22d3ee]/20 text-[#22d3ee] font-black rounded-xl text-sm transition-all disabled:opacity-50 border-2 border-[#22d3ee]/40 shadow-lg shadow-[#22d3ee]/10"
+>
+  {generandoPlan ? (
+    <>⏳ Generando plan...</>
+  ) : (
+    <>
+      <IconIA className="w-4 h-4" />
+      Generar Plan
+    </>
+  )}
+</button>
+
+{/* Info: agentes que se podrán sugerir (FUERA del botón) */}
 {equipamientoCargado && (
   <div className={`mt-3 flex items-start gap-2 text-[11px] ${
     agentesDisponiblesCentro.length > 0 ? 'text-emerald-300/90' : 'text-amber-300/90'
@@ -1438,7 +1449,6 @@ Responde AHORA con el JSON.`;
     </span>
   </div>
 )}
-              </button>
 
               {mostrarPlan && plan && (
                 <div className="mt-4 p-4 rounded-2xl border border-purple-500/30 bg-purple-900/10">

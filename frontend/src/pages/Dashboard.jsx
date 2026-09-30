@@ -352,7 +352,7 @@ export default function Dashboard({ temaOscuro }) {
   }
 
   // CASO 2: LICENCIADO (rol 3), DEMO (rol 6) y ADMIN CENTRO (rol 7) → Dashboard Clínico con KPIs
-  if (rolUsuario === 3 || rolUsuario === 6 || rolUsuario === 7) {
+  if (rolUsuario === 3 || rolUsuario === 6 || rolUsuario === 7 || rolUsuario === 8) {
     return (
       <main className="flex flex-col gap-8 p-4 md:p-8 max-w-7xl mx-auto w-full">
         <header className="flex flex-col gap-2">

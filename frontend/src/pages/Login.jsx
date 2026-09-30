@@ -38,16 +38,19 @@ export default function Login() {
   const esLicenciado = rolDeseado === 3;
   const esHibrido = rolDeseado === 4;
   const esAdminCentro = rolDeseado === 7;
+  const esIndependiente = rolDeseado === 8;
 
-  const requiereCTMP = esLicenciado || ((esHibrido || esAdminCentro) && tipoProfesionalAdmin === 'licenciado');
+  const requiereCTMP = esLicenciado || ((esHibrido || esAdminCentro || esIndependiente) && tipoProfesionalAdmin === 'licenciado');
   const requiereRegistroInterno = esAdminCentro && tipoProfesionalAdmin === 'tecnico';
   const requiereDireccionCentro = esAdminCentro;
+  // Independiente NO requiere dirección: el sistema crea su Centro Personal automáticamente
 
   const derivarTipoProfesional = () => {
     if (esEstudiante) return 'estudiante';
     if (esLicenciado) return 'licenciado';
-    if (esHibrido) return tipoProfesionalAdmin; // ← Ahora respeta la elección
+    if (esHibrido) return tipoProfesionalAdmin;
     if (esAdminCentro) return tipoProfesionalAdmin;
+    if (esIndependiente) return tipoProfesionalAdmin;
     return null;
   };
 
@@ -94,7 +97,7 @@ export default function Login() {
     if (!nombreCompleto.trim()) { mostrarError('Ingresa tu nombre completo'); setCargando(false); return; }
     if (!email.trim()) { mostrarError('Ingresa tu correo'); setCargando(false); return; }
     if (password.length < 6) { mostrarError('La contraseña debe tener al menos 6 caracteres'); setCargando(false); return; }
-    if (esEstudiante || esLicenciado || esHibrido || esAdminCentro) {
+    if (esEstudiante || esLicenciado || esHibrido || esAdminCentro || esIndependiente) {
       if (!numeroDocumento.trim()) { mostrarError('Ingresa tu número de documento'); setCargando(false); return; }
     }
     if (requiereCTMP && !ctmp.trim()) { mostrarError('Ingresa tu número de CTMP'); setCargando(false); return; }
@@ -244,14 +247,20 @@ export default function Login() {
                 <label className={labelClass}>Perfil Deseado *</label>
                 <select value={rolDeseado} onChange={(e) => setRolDeseado(Number(e.target.value))} className={`${inputClass} cursor-pointer`}>
                   <option value={2}>📘 Estudiante (Academia)</option>
-                  <option value={3}>🩺 Licenciado en Fisioterapia (Clínica)</option>
-                  <option value={4}>🤝 Híbrido (Academia + Clínica)</option>
-                  <option value={7}>🏢 Admin Centro (Gestión de centro)</option>
-                </select>
+  <option value={3}>🩺 Licenciado en Fisioterapia (Clínica)</option>
+  <option value={4}>🤝 Híbrido (Academia + Clínica)</option>
+  <option value={7}>🏢 Admin Centro (Gestión de centro)</option>
+  <option value={8}>👤 Independiente (Consultorio personal)</option>
+</select>
+{esIndependiente && (
+  <p className="text-[9px] text-[#22d3ee] mt-2 pl-1">
+    ✨ Al ser aprobado, se creará automáticamente tu <strong>Centro Personal</strong> con todas las herramientas clínicas.
+  </p>
+)}
               </div>
 
-              {/* TIPO PROFESIONAL PARA HÍBRIDO Y ADMIN CENTRO */}
-              {(esAdminCentro || esHibrido) && (
+              {/* TIPO PROFESIONAL PARA HÍBRIDO, ADMIN CENTRO E INDEPENDIENTE */}
+{(esAdminCentro || esHibrido || esIndependiente) && (
                 <div>
                   <label className={labelClass}>Tipo de Profesional *</label>
                   <select value={tipoProfesionalAdmin} onChange={(e) => setTipoProfesionalAdmin(e.target.value)} className={`${inputClass} cursor-pointer`}>
@@ -267,8 +276,8 @@ export default function Login() {
               )}
 
               {/* DOCUMENTO */}
-              {(esEstudiante || esLicenciado || esHibrido || esAdminCentro) && (
-                <div className="grid grid-cols-3 gap-2">
+{(esEstudiante || esLicenciado || esHibrido || esAdminCentro || esIndependiente) && (
+  <div className="grid grid-cols-3 gap-2">
                   <div>
                     <label className={labelClass}>Tipo *</label>
                     <select value={tipoDocumento} onChange={(e) => setTipoDocumento(e.target.value)} className={`${inputClass} cursor-pointer`}>

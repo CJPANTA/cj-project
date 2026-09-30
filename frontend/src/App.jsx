@@ -59,10 +59,10 @@ function LayoutConSidebar({ children, temaOscuro, setTemaOscuro }) {
     if (esRutaPublica) return <>{children}</>;
 
   return (
-    <div className={`min-h-screen ${bgPrincipal} flex flex-col md:flex-row relative overflow-hidden transition-colors duration-500`}>
+    <div className={`h-screen ${bgPrincipal} flex flex-col md:flex-row relative overflow-hidden transition-colors duration-500`}>
       {/* Overlay para móvil */}
       {esMovil && menuAbierto && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90]" onClick={() => setMenuAbierto(false)} />
+        <div className="fixed inset-0 bg-black/60 z-[90]" onClick={() => setMenuAbierto(false)} />
       )}
 
       {/* ========== SIDEBAR CORREGIDO ========== */}
