@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
+import { exportarPacientes } from '../../utils/pacientesExcel';
+import ModalImportar from '../../components/clinica/ModalImportar';
 
 // ============================================================
 // HELPER: Calcular edad a partir de fecha de nacimiento
@@ -52,6 +54,8 @@ export default function PacientesLista({ temaOscuro }) {
 
   const [centroId, setCentroId] = useState(null);
   const [userId, setUserId] = useState(null);
+const [exportando, setExportando] = useState(false);
+const [modalImportarAbierto, setModalImportarAbierto] = useState(false);
 
   // Opciones de ordenamiento
   const OPCIONES_ORDEN = [
@@ -263,6 +267,26 @@ export default function PacientesLista({ temaOscuro }) {
     }
   };
 
+    // ============================================================
+  // EXPORTAR PACIENTES A EXCEL
+  // ============================================================
+  const handleExportar = async () => {
+    if (!centroId) {
+      alert('No se pudo determinar tu centro. Recarga la página.');
+      return;
+    }
+    setExportando(true);
+    try {
+      const res = await exportarPacientes(centroId);
+      alert(`✅ Se exportaron ${res.total} pacientes.\n\nArchivo: ${res.archivo}`);
+    } catch (err) {
+      console.error(err);
+      alert('Error al exportar: ' + err.message);
+    } finally {
+      setExportando(false);
+    }
+  };
+
   // Estilos
   const bgPrincipal = temaOscuro ? 'bg-[#0a141d]' : 'bg-[#e2e8f0]';
   const textoPrincipal = temaOscuro ? 'text-white' : 'text-[#0f172a]';
@@ -281,19 +305,34 @@ export default function PacientesLista({ temaOscuro }) {
             <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mt-1">Gestión de pacientes del centro</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button
-              onClick={generarPacientesEjemplo}
-              className="px-4 py-2 bg-purple-600 text-white font-bold rounded-xl text-xs uppercase hover:scale-105 transition-all shadow-lg"
-            >
-              🎲 Agregar Ejemplos
-            </button>
-            <button
-              onClick={() => setModalAbierto(true)}
-              className="px-5 py-2 bg-[#22d3ee] text-black font-bold rounded-xl text-xs uppercase hover:scale-105 transition-all shadow-lg"
-            >
-              + Agregar Paciente
-            </button>
-          </div>
+  <button
+    onClick={generarPacientesEjemplo}
+    className="px-4 py-2 bg-purple-600 text-white font-bold rounded-xl text-xs uppercase hover:scale-105 transition-all shadow-lg"
+  >
+    🎲 Agregar Ejemplos
+  </button>
+  <button
+    onClick={handleExportar}
+    disabled={exportando}
+    className="px-4 py-2 bg-emerald-600/20 text-emerald-400 font-bold rounded-xl text-xs uppercase hover:bg-emerald-600 hover:text-white transition-all shadow-lg border border-emerald-500/30 disabled:opacity-50"
+    title="Descargar pacientes a Excel"
+  >
+    {exportando ? '⏳ Exportando...' : '📤 Exportar'}
+  </button>
+  <button
+    onClick={() => setModalImportarAbierto(true)}
+    className="px-4 py-2 bg-blue-600/20 text-blue-400 font-bold rounded-xl text-xs uppercase hover:bg-blue-600 hover:text-white transition-all shadow-lg border border-blue-500/30"
+    title="Importar pacientes desde Excel"
+  >
+    📥 Importar
+  </button>
+  <button
+    onClick={() => setModalAbierto(true)}
+    className="px-5 py-2 bg-[#22d3ee] text-black font-bold rounded-xl text-xs uppercase hover:scale-105 transition-all shadow-lg"
+  >
+    + Agregar Paciente
+  </button>
+</div>
         </div>
 
         {/* Buscador + Ordenamiento */}
@@ -642,8 +681,21 @@ export default function PacientesLista({ temaOscuro }) {
               </button>
             </div>
           </div>
-        </div>
+                </div>
       )}
+
+      {/* ============================================================ */}
+      {/* MODAL: Importar desde Excel                                   */}
+      {/* ============================================================ */}
+      <ModalImportar
+        abierto={modalImportarAbierto}
+        onCerrar={() => setModalImportarAbierto(false)}
+        centroId={centroId}
+        onImportado={() => {
+          cargarPacientes();
+        }}
+        temaOscuro={temaOscuro}
+      />
     </div>
   );
 }
