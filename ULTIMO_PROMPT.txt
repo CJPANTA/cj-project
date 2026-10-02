@@ -1,0 +1,278 @@
+================================================================
+CONTEXTO DEL PROYECTO — CJ FISIOTERAPIA
+================================================================
+
+Stack: React 19 + Vite 7 + Tailwind 4 + Supabase + Groq IA
+Deploy: Vercel (auto desde GitHub) + repo CJPANTA/cj-project
+Supabase ID: xjxsuxtehkdtphvgkvbd
+IA: openai/gpt-oss-120b (vía Groq, endpoint en iaService.js)
+
+Repo local: C:\Users\PSV-JCHIROQUE\Desktop\Proyecto_CJ_2.0
+⚠️ El .git está en la CARPETA PADRE (Proyecto_CJ_2.0), NO en frontend/
+
+URL producción: https://cj-project-86im.vercel.app/
+
+----------------------------------------------------------------
+COMANDOS GIT CORRECTOS
+----------------------------------------------------------------
+Levantar localhost:
+  cd frontend
+  npm run dev
+
+Subir cambios (desde Proyecto_CJ_2.0, donde está el .git):
+  cd C:\Users\PSV-JCHIROQUE\Desktop\Proyecto_CJ_2.0
+  git add .
+  git commit -m "mensaje"
+  git push
+
+Si falla con "fetch first":
+  git pull --rebase
+  git push
+
+----------------------------------------------------------------
+REGLA CRÍTICA — MODIFICACIÓN DE ARCHIVOS
+----------------------------------------------------------------
+❌ NO usar PowerShell para modificar contenido de archivos
+   (rompe encoding UTF-8, mangla ñ, á, é, í, ó, ú, ¿, ¡)
+✅ Editar archivos SIEMPRE en VS Code a mano
+✅ Si hay que modificar muchos, usar Node.js:
+   node -e "..." (comando JS inline)
+✅ PowerShell solo para: git, npm, node, comandos básicos
+
+----------------------------------------------------------------
+VERSIONES CRÍTICAS (para que Vercel no falle)
+----------------------------------------------------------------
+"vite": "^7.3.3"
+"@vitejs/plugin-react": "^5.2.0"
+"@vitejs/plugin-legacy": "^7.0.0"
+"recharts": "^3.10.1"
+"xlsx": "^0.18.5"
+
+En vite.config.js > workbox:
+  maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+
+----------------------------------------------------------------
+ROLES DEL SISTEMA
+----------------------------------------------------------------
+1 = Director Global     (ve todo, sin centro fijo)
+2 = Estudiante          (solo Academia)
+3 = Licenciado          (solo Clínica, firma CTMP)
+4 = Híbrido             (Academia + Clínica)
+5 = Paciente            (solo su ficha)
+6 = Demo                (Clínica demo)
+7 = Admin Centro        (gestiona su centro)
+8 = Independiente       (Centro Personal automático)
+
+----------------------------------------------------------------
+CUENTAS DE PRUEBA ACTUALES
+----------------------------------------------------------------
+admin@cj.com              → Director Global (rol 1, sin centro)
+chiroquepanta@cj.com      → Admin Centro CJ000 (rol 7)
+jorgechiroque@cj.com      → Admin Centro CPP (rol 7)
+test.indep@cj.com         → Independiente (rol 8, centro IND-CTI99999)
+
+Password universal: 12345678
+
+----------------------------------------------------------------
+BASE DE DATOS — TABLAS PRINCIPALES
+----------------------------------------------------------------
+pacientes          (id bigint, nombre, apellidos, fecha_nacimiento date,
+                    dni, telefono, email, direccion, motivo_de_visita,
+                    antecedentes_medicos, alergias, diagnostico,
+                    diagnosticos_previos jsonb, estado, user_id uuid,
+                    centro_id text, notas_importacion, created_at)
+
+evaluaciones       (id uuid, paciente_id bigint, user_id uuid,
+                    centro_id text, regiones jsonb, datos_regiones jsonb,
+                    estado, aprobado_por uuid, fecha_aprobacion)
+
+sesiones           (id uuid, paciente_id bigint, evaluacion_id bigint,
+                    centro_id text, terapeuta_id uuid, fecha_sesion,
+                    numero_sesion, SOAP campos, eva_inicial, eva_final,
+                    adherencia_plan_casero int, agentes_aplicados jsonb,
+                    masoterapia_aplicada jsonb, ejercicios_realizados jsonb)
+
+centros            (id text PK, nombre, ruc, email, direccion, telefono,
+                    tipo_centro, logo_url, created_by uuid)
+
+centros_equipamiento (id uuid, centro_id text, agente_id text,
+                    agente_nombre, tipo, disponible bool, cantidad,
+                    marca, modelo, notas, es_custom bool,
+                    descripcion, indicaciones, contraindicaciones)
+
+profiles           (id uuid, nombre_completo, email, rol int,
+                    tipo_profesional, tipo_documento, dni,
+                    numero_colegiatura, registro_interno,
+                    direccion_centro, centro_id text, estado)
+
+----------------------------------------------------------------
+COMPLETADO (últimos bloques)
+----------------------------------------------------------------
+✅ Bloque 3.1     Aparatología del centro (centros_equipamiento + RLS)
+✅ Bloque 3.1.5   Equipos personalizados (es_custom, agregarVarios)
+✅ Bloque 3.1.6   Wizard de centros (3 pasos: legal + admin + aparatología)
+✅ Bloque 3.2     Sesiones SOAP (modal + historial + evolución)
+✅ Bloque 3.3     Ficha Paciente v2 (timeline + gráfico EVA Recharts)
+✅ Bloque 3.4     Dashboard gerencial (KpiCard + gráficos + comparativa)
+✅ Bloque 3.5     Landing pública + Términos + Privacidad
+✅ Bloque 3.5.5   Onboarding rol 8 (auto-crear centro IND-XXX)
+✅ Bloque 3.6     Import/Export pacientes Excel (xlsx + plantilla)
+
+----------------------------------------------------------------
+PENDIENTE (siguiente chat)
+----------------------------------------------------------------
+🔥 BLOQUE 3.8 — AGENDA Y CALENDARIO (2-3h)  ← SIGUIENTE RECOMENDADO
+   ├── Tabla `citas` en Supabase
+   ├── Vista calendario por terapeuta (día/semana/mes)
+   ├── Modal agendar cita (paciente + terapeuta + fecha/hora)
+   ├── Vista del Director Global (todas las agendas)
+   ├── Vista por centro (Admin ve todas)
+   ├── Vista personal (terapeuta ve la suya)
+   └── Marcar asistencia → auto-abrir SesionModal
+
+⏸️ Bloque 3.7 — Pulido (1.5h)
+   ├── Modo claro (botones con clases oscuras hardcoded)
+   ├── Code-splitting (bundle 2.25 MB → ~600 KB)
+   └── Doble scroll (ya resuelto, pero repasar tablet)
+
+⏸️ Bloque 3.5.6 — Upload logo en wizard (30 min)
+⏸️ Bloque 3.9   — Selector de voces TTS (30 min)
+⏸️ Bloque 3.9.5 — Informe del Oráculo en PDF (45 min)
+
+⏸️ Pendiente menor: quitar botón 🎙️ de campos no-texto
+   (Edad, Ocupación, Teléfono en AnamnesisForm.jsx)
+
+----------------------------------------------------------------
+ARQUITECTURA ACTUAL — ARCHIVOS CLAVE
+----------------------------------------------------------------
+frontend/src/
+├── App.jsx                            (rutas + LayoutConSidebar)
+├── index.css                          (fixes tablet + reset)
+├── components/
+│   ├── Sidebar.jsx                    (roles 1-8, links)
+│   ├── clinica/
+│   │   ├── BodyChart/                 (11 vistas SVG)
+│   │   ├── DashboardGerencial.jsx     (KPIs + gráficos)
+│   │   ├── KpiCard.jsx                (tarjeta KPI)
+│   │   ├── GraficoEVA.jsx             (Recharts línea)
+│   │   ├── TimelinePaciente.jsx       (timeline de eventos)
+│   │   ├── SesionModal.jsx            (SOAP + adherencia)
+│   │   ├── EquipoCustomModal.jsx      (equipos personalizados)
+│   │   ├── WizardCentro.jsx           (3 pasos)
+│   │   └── ModalImportar.jsx          (Excel import con tabs)
+│   ├── landing/                       (Hero, Features, Publico, CTA, Footer)
+│   ├── icons/IconIA.jsx               (sparkles cyan)
+│   └── ...
+├── pages/
+│   ├── Landing.jsx                    (ruta /)
+│   ├── Terminos.jsx                   (/terminos)
+│   ├── Privacidad.jsx                 (/privacidad)
+│   ├── Dashboard.jsx                  (/inicio, con casos por rol)
+│   ├── PanelDirector.jsx              (centros, usuarios, historial)
+│   ├── MiEquipamiento.jsx             (matriz equipos × centros)
+│   ├── VistaGlobalEquipamiento.jsx    (vista global Director)
+│   └── clinica/
+│       ├── PacientesLista.jsx         (con Import/Export)
+│       ├── PacienteDetalle.jsx        (4 tabs: Resumen/Eval/Sesiones/Planes)
+│       └── EvaluacionPostural.jsx     (3 pasos + plan IA)
+├── utils/
+│   ├── aparatologia.js                (CRUD equipos + customs)
+│   ├── sesiones.js                    (CRUD SOAP + evolución)
+│   ├── dashboard.js                   (queries agregadas)
+│   ├── pacientesExcel.js              (import/export xlsx)
+│   ├── auditoria.js                   (auditoría perfiles)
+│   ├── generarInforme.js              (informes PDF)
+│   └── ...
+└── public/
+    ├── data/                          ⚠️ JSONs MOVIDOS aquí
+    │   ├── catalogo_ejercicios.json
+    │   ├── catalogo_agentes_fisicos.json
+    │   └── catalogo_masoterapia.json
+    └── logo_centros/                  (logos de centros)
+
+----------------------------------------------------------------
+REGLAS DE DISEÑO / UI
+----------------------------------------------------------------
+- Colores base: cyan #22d3ee, emerald #10b981, dark bg #0a141d
+- Modo oscuro prioritario (temas claro hay hardcoded pendientes)
+- Fuentes: text-[10px] a text-[11px] para labels pequeños
+- Botones con rounded-xl, hover:scale-105
+- Toasts abajo-centro con animación fade-in
+- Modales: items-start justify-center (para no cortar arriba)
+- En tablas: use zebra + hover:bg-[#22d3ee]/5
+
+----------------------------------------------------------------
+LEGAL PERÚ
+----------------------------------------------------------------
+- Licenciados firman: "Lic. T.M. Fisioterapia (CTMP)"
+- Técnicos firman: "Técnico en Fisioterapia (DNI)"
+- Ley 29733 Protección Datos Personales
+- NUNCA inventar DNI/RUC/CE reales → usar 00000001, 00000002, etc.
+
+----------------------------------------------------------------
+ARCHIVOS A ADJUNTAR EN EL SIGUIENTE CHAT
+----------------------------------------------------------------
+Obligatorios para Agenda (Bloque 3.8):
+  1. frontend/src/App.jsx
+  2. frontend/src/components/Sidebar.jsx
+  3. frontend/src/pages/Dashboard.jsx
+  4. frontend/src/pages/clinica/PacienteDetalle.jsx
+  5. frontend/src/utils/sesiones.js
+  6. frontend/src/lib/supabaseClient.js
+
+Opcionales:
+  7. frontend/src/components/clinica/SesionModal.jsx
+  8. frontend/src/pages/clinica/PacientesLista.jsx
+  9. frontend/src/index.css
+  10. package.json
+
+----------------------------------------------------------------
+TAREA INMEDIATA
+----------------------------------------------------------------
+Arrancar Bloque 3.8 — Agenda y Calendario.
+
+Antes de código, hacer 3 preguntas al usuario sobre cómo
+agendan hoy los centros, para diseñar a su medida:
+  1. ¿Cómo agendan actualmente? (papel/Google/Excel/memoria)
+  2. ¿Qué es lo que más se les olvida? (confirmar/avisar/marcar)
+  3. ¿Terapeuta fijo o rotativo?
+
+Plan técnico propuesto:
+  - Tabla `citas` (id uuid, paciente_id bigint, terapeuta_id uuid,
+    centro_id text, fecha_hora timestamptz, duracion_min int,
+    estado text [programada|confirmada|asistida|cancelada|no_asistio],
+    tipo text [primera_vez|seguimiento|reevaluacion],
+    notas text, created_by uuid, created_at, updated_at)
+  - Helper src/utils/citas.js (CRUD + verificar disponibilidad)
+  - Página src/pages/clinica/Agenda.jsx (vista calendario)
+  - Componente CalendarioSemanal.jsx (grid día × hora)
+  - Modal NuevaCitaModal.jsx
+  - Link en Sidebar para roles 1, 3, 4, 7, 8
+  - Al marcar "asistida" → botón para abrir SesionModal
+
+----------------------------------------------------------------
+ESTADO AL CERRAR ESTE CHAT
+----------------------------------------------------------------
+Última actualización: 02-oct-2026
+Build Vercel: OK (último commit es Bloque 3.6)
+Progreso Bloque 3: ~88%
+Falta: 3.8 + 3.7 + extras
+
+Todo funciona en producción. La app está lista para demos.
+
+
+
+-----------------------------------------------------------------
+Pediste estos archivos
+
+1. frontend/src/App.jsx
+2. frontend/src/components/Sidebar.jsx
+3. frontend/src/pages/Dashboard.jsx
+4. frontend/src/pages/clinica/PacienteDetalle.jsx
+5. frontend/src/utils/sesiones.js
+6. frontend/src/lib/supabaseClient.js
+
+Opcionales si te da tiempo:
+7. frontend/src/components/clinica/SesionModal.jsx
+8. frontend/src/pages/clinica/PacientesLista.jsx
+9. frontend/src/index.css

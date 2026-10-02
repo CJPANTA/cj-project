@@ -23,6 +23,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import PacientesLista from './pages/clinica/PacientesLista';
 import PacienteDetalle from './pages/clinica/PacienteDetalle';
 import EvaluacionPostural from './pages/clinica/EvaluacionPostural';
+import Agenda from './pages/clinica/Agenda';
 import StickmanPreview from './pages/StickmanPreview';
 import MiEquipamiento from './pages/MiEquipamiento';
 import Landing from './pages/Landing';
@@ -151,6 +152,7 @@ function App() {
               <Route path="/masoterapia" element={<RutaProtegida><Masoterapia temaOscuro={temaOscuro} /></RutaProtegida>} />
               <Route path="/clinica/pacientes" element={<RutaProtegida><PacientesLista temaOscuro={temaOscuro} /></RutaProtegida>} />
               <Route path="/clinica/pacientes/:id" element={<RutaProtegida><PacienteDetalle temaOscuro={temaOscuro} /></RutaProtegida>} />
+              <Route path="/clinica/agenda" element={<RutaProtegida><Agenda temaOscuro={temaOscuro} /></RutaProtegida>} />
               <Route path="/ciclo-01" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
               <Route path="/ciclo-02" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
               <Route path="/ciclo-03" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />

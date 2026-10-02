@@ -198,7 +198,10 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
         {((soloClinica) || (modoNavegacion === 'clinica' && !soloAcademia) || esDirector) && (
   <div className="space-y-1 mt-2">
     <div className="text-[9px] font-black uppercase tracking-[0.3em] text-emerald-400 px-4 py-1">Gestión Clínica</div>
-    <Link to="/clinica/pacientes" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/clinica/pacientes') ? 'bg-emerald-500/10 text-emerald-400' : `${textoSecundario} ${hoverBg}`}`}><IconPacientes /> Pacientes</Link>
+        <Link to="/clinica/pacientes" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/clinica/pacientes') ? 'bg-emerald-500/10 text-emerald-400' : `${textoSecundario} ${hoverBg}`}`}><IconPacientes /> Pacientes</Link>
+    {[1, 3, 4, 7, 8].includes(rolUsuario) && (
+      <Link to="/clinica/agenda" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/clinica/agenda') ? 'bg-cyan-500/10 text-cyan-400' : `${textoSecundario} ${hoverBg}`}`}><IconCalendario /> Agenda</Link>
+    )}
 
     {/* 🔧 NUEVO: Mi Equipamiento — solo para Director (1) y Admin Centro (7) */}
     {(rolUsuario === 1 || rolUsuario === 7 || rolUsuario === 8) && (
