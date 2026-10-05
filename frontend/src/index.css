@@ -11,20 +11,103 @@
   --color-cj-light-border: #e2e8f0;
 }
 
-/* Reset y base para que la PWA ocupe todo el ancho/alto */
+/* ============================================================ */
+/* RESET Y BASE - Ahora responde al tema (claro/oscuro)         */
+/* ============================================================ */
 * {
   box-sizing: border-box;
 }
+
 html, body, #root {
   width: 100%;
   height: 100%;
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background-color: var(--color-cj-dark);
-  color: white;
   transition: background-color 0.3s, color 0.3s;
-} 
+}
+
+/* Tema oscuro (por defecto) */
+html[data-tema="oscuro"],
+html[data-tema="oscuro"] body {
+  background-color: #0a141d;
+  color: #ffffff;
+}
+
+/* Tema claro */
+html[data-tema="claro"],
+html[data-tema="claro"] body {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+/* ============================================================ */
+/* OVERRIDES PARA TEMA CLARO — clases hardcodeadas oscuras      */
+/* Solo se aplican cuando el HTML tiene data-tema="claro"       */
+/* ============================================================ */
+
+/* Fondo principal de la app */
+html[data-tema="claro"] .bg-\[\#020813\],
+html[data-tema="claro"] .bg-\[\#0a141d\],
+html[data-tema="claro"] .bg-\[\#020813\]\/80,
+html[data-tema="claro"] .bg-\[\#0a141d\]\/80 {
+  background-color: #ffffff !important;
+}
+
+/* Sidebar y tarjetas */
+html[data-tema="claro"] .bg-\[\#0f1a24\],
+html[data-tema="claro"] .bg-\[\#1a2533\] {
+  background-color: #f8fafc !important;
+}
+
+/* Modales overlay */
+html[data-tema="claro"] .bg-black\/70,
+html[data-tema="claro"] .bg-black\/60,
+html[data-tema="claro"] .bg-black\/50 {
+  background-color: rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Fondos semi-transparentes negros (se ven como cards oscuras) */
+html[data-tema="claro"] .bg-black\/20,
+html[data-tema="claro"] .bg-black\/30 {
+  background-color: #f1f5f9 !important;
+}
+
+/* Texto blanco hardcodeado */
+html[data-tema="claro"] .text-white {
+  color: #0f172a !important;
+}
+
+/* Bordes grises oscuros */
+html[data-tema="claro"] .border-gray-800,
+html[data-tema="claro"] .border-gray-700 {
+  border-color: #e2e8f0 !important;
+}
+
+/* Inputs */
+html[data-tema="claro"] input,
+html[data-tema="claro"] textarea,
+html[data-tema="claro"] select {
+  color: #0f172a;
+}
+
+/* Scrollbar claro */
+html[data-tema="claro"] ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+html[data-tema="claro"] ::-webkit-scrollbar-track {
+  background: #e2e8f0;
+}
+html[data-tema="claro"] ::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 4px;
+}
+html[data-tema="claro"] ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* ============================================================ */
 
 /* Asegurar que los contenedores principales no tengan max-width fijo */
 .min-h-screen {
@@ -124,7 +207,6 @@ html, body, #root {
 
 /* Ajustes para orientación horizontal en PWA */
 @media (orientation: landscape) {
-  /* Para pantallas pequeñas en horizontal (móviles) */
   .p-4.md\:p-8 {
     padding: 0.5rem !important;
   }
@@ -140,16 +222,13 @@ html, body, #root {
   .text-xl {
     font-size: 1.2rem !important;
   }
-  /* Para tablets en horizontal */
   .grid-cols-1.md\:grid-cols-3 {
     grid-template-columns: repeat(3, 1fr) !important;
   }
-  /* Ajuste para el contenedor principal */
   .flex-1 {
     max-height: 100vh;
     overflow-y: auto;
   }
-  /* Ajuste del sidebar para que no ocupe mucho */
   .w-72 {
     width: 56px !important;
   }
@@ -158,19 +237,17 @@ html, body, #root {
   }
 }
 
-/* Forzar que el contenido principal ocupe todo el ancho en PWA */
 .flex-1 {
   flex: 1 1 0%;
   min-width: 0;
 }
 
-/* Mejora para el visor de PDF en horizontal */
 .overflow-y-auto iframe {
   min-height: 400px;
 }
 
 /* ============================================================ */
-/* 🔥 ANIMACIÓN FADE-IN (para toasts y notificaciones)          */
+/* ANIMACIÓN FADE-IN                                             */
 /* ============================================================ */
 @keyframes fade-in {
   from {
@@ -186,26 +263,71 @@ html, body, #root {
 .animate-fade-in {
   animation: fade-in 0.3s ease-out;
 }
-/* ============================================================
-   FIX TABLET ANDROID — prevenir glitches de renderizado
-   ============================================================ */
 
-/* Forzar aceleración GPU en SVGs (body chart, stickman) */
+/* ============================================================ */
+/* FIX TABLET ANDROID                                            */
+/* ============================================================ */
 svg {
   transform: translateZ(0);
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
 }
 
-/* Optimizar contenedores de scroll en Android */
 .custom-scrollbar {
   -webkit-overflow-scrolling: touch;
   transform: translateZ(0);
   will-change: scroll-position;
 }
 
-/* Contener repintado del área principal (evita glitches al hacer scroll) */
 main {
   contain: paint;
   isolation: isolate;
+}
+
+/* ============================================================ */
+/* SCROLLBAR OSCURO (por defecto)                                */
+/* ============================================================ */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0a141d;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+
+/* ============================================================ */
+/* MOD CLARO — FIXES GENERALES                                  */
+/* ============================================================ */
+
+/* Botones con texto pastel sobre fondo claro en modo claro */
+html[data-tema="claro"] .text-cyan-300,
+html[data-tema="claro"] .text-emerald-300,
+html[data-tema="claro"] .text-amber-300,
+html[data-tema="claro"] .text-purple-300,
+html[data-tema="claro"] .text-red-300,
+html[data-tema="claro"] .text-blue-300,
+html[data-tema="claro"] .text-orange-300,
+html[data-tema="claro"] .text-indigo-300,
+html[data-tema="claro"] .text-yellow-300 {
+  filter: brightness(0.65) saturate(1.5);
+}
+
+/* Fondos semi-transparentes de negro (quedan muy oscuros en claro) */
+html[data-tema="claro"] .bg-black\/10,
+html[data-tema="claro"] .bg-black\/20,
+html[data-tema="claro"] .bg-black\/30 {
+  background-color: #f8fafc !important;
+}
+
+/* Texto gris medio más legible en claro */
+html[data-tema="claro"] .text-gray-400 {
+  color: #64748b !important;
 }

@@ -351,7 +351,7 @@ const centroObjetivo = centroQuery || perfil?.centro_id;
           <button
             onClick={handleSincronizar}
             disabled={sincronizando || totalFaltantes === 0}
-            className="px-5 py-3 bg-purple-600 text-white font-black rounded-xl text-sm hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100"
+            className="px-5 py-3 bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/40 font-black rounded-xl text-sm hover:bg-purple-500 hover:text-white hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100"
             title={
               totalFaltantes === 0
                 ? 'Todos los agentes del catálogo ya están registrados'
@@ -584,7 +584,7 @@ const centroObjetivo = centroQuery || perfil?.centro_id;
                       <button
                         onClick={() => handleEliminar(equipo)}
                         disabled={guardando}
-                        className="w-full py-1.5 bg-red-500/10 text-red-400 font-bold rounded-lg text-[10px] uppercase tracking-wider hover:bg-red-500 hover:text-white transition-all disabled:opacity-50"
+                                                className="w-full py-1.5 bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30 font-bold rounded-lg text-[10px] uppercase tracking-wider hover:bg-red-500 hover:text-white transition-all disabled:opacity-50"
                       >
                         🗑️ Quitar del inventario
                       </button>
@@ -617,7 +617,7 @@ const centroObjetivo = centroQuery || perfil?.centro_id;
     <button
       onClick={() => handleAbrirModalCustom(null)}
       disabled={guardando || !perfil?.centro_id}
-      className="px-4 py-2 bg-purple-600 text-white font-black rounded-xl text-xs uppercase tracking-wider hover:scale-105 transition-all disabled:opacity-50"
+            className="px-4 py-2 bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/40 font-black rounded-xl text-xs uppercase tracking-wider hover:bg-purple-500 hover:text-white hover:scale-105 transition-all disabled:opacity-50"
     >
       ➕ Agregar equipo personalizado
     </button>
@@ -747,14 +747,14 @@ const centroObjetivo = centroQuery || perfil?.centro_id;
             <button
               onClick={() => handleAbrirModalCustom(eq)}
               disabled={guardando}
-              className="flex-1 py-1.5 bg-yellow-600/10 text-yellow-400 font-bold rounded-lg text-[10px] uppercase tracking-wider hover:bg-yellow-600 hover:text-white transition-all disabled:opacity-50"
+                            className="flex-1 py-1.5 bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border border-yellow-500/30 font-bold rounded-lg text-[10px] uppercase tracking-wider hover:bg-yellow-500 hover:text-white transition-all disabled:opacity-50"
             >
               ✏️ Editar
             </button>
             <button
               onClick={() => handleEliminarCustom(eq)}
               disabled={guardando}
-              className="flex-1 py-1.5 bg-red-500/10 text-red-400 font-bold rounded-lg text-[10px] uppercase tracking-wider hover:bg-red-500 hover:text-white transition-all disabled:opacity-50"
+                            className="flex-1 py-1.5 bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30 font-bold rounded-lg text-[10px] uppercase tracking-wider hover:bg-red-500 hover:text-white transition-all disabled:opacity-50"
             >
               🗑️ Eliminar
             </button>

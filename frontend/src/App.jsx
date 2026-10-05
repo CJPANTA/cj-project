@@ -4,31 +4,38 @@
 console.log('🔍 [App.jsx] VITE_SUPABASE_URL (desde env):', import.meta.env.VITE_SUPABASE_URL);
 
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import Sidebar from './components/Sidebar';
-import Dashboard from './pages/Dashboard';
-import AreaDeEstudio from './pages/AreaDeEstudio';
-import BaseConocimiento from './pages/BaseConocimiento';
-import Biblioteca from './pages/Biblioteca';
-import Horario from './pages/Horario';
 import Login from './pages/Login';
-import PanelDirector from './pages/PanelDirector';
-import SimuladorExamen from './pages/SimuladorExamen';
-import HistorialExamenes from './pages/HistorialExamenes';
-import { AuraProvider } from './context/AuraContext';
-import ConfiguracionAura from './pages/ConfiguracionAura';
-import Patologias from './pages/Patologias';
-import Masoterapia from './pages/Masoterapia';
-import ErrorBoundary from './components/ErrorBoundary';
-import PacientesLista from './pages/clinica/PacientesLista';
-import PacienteDetalle from './pages/clinica/PacienteDetalle';
-import EvaluacionPostural from './pages/clinica/EvaluacionPostural';
-import Agenda from './pages/clinica/Agenda';
-import StickmanPreview from './pages/StickmanPreview';
-import MiEquipamiento from './pages/MiEquipamiento';
 import Landing from './pages/Landing';
-import Terminos from './pages/Terminos';
-import Privacidad from './pages/Privacidad';
+import { AuraProvider } from './context/AuraContext';
+import ErrorBoundary from './components/ErrorBoundary';
+import LoadingFallback from './components/LoadingFallback';
+
+// ============================================================
+// LAZY IMPORTS — el resto se carga bajo demanda
+// Esto baja el bundle inicial de 2.25 MB → ~600 KB
+// ============================================================
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const AreaDeEstudio = lazy(() => import('./pages/AreaDeEstudio'));
+const BaseConocimiento = lazy(() => import('./pages/BaseConocimiento'));
+const Biblioteca = lazy(() => import('./pages/Biblioteca'));
+const Horario = lazy(() => import('./pages/Horario'));
+const PanelDirector = lazy(() => import('./pages/PanelDirector'));
+const SimuladorExamen = lazy(() => import('./pages/SimuladorExamen'));
+const HistorialExamenes = lazy(() => import('./pages/HistorialExamenes'));
+const ConfiguracionAura = lazy(() => import('./pages/ConfiguracionAura'));
+const Patologias = lazy(() => import('./pages/Patologias'));
+const Masoterapia = lazy(() => import('./pages/Masoterapia'));
+const PacientesLista = lazy(() => import('./pages/clinica/PacientesLista'));
+const PacienteDetalle = lazy(() => import('./pages/clinica/PacienteDetalle'));
+const EvaluacionPostural = lazy(() => import('./pages/clinica/EvaluacionPostural'));
+const Agenda = lazy(() => import('./pages/clinica/Agenda'));
+const ProgramacionPersonal = lazy(() => import('./pages/clinica/ProgramacionPersonal'));
+const StickmanPreview = lazy(() => import('./pages/StickmanPreview'));
+const MiEquipamiento = lazy(() => import('./pages/MiEquipamiento'));
+const Terminos = lazy(() => import('./pages/Terminos'));
+const Privacidad = lazy(() => import('./pages/Privacidad'));
 
 const RutaProtegida = ({ children }) => {
   const estaLogueado = localStorage.getItem('usuario_cj');
@@ -57,7 +64,9 @@ function LayoutConSidebar({ children, temaOscuro, setTemaOscuro }) {
   const bgCaja = temaOscuro ? 'bg-[#0a141d]' : 'bg-white';
   const bordeColor = temaOscuro ? 'border-gray-800' : 'border-gray-300';
 
-    if (esRutaPublica) return <>{children}</>;
+        if (esRutaPublica) {
+      return <div className="w-full h-screen overflow-y-auto">{children}</div>;
+    }
 
   return (
     <div className={`h-screen ${bgPrincipal} flex flex-col md:flex-row relative overflow-hidden transition-colors duration-500`}>
@@ -100,13 +109,13 @@ function LayoutConSidebar({ children, temaOscuro, setTemaOscuro }) {
 
           {/* Botón de modo día/noche */}
           <div className="flex items-center gap-3 ml-auto">
-            <button 
+                        <button 
               onClick={() => setTemaOscuro(!temaOscuro)} 
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl border ${bordeColor} ${bgCaja} shadow-sm transition-all z-[80] hover:bg-black/5`}
+              className={`p-2.5 rounded-xl border ${bordeColor} ${bgCaja} shadow-sm transition-all z-[80] hover:scale-110 hover:border-[#22d3ee]/40`}
+              title={temaOscuro ? 'Activar modo claro' : 'Activar modo oscuro'}
             >
-              <span className="text-xl">{temaOscuro ? '☀️' : '🌙'}</span>
-              <span className={`hidden sm:inline text-[10px] font-black uppercase tracking-widest ${textoPrincipal}`}>
-                Modo {temaOscuro ? 'Día' : 'Noche'}
+              <span className="text-xl leading-none block">
+                {temaOscuro ? '☀️' : '🌙'}
               </span>
             </button>
           </div>
@@ -124,45 +133,51 @@ function LayoutConSidebar({ children, temaOscuro, setTemaOscuro }) {
 function App() {
   const [temaOscuro, setTemaOscuro] = useState(true);
   
-  // Service Worker completamente desactivado para diagnóstico
+    // Aplicar tema al <html> para que el CSS responda
   useEffect(() => {
-    console.log('🔧 [App] Service Worker desactivado para diagnóstico');
-  }, []);
+    document.documentElement.setAttribute(
+      'data-tema',
+      temaOscuro ? 'oscuro' : 'claro'
+    );
+  }, [temaOscuro]);
 
-  return (
+    return (
     <ErrorBoundary>
       <AuraProvider>
         <BrowserRouter>
           <LayoutConSidebar temaOscuro={temaOscuro} setTemaOscuro={setTemaOscuro}>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/" element={<Landing />} />
-<Route path="/inicio" element={<RutaProtegida><Dashboard temaOscuro={temaOscuro} /></RutaProtegida>} />
-<Route path="/terminos" element={<Terminos />} />
-<Route path="/privacidad" element={<Privacidad />} />
-              <Route path="/area-estudio" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
-              <Route path="/biblioteca" element={<RutaProtegida><Biblioteca temaOscuro={temaOscuro} /></RutaProtegida>} />
-              <Route path="/horario" element={<RutaProtegida><Horario temaOscuro={temaOscuro} /></RutaProtegida>} />
-              <Route path="/base-conocimiento" element={<RutaProtegida><BaseConocimiento temaOscuro={temaOscuro} /></RutaProtegida>} />
-              <Route path="/configuracion-ia" element={<RutaProtegida><ConfiguracionAura temaOscuro={temaOscuro} /></RutaProtegida>} />
-              <Route path="/simulador" element={<RutaProtegida><SimuladorExamen temaOscuro={temaOscuro} /></RutaProtegida>} />
-              <Route path="/historial-examenes" element={<RutaProtegida><HistorialExamenes temaOscuro={temaOscuro} /></RutaProtegida>} />
-              <Route path="/panel-director" element={<RutaProtegida><PanelDirector temaOscuro={temaOscuro} /></RutaProtegida>} />
-              <Route path="/patologias" element={<RutaProtegida><Patologias temaOscuro={temaOscuro} /></RutaProtegida>} />
-              <Route path="/masoterapia" element={<RutaProtegida><Masoterapia temaOscuro={temaOscuro} /></RutaProtegida>} />
-              <Route path="/clinica/pacientes" element={<RutaProtegida><PacientesLista temaOscuro={temaOscuro} /></RutaProtegida>} />
-              <Route path="/clinica/pacientes/:id" element={<RutaProtegida><PacienteDetalle temaOscuro={temaOscuro} /></RutaProtegida>} />
-              <Route path="/clinica/agenda" element={<RutaProtegida><Agenda temaOscuro={temaOscuro} /></RutaProtegida>} />
-              <Route path="/ciclo-01" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
-              <Route path="/ciclo-02" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
-              <Route path="/ciclo-03" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
-              <Route path="/ciclo-04" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
-              <Route path="/ciclo-05" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
-              <Route path="/ciclo-06" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
-              <Route path="/clinica/evaluacion/:pacienteId" element={<RutaProtegida><EvaluacionPostural temaOscuro={temaOscuro} /></RutaProtegida>} />
-              <Route path="/stickman-preview" element={<RutaProtegida><StickmanPreview temaOscuro={temaOscuro} /></RutaProtegida>} />
-              <Route path="/mi-equipamiento" element={<MiEquipamiento temaOscuro={temaOscuro} />} />
-            </Routes>
+            <Suspense fallback={<LoadingFallback />}>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/" element={<Landing />} />
+                <Route path="/inicio" element={<RutaProtegida><Dashboard temaOscuro={temaOscuro} /></RutaProtegida>} />
+                <Route path="/terminos" element={<Terminos />} />
+                <Route path="/privacidad" element={<Privacidad />} />
+                <Route path="/area-estudio" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
+                <Route path="/biblioteca" element={<RutaProtegida><Biblioteca temaOscuro={temaOscuro} /></RutaProtegida>} />
+                <Route path="/horario" element={<RutaProtegida><Horario temaOscuro={temaOscuro} /></RutaProtegida>} />
+                <Route path="/base-conocimiento" element={<RutaProtegida><BaseConocimiento temaOscuro={temaOscuro} /></RutaProtegida>} />
+                <Route path="/configuracion-ia" element={<RutaProtegida><ConfiguracionAura temaOscuro={temaOscuro} /></RutaProtegida>} />
+                <Route path="/simulador" element={<RutaProtegida><SimuladorExamen temaOscuro={temaOscuro} /></RutaProtegida>} />
+                <Route path="/historial-examenes" element={<RutaProtegida><HistorialExamenes temaOscuro={temaOscuro} /></RutaProtegida>} />
+                <Route path="/panel-director" element={<RutaProtegida><PanelDirector temaOscuro={temaOscuro} /></RutaProtegida>} />
+                <Route path="/patologias" element={<RutaProtegida><Patologias temaOscuro={temaOscuro} /></RutaProtegida>} />
+                <Route path="/masoterapia" element={<RutaProtegida><Masoterapia temaOscuro={temaOscuro} /></RutaProtegida>} />
+                <Route path="/clinica/pacientes" element={<RutaProtegida><PacientesLista temaOscuro={temaOscuro} /></RutaProtegida>} />
+                <Route path="/clinica/pacientes/:id" element={<RutaProtegida><PacienteDetalle temaOscuro={temaOscuro} /></RutaProtegida>} />
+                <Route path="/clinica/agenda" element={<RutaProtegida><Agenda temaOscuro={temaOscuro} /></RutaProtegida>} />
+                <Route path="/clinica/programacion" element={<RutaProtegida><ProgramacionPersonal temaOscuro={temaOscuro} /></RutaProtegida>} />
+                <Route path="/ciclo-01" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
+                <Route path="/ciclo-02" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
+                <Route path="/ciclo-03" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
+                <Route path="/ciclo-04" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
+                <Route path="/ciclo-05" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
+                <Route path="/ciclo-06" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
+                <Route path="/clinica/evaluacion/:pacienteId" element={<RutaProtegida><EvaluacionPostural temaOscuro={temaOscuro} /></RutaProtegida>} />
+                <Route path="/stickman-preview" element={<RutaProtegida><StickmanPreview temaOscuro={temaOscuro} /></RutaProtegida>} />
+                <Route path="/mi-equipamiento" element={<MiEquipamiento temaOscuro={temaOscuro} />} />
+              </Routes>
+            </Suspense>
           </LayoutConSidebar>
         </BrowserRouter>
       </AuraProvider>

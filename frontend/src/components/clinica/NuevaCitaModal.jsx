@@ -9,6 +9,8 @@ import {
   verificarDisponibilidad,
   listarTerapeutasDelCentro,
 } from '../../utils/citas';
+import { personalDeTurno } from '../../utils/horarios';
+import { labelProfesion, emojiProfesion } from '../../utils/profesiones';
 
 export default function NuevaCitaModal({
   abierto,
@@ -34,6 +36,7 @@ export default function NuevaCitaModal({
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
   const [disponible, setDisponible] = useState(null);
+const [enTurnoIds, setEnTurnoIds] = useState([]);
 
   // Reset + carga al abrir
   useEffect(() => {
@@ -65,7 +68,7 @@ export default function NuevaCitaModal({
       .catch((err) => console.error(err));
   }, [abierto, centroId, fechaInicial]);
 
-  // Chequeo de disponibilidad en vivo (debounced 400ms)
+    // Chequeo de disponibilidad en vivo (debounced 400ms)
   useEffect(() => {
     if (!form.terapeuta_id || !form.fecha || !form.hora) {
       setDisponible(null);
@@ -86,6 +89,25 @@ export default function NuevaCitaModal({
     }, 400);
     return () => clearTimeout(t);
   }, [form.terapeuta_id, form.fecha, form.hora, form.duracion_min]);
+
+  // 🎯 Cargar personal en turno a la hora elegida
+  useEffect(() => {
+    if (!form.fecha || !form.hora || !centroId) {
+      setEnTurnoIds([]);
+      return;
+    }
+    const t = setTimeout(async () => {
+      try {
+        const fechaHora = new Date(`${form.fecha}T${form.hora}:00`).toISOString();
+        const ids = await personalDeTurno({ centroId, fechaHora });
+        setEnTurnoIds(ids);
+      } catch (e) {
+        console.error(e);
+        setEnTurnoIds([]);
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [form.fecha, form.hora, centroId]);
 
   const pacientesFiltrados = pacientes
     .filter((p) => {
@@ -224,18 +246,28 @@ export default function NuevaCitaModal({
           <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPri} mb-1`}>
             Terapeuta <span className="text-red-400">*</span>
           </label>
-          <select
+                    <select
             value={form.terapeuta_id}
             onChange={(e) => setForm({ ...form, terapeuta_id: e.target.value })}
             className={`w-full px-4 py-2 rounded-xl border ${bgInput} outline-none focus:border-[#22d3ee] text-sm`}
           >
             <option value="">— Selecciona un terapeuta —</option>
-            {terapeutas.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.nombre_completo} ({t.tipo_profesional || 'profesional'})
-              </option>
-            ))}
+            {terapeutas.map((t) => {
+              const estaEnTurno = enTurnoIds.includes(t.id);
+              return (
+                <option key={t.id} value={t.id}>
+                  {estaEnTurno ? '✅ ' : '⏸️ '}
+                  {t.nombre_completo} — {labelProfesion(t.profesion)}
+                  {estaEnTurno ? ' (en turno)' : ' (fuera de turno)'}
+                </option>
+              );
+            })}
           </select>
+          {enTurnoIds.length > 0 && (
+            <p className="mt-1 text-[10px] text-emerald-400 font-bold">
+              ✅ {enTurnoIds.length} persona{enTurnoIds.length !== 1 ? 's' : ''} en turno a esa hora
+            </p>
+          )}
         </div>
 
         {/* ===== FECHA + HORA + DURACIÓN ===== */}

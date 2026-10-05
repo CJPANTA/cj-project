@@ -239,7 +239,7 @@ export default function Login() {
               {/* NOMBRE */}
               <div>
                 <label className={labelClass}>Nombre Completo *</label>
-                <input type="text" placeholder="Ej: Jorge Luis Chiroque" value={nombreCompleto} onChange={(e) => setNombreCompleto(e.target.value)} className={inputClass} required />
+                <input type="text" placeholder="NOMBRE Y APELLIDOS" value={nombreCompleto} onChange={(e) => setNombreCompleto(e.target.value)} className={inputClass} required />
               </div>
 
               {/* ROL DESEADO */}
@@ -247,7 +247,7 @@ export default function Login() {
                 <label className={labelClass}>Perfil Deseado *</label>
                 <select value={rolDeseado} onChange={(e) => setRolDeseado(Number(e.target.value))} className={`${inputClass} cursor-pointer`}>
                   <option value={2}>📘 Estudiante (Academia)</option>
-  <option value={3}>🩺 Licenciado en Fisioterapia (Clínica)</option>
+  <option value={3}>🦴 Licenciado en Fisioterapia (Clínica)</option>
   <option value={4}>🤝 Híbrido (Academia + Clínica)</option>
   <option value={7}>🏢 Admin Centro (Gestión de centro)</option>
   <option value={8}>👤 Independiente (Consultorio personal)</option>

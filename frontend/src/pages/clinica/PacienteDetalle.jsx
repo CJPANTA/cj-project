@@ -350,7 +350,7 @@ const cargarSesiones = async (pacienteId) => {
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Link to={`/clinica/evaluacion/${paciente.id}`} className="px-4 py-2 bg-[#22d3ee]/20 text-[#22d3ee] font-bold rounded-xl text-xs hover:bg-[#22d3ee] hover:text-black transition-all">+ Agregar Evaluación</Link>
+            <Link to={`/clinica/evaluacion/${paciente.id}`} className="px-4 py-2 bg-cyan-500/20 text-cyan-700 dark:text-cyan-400 border border-cyan-500/40 font-bold rounded-xl text-xs hover:bg-cyan-500 hover:text-white transition-all">+ Agregar Evaluación</Link>
             <button
               onClick={async () => {
                 try {
@@ -359,21 +359,21 @@ const cargarSesiones = async (pacienteId) => {
                   alert('Error al generar el acuerdo: ' + err.message);
                 }
               }}
-              className="px-4 py-2 bg-emerald-500/20 text-emerald-400 font-bold rounded-xl text-xs hover:bg-emerald-500 hover:text-white transition-all"
+              className="px-4 py-2 bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/40 font-bold rounded-xl text-xs hover:bg-emerald-500 hover:text-white transition-all"
               title="Genera el documento legal de acuerdo de servicio o consentimiento informado"
             >
               📄 Acuerdo de Servicio
             </button>
             <button
   onClick={() => setModalSesionAbierto(true)}
-  className="px-4 py-2 bg-purple-600/20 text-purple-400 font-bold rounded-xl text-xs hover:bg-purple-600 hover:text-white transition-all"
+  className="px-4 py-2 bg-purple-500/20 text-purple-700 dark:text-purple-400 border border-purple-500/40 font-bold rounded-xl text-xs hover:bg-purple-500 hover:text-white transition-all"
   title="Registrar una nueva sesión de tratamiento"
 >
   + Nueva Sesión
 </button>
             <button
               onClick={abrirModalEditar}
-              className="px-4 py-2 bg-yellow-600/20 text-yellow-400 font-bold rounded-xl text-xs hover:bg-yellow-600 hover:text-white transition-all"
+              className="px-4 py-2 bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border border-yellow-500/40 font-bold rounded-xl text-xs hover:bg-yellow-500 hover:text-white transition-all"
             >
               ✏️ Editar Ficha
             </button>
@@ -654,7 +654,7 @@ const cargarSesiones = async (pacienteId) => {
                                   alert('Error: ' + err.message);
                                 }
                               }}
-                              className="px-3 py-1 bg-emerald-500/20 text-emerald-400 font-bold rounded-lg text-xs hover:bg-emerald-500 hover:text-white transition-all"
+                              className="px-3 py-1 bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/40 font-bold rounded-lg text-xs hover:bg-emerald-500 hover:text-white transition-all"
                               title="Genera el plan de ejercicios y cuidados para el paciente"
                             >
                               Informe Paciente
@@ -736,7 +736,7 @@ const cargarSesiones = async (pacienteId) => {
         </h3>
         <button
           onClick={() => setModalSesionAbierto(true)}
-          className="px-3 py-1 bg-purple-600/20 text-purple-400 font-bold rounded-lg text-xs hover:bg-purple-600 hover:text-white transition-all"
+          className="px-3 py-1 bg-purple-500/20 text-purple-700 dark:text-purple-400 border border-purple-500/40 font-bold rounded-lg text-xs hover:bg-purple-500 hover:text-white transition-all"
         >
           + Nueva
         </button>

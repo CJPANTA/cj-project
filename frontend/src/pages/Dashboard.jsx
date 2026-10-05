@@ -36,6 +36,18 @@ export default function Dashboard({ temaOscuro }) {
   const [panelTutorAbierto, setPanelTutorAbierto] = useState(false);
   const [panelNotasAbierto, setPanelNotasAbierto] = useState(false);
 
+  // ===== MODO NAVEGACIÓN (Academia / Clínica) =====
+  const [modoNavegacion, setModoNavegacion] = useState(() => {
+    return localStorage.getItem('cj_modo_navegacion') || 'academia';
+  });
+
+  // Escuchar cambios de modo (emitidos por el Sidebar)
+  useEffect(() => {
+    const handleChange = (e) => setModoNavegacion(e.detail);
+    window.addEventListener('cj-modo-change', handleChange);
+    return () => window.removeEventListener('cj-modo-change', handleChange);
+  }, []);
+
   // ========== CARGAR DATOS DE PERFIL Y KPIs ==========
   const cargarPerfil = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -49,7 +61,6 @@ export default function Dashboard({ temaOscuro }) {
       setNombreUsuario(perfil.nombre_completo || 'Usuario');
       setRolUsuario(perfil.rol);
       setCentroId(perfil.centro_id || null);
-      // Si tiene centro, cargar KPIs clínicos
       if (perfil.centro_id) {
         cargarKPIsClinicos(perfil.centro_id);
       }
@@ -58,7 +69,6 @@ export default function Dashboard({ temaOscuro }) {
 
   const cargarKPIsClinicos = async (centro) => {
     try {
-      // Pacientes activos del centro
       const { count: pacientesActivos, error: errPac } = await supabase
         .from('pacientes')
         .select('*', { count: 'exact', head: true })
@@ -68,12 +78,7 @@ export default function Dashboard({ temaOscuro }) {
       if (!errPac) {
         setKpisClinicos(prev => ({ ...prev, pacientesActivos: pacientesActivos || 0 }));
       }
-
-      // Evaluaciones pendientes (simulado, cuando tengamos la tabla)
-      // Por ahora, valor mock
       setKpisClinicos(prev => ({ ...prev, evaluacionesPendientes: 0 }));
-
-      // Citas hoy (simulado, cuando tengamos la tabla)
       setKpisClinicos(prev => ({ ...prev, citasHoy: 0 }));
     } catch (error) {
       console.error('Error cargando KPIs:', error);
@@ -324,10 +329,8 @@ export default function Dashboard({ temaOscuro }) {
   const IconChat = () => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.136-.848-2.1-1.98-2.193a48.572 48.572 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286m0 0c.078.057.158.112.24.166" /></svg>);
 
   // ==========================================
-  // RENDERIZADO POR ROL (con rol 7 incluido)
-  // ==========================================
-
   // CASO 1: PACIENTE (rol 5)
+  // ==========================================
   if (rolUsuario === 5) {
     return (
       <main className="flex flex-col gap-8 p-4 md:p-8 max-w-7xl mx-auto w-full">
@@ -351,7 +354,9 @@ export default function Dashboard({ temaOscuro }) {
     );
   }
 
-  // CASO 2: LICENCIADO (rol 3), DEMO (rol 6) y ADMIN CENTRO (rol 7) → Dashboard Clínico con KPIs
+  // ==========================================
+  // CASO 2: LICENCIADO (3), DEMO (6), ADMIN CENTRO (7), INDEPENDIENTE (8)
+  // ==========================================
   if (rolUsuario === 3 || rolUsuario === 6 || rolUsuario === 7 || rolUsuario === 8) {
     return (
       <main className="flex flex-col gap-8 p-4 md:p-8 max-w-7xl mx-auto w-full">
@@ -371,13 +376,12 @@ export default function Dashboard({ temaOscuro }) {
           </div>
         </header>
 
-        {/* Dashboard Gerencial con gráficos */}
-<DashboardGerencial
-  centroId={centroId}
-  temaOscuro={temaOscuro}
-  esDirectorGlobal={false}
-/>
-        {/* Oráculo Aura IA */}
+        <DashboardGerencial
+          centroId={centroId}
+          temaOscuro={temaOscuro}
+          esDirectorGlobal={false}
+        />
+
         <section className={`${bgTarjeta} p-6 rounded-3xl border transition-all`}>
           <div className="flex items-center gap-4 mb-6">
             <div className="w-10 h-10 rounded-full bg-[#22d3ee] flex items-center justify-center animate-pulse"><span className="text-white text-xl">✨</span></div>
@@ -401,23 +405,21 @@ export default function Dashboard({ temaOscuro }) {
           )}
         </section>
 
-        {/* Enlaces rápidos clínicos */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Link to="/clinica/pacientes" className={`p-8 rounded-3xl border ${bgTarjeta} flex flex-col items-center group hover:border-emerald-400 transition-all`}>
             <span className="text-5xl mb-4 group-hover:scale-110 transition-transform">👥</span>
             <span className="text-emerald-400 text-[11px] font-black uppercase">Pacientes</span>
           </Link>
-          <div className={`p-8 rounded-3xl border ${bgTarjeta} flex flex-col items-center opacity-50 cursor-not-allowed`}>
-            <span className="text-5xl mb-4">📊</span>
-            <span className="text-gray-400 text-[11px] font-black uppercase">Evaluaciones</span>
-          </div>
-          <div className={`p-8 rounded-3xl border ${bgTarjeta} flex flex-col items-center opacity-50 cursor-not-allowed`}>
-            <span className="text-5xl mb-4">📝</span>
-            <span className="text-gray-400 text-[11px] font-black uppercase">Tratamientos</span>
-          </div>
+          <Link to="/clinica/agenda" className={`p-8 rounded-3xl border ${bgTarjeta} flex flex-col items-center group hover:border-emerald-400 transition-all`}>
+            <span className="text-5xl mb-4 group-hover:scale-110 transition-transform">📅</span>
+            <span className="text-emerald-400 text-[11px] font-black uppercase">Agenda</span>
+          </Link>
+          <Link to="/clinica/programacion" className={`p-8 rounded-3xl border ${bgTarjeta} flex flex-col items-center group hover:border-emerald-400 transition-all`}>
+            <span className="text-5xl mb-4 group-hover:scale-110 transition-transform">🗓️</span>
+            <span className="text-emerald-400 text-[11px] font-black uppercase">Programación</span>
+          </Link>
         </div>
 
-        {/* Botones flotantes y paneles */}
         <div className="fixed bottom-6 right-6 flex gap-3 z-40">
           <button onClick={() => setPanelNotasAbierto(true)} className="p-3 rounded-full bg-[#22d3ee] text-black shadow-lg hover:scale-105 transition-all">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>
@@ -441,20 +443,21 @@ export default function Dashboard({ temaOscuro }) {
   }
 
   // ==========================================
-  // CASO 3: ADMINISTRADOR GENERAL (1), ESTUDIANTE (2), HÍBRIDO (4)
-  // Dashboard General con condicionales
+  // CASO 3: DIRECTOR (1), ESTUDIANTE (2), HÍBRIDO (4)
   // ==========================================
-  const mostrarAcademia = rolUsuario === 1 || rolUsuario === 2 || rolUsuario === 4;
-  const mostrarClinica = rolUsuario === 1 || rolUsuario === 4;
   const esAdmin = rolUsuario === 1;
 
   return (
     <main className="flex flex-col gap-8 p-4 md:p-8 max-w-7xl mx-auto w-full">
+
+      {/* ===== HEADER ===== */}
       <header className="flex flex-col gap-2">
         <div className="flex justify-between items-start flex-wrap gap-2">
           <div>
             <h1 className={`text-4xl font-black tracking-tighter ${textoColor}`}>{saludo}, <span className="text-[#22d3ee]">{nombreUsuario || 'Usuario'}</span></h1>
-            <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Proyecto CJ</p>
+            <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">
+              {modoNavegacion === 'clinica' ? 'Modo Clínica' : 'Modo Academia'}
+            </p>
             {centroId && (
               <p className="text-[10px] text-emerald-400 font-mono font-bold">Centro: {centroId}</p>
             )}
@@ -465,40 +468,17 @@ export default function Dashboard({ temaOscuro }) {
           </div>
         </div>
       </header>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className={`${bgTarjeta} p-4 rounded-2xl border flex items-center gap-4`}>
-          <div className="w-16 h-16 relative">
-            <svg className="w-full h-full" viewBox="0 0 36 36">
-              <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#2d3748" strokeWidth="3" />
-              <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#22d3ee" strokeWidth="3" strokeDasharray={`${porcentaje}, 100`} />
-              <text x="18" y="22" textAnchor="middle" fill={temaOscuro ? "white" : "black"} fontSize="8" fontWeight="bold">{porcentaje || 0}%</text>
-            </svg>
-          </div>
-          <div>
-            <h3 className={`text-xs font-bold ${textoColor}`}>Promedio exámenes</h3>
-            <p className="text-2xl font-black text-[#22d3ee]">{progresoExamenes.promedio || 0}%</p>
-            <p className={`text-[10px] ${textoColor} opacity-70`}>{progresoExamenes.total} exámenes realizados</p>
-          </div>
-        </div>
-
-        <div className={`${bgTarjeta} p-4 rounded-2xl border`}>
-          <h3 className={`text-xs font-bold mb-1 ${textoColor}`}>📄 Último PDF visto</h3>
-          {ultimoPDF ? (
-            <>
-              <p className="text-sm font-medium truncate">{ultimoPDF.nombre}</p>
-              <p className="text-[10px] text-gray-500">{ultimoPDF.ciclo} • {ultimoPDF.materia}</p>
-              <button onClick={resumirUltimoPDF} disabled={resumiendoPDF} className="mt-2 text-[#22d3ee] text-xs font-bold flex items-center gap-1 hover:underline"><IconSummarize /> {resumiendoPDF ? 'Resumiendo...' : 'Resumir PDF'}</button>
-            </>
-          ) : <p className="text-sm text-gray-500">Aún no has abierto ningún PDF</p>}
-        </div>
-      </div>
-
+      
+{/* ==================== ORÁCULO IA (visible siempre) ==================== */}
       <section className={`${bgTarjeta} p-6 rounded-3xl border transition-all`}>
         <div className="flex items-center gap-4 mb-6">
           <div className="w-10 h-10 rounded-full bg-[#22d3ee] flex items-center justify-center animate-pulse"><span className="text-white text-xl">✨</span></div>
-          <div><h2 className={`text-sm font-black uppercase tracking-tighter ${textoColor}`}>Oráculo Aura IA</h2><p className="text-[10px] text-gray-500 font-bold">CONSULTA CLÍNICA INSTANTÁNEA</p></div>
+          <div>
+            <h2 className={`text-sm font-black uppercase tracking-tighter ${textoColor}`}>Oráculo Aura IA</h2>
+            <p className="text-[10px] text-gray-500 font-bold">CONSULTA CLÍNICA INSTANTÁNEA</p>
+          </div>
         </div>
+
         {(contexto.ciclo || contexto.materia || contexto.archivo) && (
           <div className={`mb-4 p-3 rounded-xl border ${bgContexto} text-xs font-mono flex flex-wrap gap-2 items-center`}>
             <span className="font-bold">📌 Contexto activo:</span>
@@ -508,6 +488,7 @@ export default function Dashboard({ temaOscuro }) {
             <span className="text-[10px] opacity-70 ml-auto">(la IA usará este contexto)</span>
           </div>
         )}
+
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <textarea
@@ -555,23 +536,43 @@ export default function Dashboard({ temaOscuro }) {
         )}
       </section>
 
-        {/* Dashboard Gerencial: solo si NO es estudiante puro */}
-{(rolUsuario === 1 || rolUsuario === 4) && (
-  <DashboardGerencial
-    centroId={centroId}
-    temaOscuro={temaOscuro}
-    esDirectorGlobal={esAdmin}
-  />
-)}
+      {/* ==================== SECCIÓN ACADEMIA ==================== */}
+      {modoNavegacion === 'academia' && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className={`${bgTarjeta} p-4 rounded-2xl border flex items-center gap-4`}>
+              <div className="w-16 h-16 relative">
+                <svg className="w-full h-full" viewBox="0 0 36 36">
+                  <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#2d3748" strokeWidth="3" />
+                  <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#22d3ee" strokeWidth="3" strokeDasharray={`${porcentaje}, 100`} />
+                  <text x="18" y="22" textAnchor="middle" fill={temaOscuro ? "white" : "black"} fontSize="8" fontWeight="bold">{porcentaje || 0}%</text>
+                </svg>
+              </div>
+              <div>
+                <h3 className={`text-xs font-bold ${textoColor}`}>Promedio exámenes</h3>
+                <p className="text-2xl font-black text-[#22d3ee]">{progresoExamenes.promedio || 0}%</p>
+                <p className={`text-[10px] ${textoColor} opacity-70`}>{progresoExamenes.total} exámenes realizados</p>
+              </div>
+            </div>
 
-      <HistorialWidget temaOscuro={temaOscuro} />
-      <CalendarioWidget temaOscuro={temaOscuro} />
-      <NotificacionesActivador temaOscuro={temaOscuro} />
-      <FavoritosWidget temaOscuro={temaOscuro} />
+            <div className={`${bgTarjeta} p-4 rounded-2xl border`}>
+              <h3 className={`text-xs font-bold mb-1 ${textoColor}`}>📄 Último PDF visto</h3>
+              {ultimoPDF ? (
+                <>
+                  <p className="text-sm font-medium truncate">{ultimoPDF.nombre}</p>
+                  <p className="text-[10px] text-gray-500">{ultimoPDF.ciclo} • {ultimoPDF.materia}</p>
+                  <button onClick={resumirUltimoPDF} disabled={resumiendoPDF} className="mt-2 text-[#22d3ee] text-xs font-bold flex items-center gap-1 hover:underline"><IconSummarize /> {resumiendoPDF ? 'Resumiendo...' : 'Resumir PDF'}</button>
+                </>
+              ) : <p className="text-sm text-gray-500">Aún no has abierto ningún PDF</p>}
+            </div>
+          </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {mostrarAcademia && (
-          <>
+          <HistorialWidget temaOscuro={temaOscuro} />
+          <CalendarioWidget temaOscuro={temaOscuro} />
+          <NotificacionesActivador temaOscuro={temaOscuro} />
+          <FavoritosWidget temaOscuro={temaOscuro} />
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Link to="/area-estudio" className={`p-8 rounded-3xl border ${bgTarjeta} flex flex-col items-center group hover:border-[#22d3ee] transition-all`}>
               <span className="text-5xl mb-4 group-hover:scale-110 transition-transform">🎓</span>
               <span className="text-[#22d3ee] text-[11px] font-black uppercase">Repositorio</span>
@@ -580,26 +581,50 @@ export default function Dashboard({ temaOscuro }) {
               <span className="text-5xl mb-4 group-hover:scale-110 transition-transform">📚</span>
               <span className="text-[#22d3ee] text-[11px] font-black uppercase">Biblioteca</span>
             </Link>
-            <Link to="/multimedia" className={`p-8 rounded-3xl border ${bgTarjeta} flex flex-col items-center group hover:border-[#22d3ee] transition-all`}>
-              <span className="text-5xl mb-4 group-hover:scale-110 transition-transform">📽️</span>
-              <span className="text-[#22d3ee] text-[11px] font-black uppercase">Multimedia</span>
+            <Link to="/simulador" className={`p-8 rounded-3xl border ${bgTarjeta} flex flex-col items-center group hover:border-[#22d3ee] transition-all`}>
+              <span className="text-5xl mb-4 group-hover:scale-110 transition-transform">🎯</span>
+              <span className="text-[#22d3ee] text-[11px] font-black uppercase">Simulador</span>
             </Link>
-          </>
-        )}
-        {mostrarClinica && (
-          <Link to="/clinica/pacientes" className={`p-8 rounded-3xl border ${bgTarjeta} flex flex-col items-center group hover:border-emerald-400 transition-all`}>
-            <span className="text-5xl mb-4 group-hover:scale-110 transition-transform">👥</span>
-            <span className="text-emerald-400 text-[11px] font-black uppercase">Pacientes</span>
-          </Link>
-        )}
-        {esAdmin && (
-          <Link to="/panel-director" className={`p-8 rounded-3xl border ${bgTarjeta} flex flex-col items-center group hover:border-yellow-400 transition-all`}>
-            <span className="text-5xl mb-4 group-hover:scale-110 transition-transform">⚙️</span>
-            <span className="text-yellow-400 text-[11px] font-black uppercase">Panel Director</span>
-          </Link>
-        )}
-      </div>
+          </div>
+        </>
+      )}
 
+      {/* ==================== SECCIÓN CLÍNICA ==================== */}
+      {modoNavegacion === 'clinica' && (
+        <>
+          {(rolUsuario === 1 || rolUsuario === 4) && (
+            <DashboardGerencial
+              centroId={centroId}
+              temaOscuro={temaOscuro}
+              esDirectorGlobal={esAdmin}
+            />
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Link to="/clinica/pacientes" className={`p-8 rounded-3xl border ${bgTarjeta} flex flex-col items-center group hover:border-emerald-400 transition-all`}>
+              <span className="text-5xl mb-4 group-hover:scale-110 transition-transform">👥</span>
+              <span className="text-emerald-400 text-[11px] font-black uppercase">Pacientes</span>
+            </Link>
+            <Link to="/clinica/agenda" className={`p-8 rounded-3xl border ${bgTarjeta} flex flex-col items-center group hover:border-emerald-400 transition-all`}>
+              <span className="text-5xl mb-4 group-hover:scale-110 transition-transform">📅</span>
+              <span className="text-emerald-400 text-[11px] font-black uppercase">Agenda</span>
+            </Link>
+            <Link to="/clinica/programacion" className={`p-8 rounded-3xl border ${bgTarjeta} flex flex-col items-center group hover:border-emerald-400 transition-all`}>
+              <span className="text-5xl mb-4 group-hover:scale-110 transition-transform">🗓️</span>
+              <span className="text-emerald-400 text-[11px] font-black uppercase">Programación</span>
+            </Link>
+            {esAdmin && (
+              <Link to="/panel-director" className={`p-8 rounded-3xl border ${bgTarjeta} flex flex-col items-center group hover:border-yellow-400 transition-all`}>
+                <span className="text-5xl mb-4 group-hover:scale-110 transition-transform">⚙️</span>
+                <span className="text-yellow-400 text-[11px] font-black uppercase">Panel Director</span>
+              </Link>
+            )}
+          </div>
+        </>
+      )}
+
+      
+      {/* ==================== BOTONES FLOTANTES ==================== */}
       <div className="fixed bottom-6 right-6 flex gap-3 z-40">
         <button onClick={() => setPanelNotasAbierto(true)} className="p-3 rounded-full bg-[#22d3ee] text-black shadow-lg hover:scale-105 transition-all" title="Notas y grabaciones">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">

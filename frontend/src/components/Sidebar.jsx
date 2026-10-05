@@ -11,7 +11,16 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
   const [rolUsuario, setRolUsuario] = useState(null);
   const [nombreUsuario, setNombreUsuario] = useState('');
   const [centroId, setCentroId] = useState(null);
-  const [modoNavegacion, setModoNavegacion] = useState('academia');
+    const [modoNavegacion, setModoNavegacion] = useState(() => {
+    return localStorage.getItem('cj_modo_navegacion') || 'academia';
+  });
+
+  // Función que persiste y avisa
+  const cambiarModoNavegacion = (nuevoModo) => {
+    setModoNavegacion(nuevoModo);
+    localStorage.setItem('cj_modo_navegacion', nuevoModo);
+    window.dispatchEvent(new CustomEvent('cj-modo-change', { detail: nuevoModo }));
+  };
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
@@ -28,10 +37,8 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
             setRolUsuario(perfil.rol);
             setNombreUsuario(perfil.nombre_completo || 'Usuario');
             setCentroId(perfil.centro_id || null);
-            if (perfil.rol === 3 || perfil.rol === 5 || perfil.rol === 6 || perfil.rol === 7 || perfil.rol === 8) {
+            if ([3, 5, 6, 7, 8].includes(perfil.rol)) {
               setModoNavegacion('clinica');
-            } else if (perfil.rol === 2) {
-              setModoNavegacion('academia');
             } else {
               setModoNavegacion('academia');
             }
@@ -64,8 +71,11 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
 
   const esDirector = rolUsuario === 1;
   const puedeCambiarModo = esDirector || rolUsuario === 4;
-  const soloClinica = rolUsuario === 3 || rolUsuario === 5 || rolUsuario === 6 || rolUsuario === 7 || rolUsuario === 8;
+  const soloClinica = [3, 5, 6, 7, 8].includes(rolUsuario);
   const soloAcademia = rolUsuario === 2;
+
+  // Modo efectivo (los fijos fuerzan su modo, los que pueden cambiar usan el estado)
+  const modoEfectivo = soloClinica ? 'clinica' : soloAcademia ? 'academia' : modoNavegacion;
 
   const bgSidebar = temaOscuro ? 'bg-[#0a141d]' : 'bg-white';
   const textoPrincipal = temaOscuro ? 'text-white' : 'text-[#0f172a]';
@@ -79,6 +89,7 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
   const IconCalendario = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>;
   const IconSimulador = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>;
   const IconHistorial = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+  const IconBase = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>;
   const IconPatologias = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>;
   const IconMasoterapia = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>;
   const IconConfig = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>;
@@ -86,17 +97,18 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
   const IconPacientes = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>;
   const IconStickman = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>;
   const IconEquipamiento = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"/></svg>;
+
   const getRolLabel = (rol) => {
-  if (rol === 1) return 'Director';
-  if (rol === 2) return 'Estudiante';
-  if (rol === 3) return 'Licenciado';
-  if (rol === 4) return 'Híbrido';
-  if (rol === 5) return 'Paciente';
-  if (rol === 6) return 'Demo';
-  if (rol === 7) return 'Admin Centro';
-  if (rol === 8) return 'Independiente';
-  return 'Usuario';
-};
+    if (rol === 1) return 'Director';
+    if (rol === 2) return 'Estudiante';
+    if (rol === 3) return 'Licenciado';
+    if (rol === 4) return 'Híbrido';
+    if (rol === 5) return 'Paciente';
+    if (rol === 6) return 'Demo';
+    if (rol === 7) return 'Admin Centro';
+    if (rol === 8) return 'Independiente';
+    return 'Usuario';
+  };
 
   if (cargando) {
     return (
@@ -108,6 +120,7 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
     );
   }
 
+  // ===== SIDEBAR ESPECIAL PARA PACIENTE (rol 5) =====
   if (rolUsuario === 5) {
     return (
       <aside className={`${bgSidebar} border-r ${bordeColor} rounded-3xl p-5 h-full flex flex-col shadow-2xl overflow-y-auto custom-scrollbar transition-colors duration-500`}>
@@ -136,6 +149,7 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
     );
   }
 
+  // ===== SIDEBAR GENERAL =====
   return (
     <aside className={`${bgSidebar} border-r ${bordeColor} rounded-3xl p-5 h-full flex flex-col shadow-2xl overflow-y-auto custom-scrollbar transition-colors duration-500`}>
       <div className="mb-6 flex items-center gap-3 shrink-0">
@@ -146,17 +160,18 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
         </div>
       </div>
 
+      {/* Toggle Academia/Clínica */}
       {puedeCambiarModo && (
         <div className="flex gap-1 p-1 bg-black/10 dark:bg-white/5 rounded-xl mb-6 border border-[#22d3ee]/10">
-          <button
-            onClick={() => setModoNavegacion('academia')}
-            className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${modoNavegacion === 'academia' ? 'bg-[#22d3ee] text-black shadow-md' : `${textoSecundario} hover:text-white`}`}
+                    <button
+            onClick={() => cambiarModoNavegacion('academia')}
+            className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${modoEfectivo === 'academia' ? 'bg-[#22d3ee] text-black shadow-md' : `${textoSecundario} hover:text-white`}`}
           >
             Academia
           </button>
           <button
-            onClick={() => setModoNavegacion('clinica')}
-            className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${modoNavegacion === 'clinica' ? 'bg-[#10b981] text-black shadow-md' : `${textoSecundario} hover:text-white`}`}
+            onClick={() => cambiarModoNavegacion('clinica')}
+            className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${modoEfectivo === 'clinica' ? 'bg-[#10b981] text-black shadow-md' : `${textoSecundario} hover:text-white`}`}
           >
             Clínica
           </button>
@@ -164,23 +179,21 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
       )}
 
       <nav className="flex-1 space-y-1">
+
+        {/* ===== CENTRO DE MANDO (todos) ===== */}
         <Link to="/inicio" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${path === '/inicio' ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}>
           <IconDashboard /><span className="text-xs font-bold uppercase tracking-wider">Centro de Mando</span>
         </Link>
 
+        {/* ===== PANEL DEL DIRECTOR (solo rol 1) ===== */}
         {rolUsuario === 1 && (
           <Link to="/panel-director" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${path === '/panel-director' ? 'bg-[#facc15]/10 text-[#facc15]' : `${textoSecundario} ${hoverBg}`}`}>
             <IconDirector /><span className="text-xs font-bold uppercase tracking-wider">Panel del Director</span>
           </Link>
         )}
 
-        {rolUsuario === 1 && (
-          <Link to="/stickman-preview" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${path === '/stickman-preview' ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}>
-            <IconStickman /><span className="text-xs font-bold uppercase tracking-wider">Stickman Training</span>
-          </Link>
-        )}
-
-        {!soloClinica && (modoNavegacion === 'academia' || soloAcademia || esDirector) && (
+        {/* ===== ACADEMIA ===== */}
+        {modoEfectivo === 'academia' && (
           <div className="space-y-1 mt-2">
             <div className="text-[9px] font-black uppercase tracking-[0.3em] text-gray-500 px-4 py-1">Academia</div>
             <Link to="/area-estudio" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/area-estudio') || path.startsWith('/ciclo') ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}><IconRepositorio /> Repositorio</Link>
@@ -188,37 +201,41 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
             <Link to="/horario" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/horario') ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}><IconCalendario /> Horario</Link>
             <Link to="/simulador" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/simulador') ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}><IconSimulador /> Simulador</Link>
             <Link to="/historial-examenes" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/historial-examenes') ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}><IconHistorial /> Historial</Link>
+            <Link to="/base-conocimiento" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/base-conocimiento') ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}><IconBase /> Base de Conocimiento</Link>
 
-            <div className="text-[9px] font-black uppercase tracking-[0.3em] text-gray-500 px-4 py-1 mt-3">Herramientas Clínicas</div>
+            <div className="text-[9px] font-black uppercase tracking-[0.3em] text-gray-500 px-4 py-1 mt-3">Herramientas de Referencia</div>
             <Link to="/patologias" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/patologias') ? 'bg-purple-500/10 text-purple-500' : `${textoSecundario} ${hoverBg}`}`}><IconPatologias /> Patologías</Link>
             <Link to="/masoterapia" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/masoterapia') ? 'bg-orange-500/10 text-orange-500' : `${textoSecundario} ${hoverBg}`}`}><IconMasoterapia /> Masoterapia</Link>
           </div>
         )}
 
-        {((soloClinica) || (modoNavegacion === 'clinica' && !soloAcademia) || esDirector) && (
-  <div className="space-y-1 mt-2">
-    <div className="text-[9px] font-black uppercase tracking-[0.3em] text-emerald-400 px-4 py-1">Gestión Clínica</div>
-        <Link to="/clinica/pacientes" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/clinica/pacientes') ? 'bg-emerald-500/10 text-emerald-400' : `${textoSecundario} ${hoverBg}`}`}><IconPacientes /> Pacientes</Link>
-    {[1, 3, 4, 7, 8].includes(rolUsuario) && (
-      <Link to="/clinica/agenda" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/clinica/agenda') ? 'bg-cyan-500/10 text-cyan-400' : `${textoSecundario} ${hoverBg}`}`}><IconCalendario /> Agenda</Link>
-    )}
+        {/* ===== CLÍNICA ===== */}
+        {modoEfectivo === 'clinica' && (
+          <div className="space-y-1 mt-2">
+            <div className="text-[9px] font-black uppercase tracking-[0.3em] text-emerald-400 px-4 py-1">Gestión Clínica</div>
+            <Link to="/clinica/pacientes" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/clinica/pacientes') ? 'bg-emerald-500/10 text-emerald-400' : `${textoSecundario} ${hoverBg}`}`}><IconPacientes /> Pacientes</Link>
 
-    {/* 🔧 NUEVO: Mi Equipamiento — solo para Director (1) y Admin Centro (7) */}
-    {(rolUsuario === 1 || rolUsuario === 7 || rolUsuario === 8) && (
-      <Link to="/mi-equipamiento" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/mi-equipamiento') ? 'bg-purple-500/10 text-purple-400' : `${textoSecundario} ${hoverBg}`}`}>
-        <IconEquipamiento /> Mi Equipamiento
-      </Link>
-    )}
+            {[1, 3, 4, 7, 8].includes(rolUsuario) && (
+              <Link to="/clinica/agenda" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/clinica/agenda') ? 'bg-cyan-500/10 text-cyan-400' : `${textoSecundario} ${hoverBg}`}`}><IconCalendario /> Agenda</Link>
+            )}
 
-    <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase text-gray-500 opacity-60 cursor-not-allowed">
-      <IconPacientes /> Evaluaciones <span className="text-[8px] text-gray-400">(próximamente)</span>
-    </div>
-    <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase text-gray-500 opacity-60 cursor-not-allowed">
-      <IconPacientes /> Tratamientos <span className="text-[8px] text-gray-400">(próximamente)</span>
-    </div>
-  </div>
-)}
+            {[1, 3, 4, 7, 8].includes(rolUsuario) && (
+              <Link to="/clinica/programacion" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/clinica/programacion') ? 'bg-purple-500/10 text-purple-400' : `${textoSecundario} ${hoverBg}`}`}><IconCalendario /> Programación</Link>
+            )}
 
+            {(rolUsuario === 1 || rolUsuario === 7 || rolUsuario === 8) && (
+              <Link to="/mi-equipamiento" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/mi-equipamiento') ? 'bg-purple-500/10 text-purple-400' : `${textoSecundario} ${hoverBg}`}`}>
+                <IconEquipamiento /> Mi Equipamiento
+              </Link>
+            )}
+
+            <div className="text-[9px] font-black uppercase tracking-[0.3em] text-gray-500 px-4 py-1 mt-3">Referencia Clínica</div>
+            <Link to="/patologias" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/patologias') ? 'bg-purple-500/10 text-purple-500' : `${textoSecundario} ${hoverBg}`}`}><IconPatologias /> Patologías</Link>
+            <Link to="/masoterapia" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase transition-all ${path.startsWith('/masoterapia') ? 'bg-orange-500/10 text-orange-500' : `${textoSecundario} ${hoverBg}`}`}><IconMasoterapia /> Masoterapia</Link>
+          </div>
+        )}
+
+        {/* ===== CONFIG ===== */}
         <div className={`mt-4 pt-4 border-t ${bordeColor}`}>
           <Link to="/configuracion-ia" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${path.startsWith('/configuracion-ia') ? 'bg-blue-500/10 text-blue-400' : `${textoSecundario} ${hoverBg}`}`}>
             <IconConfig /><span className="text-xs font-bold uppercase tracking-wider">Aura AI Config</span>
@@ -226,6 +243,7 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
         </div>
       </nav>
 
+      {/* ===== USUARIO + LOGOUT ===== */}
       <div className={`mt-4 pt-4 border-t ${bordeColor} flex flex-col gap-4`}>
         <GlobalMusicPlayer temaOscuro={temaOscuro} />
         <div className="flex items-center justify-between">
