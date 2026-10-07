@@ -22,7 +22,7 @@ export default function VistaCabeza({ cara, regionesSeleccionadas, onRegionToggl
   return (
     <div className="flex flex-col items-center w-full">
       <h4 className="text-sm font-bold text-cyan-400 mb-2">Cabeza y Cuello ({cara})</h4>
-      <svg viewBox="0 0 300 280" className="w-full max-w-sm drop-shadow-xl touch-manipulation">
+       <svg viewBox="0 0 300 280" className="w-full max-w-md drop-shadow-xl touch-manipulation">
         <style>{`
           .region { fill: #1e293b; stroke: #64748b; stroke-width: 1.5; cursor: pointer; transition: all 0.2s; }
           .region:hover { fill: #0ea5e9; stroke: #bae6fd; }

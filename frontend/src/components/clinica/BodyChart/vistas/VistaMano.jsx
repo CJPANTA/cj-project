@@ -46,7 +46,7 @@ export default function VistaMano({ cara, lado, regionesSeleccionadas, onRegionT
   return (
     <div className="flex flex-col items-center w-full">
       <h4 className="text-sm font-bold text-cyan-400 mb-2">{titulo}</h4>
-      <svg viewBox="0 0 200 320" className="w-full max-w-sm drop-shadow-xl touch-manipulation">
+        <svg viewBox="0 0 200 320" className="w-full max-w-md drop-shadow-xl touch-manipulation">
         <style>{`
           .hueso { fill: #475569; transition: fill 0.2s; }
           .hueso:hover { fill: #0ea5e9; }

@@ -77,7 +77,7 @@ export default function VistaGeneral({
   };
 
   return (
-    <svg viewBox="0 0 200 320" className="w-full h-auto drop-shadow-xl touch-manipulation">
+        <svg viewBox="0 0 200 320" className="w-full h-auto max-w-lg drop-shadow-xl touch-manipulation">
       <defs>
         <linearGradient id="pielGrad" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#1e293b" />

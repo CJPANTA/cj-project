@@ -7,6 +7,7 @@ import AnamnesisForm from '../../components/clinica/Formularios/AnamnesisForm';
 import { consultarAuraIA } from '../../services/iaService';
 import { filtrarEjerciciosPorRegion } from '../../utils/filtrarEjerciciosPorRegion';
 import EjercicioPreview from '../../components/clinica/EjercicioPreview';
+import StickmanFrames from '../../components/clinica/StickmanFrames';
 import IconIA from '../../components/icons/IconIA';
 import { nombresAgentesDisponibles } from '../../utils/aparatologia';
 
@@ -1133,9 +1134,9 @@ Responde AHORA con el JSON.`;
       if (filtro.incompatibles.length > 0) {
         setTimeout(() => {
           alert(
-            `⚠️ La IA sugirió ${filtro.incompatibles.length} ejercicio(s) que NO coinciden con las regiones afectadas.\n\n` +
-            `Fueron movidos a la sección "Fuera de zona" para que decidas manualmente.\n\n` +
-            `Ejercicios compatibles: ${filtro.compatibles.length}`
+            `Aura te sugiere ${filtro.incompatibles.length} ejercicio(s) extra.\n\n` +
+            `Los dejé aparte en la sección "Fuera de zona" — puede que aporten, pero revisa si encajan con el caso antes de aprobarlos.\n\n` +
+            `✅ Ejercicios recomendados: ${filtro.compatibles.length}`
           );
         }, 300);
       }
@@ -1272,7 +1273,7 @@ Responde AHORA con el JSON.`;
         )}
 
         {paso === 2 && (
-          <div className={`${bgTarjeta} p-6 rounded-3xl border`}>
+          <div className={`${bgTarjeta} p-4 md:p-6 rounded-3xl border max-w-2xl mx-auto`}>
             <h2 className={`text-xl font-black ${textoPrincipal} mb-4`}>📍 Selecciona las regiones afectadas</h2>
             <p className={`text-sm ${textoPrincipal} opacity-70 mb-4`}>Haz clic en una zona general (🔍) para ampliarla, o directamente en los puntos para seleccionar.</p>
             <BodyChartContainer
@@ -1535,11 +1536,11 @@ Responde AHORA con el JSON.`;
                             <div className="flex items-center gap-2 mb-2">
                               <span className="text-yellow-400 text-lg">⚠️</span>
                               <span className="text-yellow-300 text-xs font-bold uppercase tracking-wider">
-                                {ejerciciosIncompatibles.length} ejercicio(s) sugerido(s) fuera de zona
+                                {ejerciciosIncompatibles.length} sugerencia{ejerciciosIncompatibles.length !== 1 ? 's' : ''} fuera de zona
                               </span>
                             </div>
                             <p className="text-[10px] text-yellow-200/80 mb-3">
-                              La IA sugirió estos ejercicios, pero no coinciden con las regiones afectadas del paciente.
+                              Aura te sugiere estos ejercicios, pero no coinciden con las regiones afectadas del paciente.
                               Márcalos solo si consideras que aportan al tratamiento.
                             </p>
                             <div className="space-y-2">
@@ -1579,12 +1580,13 @@ Responde AHORA con el JSON.`;
           : 'border-purple-500/20 bg-black/10'
       }`}
     >
-      {/* VISTA PREVIA STICKMAN */}
+            {/* VISTA PREVIA STICKMAN (3 frames validados) */}
       <div className="flex-shrink-0">
-        <EjercicioPreview
-          posicion={ej.posicion || 'bipedo'}
+        <StickmanFrames
+          ejercicioId={ej.id}
           tamaño="small"
           temaOscuro={true}
+          posicionFallback={ej.posicion || 'bipedo'}
         />
       </div>
 

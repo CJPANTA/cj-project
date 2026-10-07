@@ -113,7 +113,7 @@ export default function BodyChartContainer({
   const bgContainer = temaOscuro ? 'bg-slate-900/50' : 'bg-gray-100/50';
 
   return (
-    <div className={`w-full max-w-md mx-auto p-4 rounded-2xl ${bgContainer} border border-gray-700`}>
+        <div className={`w-full max-w-2xl mx-auto p-4 md:p-6 rounded-2xl ${bgContainer} border border-gray-700`}>
       <div className="flex justify-center gap-4 mb-4">
         <button
           onClick={() => setCara('anterior')}
@@ -142,7 +142,9 @@ export default function BodyChartContainer({
         </button>
       )}
 
-      <div className="w-full relative">{renderVista()}</div>
+            <div className="w-full relative flex items-center justify-center min-h-[440px] md:min-h-[520px]">
+        {renderVista()}
+      </div>
     </div>
   );
 }

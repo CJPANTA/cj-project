@@ -41,7 +41,7 @@ export default function VistaPie({ cara, lado, regionesSeleccionadas, onRegionTo
   return (
     <div className="flex flex-col items-center w-full">
       <h4 className="text-sm font-bold text-cyan-400 mb-2">{titulo}</h4>
-      <svg viewBox="0 0 240 340" className="w-full max-w-md drop-shadow-xl touch-manipulation">
+      <svg viewBox="0 0 240 340" className="w-full max-w-lg drop-shadow-xl touch-manipulation">
         <style>{`
           .hueso-pie { fill: #334155; stroke: #64748b; stroke-width: 1; cursor: pointer; transition: all 0.2s; }
           .hueso-pie:hover { fill: #0ea5e9; stroke: #bae6fd; stroke-width: 1.5; }

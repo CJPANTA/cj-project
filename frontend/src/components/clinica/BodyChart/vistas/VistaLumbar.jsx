@@ -39,7 +39,7 @@ export default function VistaLumbar({ cara, onRegionToggle, regionesSeleccionada
   return (
     <div className="flex flex-col items-center w-full">
       <h4 className="text-sm font-bold text-cyan-400 mb-2">Zona Lumbar ({cara})</h4>
-      <svg viewBox="0 0 240 250" className="w-full max-w-sm drop-shadow-xl touch-manipulation">
+      <svg viewBox="0 0 240 250" className="w-full max-w-md drop-shadow-xl touch-manipulation">
         <defs>
           <radialGradient id="lumbarGrad" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#1e293b" />

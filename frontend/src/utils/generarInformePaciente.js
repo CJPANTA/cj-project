@@ -97,6 +97,42 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
     else if (titulo) credenciales = titulo;
   }
 
+    // ============================================================
+  // CARGAR STICKMAN APROBADOS (JSON)
+  // ============================================================
+  let stickmanData = {};
+  try {
+    const res = await fetch('/data/stickman_svgs.json');
+    if (res.ok) stickmanData = await res.json();
+  } catch (e) {
+    console.warn('⚠️ No se pudo cargar stickman_svgs.json, usando genéricos:', e);
+  }
+
+  // Helper: renderiza los 3 frames aprobados o cae al genérico
+  const renderStickman = (ejercicioId, posicion, tamaño = 'medium') => {
+    const frames = stickmanData?.[ejercicioId];
+    if (!frames || !frames.inicio || !frames.medio || !frames.fin) {
+      return generarStickmanEjercicio(posicion, tamaño);
+    }
+    const sizes = { small: 80, medium: 130, large: 175 };
+    const s = sizes[tamaño] || 95;
+    const labelStyle = 'font-size:8pt;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;text-align:center;';
+    const arrow = '<div style="font-size:26pt;color:#22d3ee;font-weight:900;line-height:1;margin:0 4px;">→</div>';
+    const svgWrap = (svg, label) => {
+      const svgConTamano = svg.replace(/<svg /, `<svg width="${s}" height="${s}" preserveAspectRatio="xMidYMid meet" `);
+      return `<div style="text-align:center;">${'<div style="' + labelStyle + '">' + label + '</div>'}${svgConTamano}</div>`;
+    };
+    return `
+      <div style="display:flex;align-items:center;gap:6px;justify-content:center;">
+        ${svgWrap(frames.inicio, 'INICIO')}
+        ${arrow}
+        ${svgWrap(frames.medio, 'MEDIO')}
+        ${arrow}
+        ${svgWrap(frames.fin, 'FIN')}
+      </div>
+    `;
+  };
+
   const datosRegiones = evaluacion.datos_regiones || {};
   const diagnostico = corregirTypos(datosRegiones._diagnostico_sugerido || '');
   const recomendaciones = corregirTypos(datosRegiones._recomendaciones || '');
@@ -145,7 +181,7 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
             <div class="ejercicio-numero">${contadorGlobal}</div>
             <div class="ejercicio-contenido">
               <div class="ejercicio-stickman">
-                ${generarStickmanEjercicio(posicion, 'medium')}
+                ${renderStickman(ej.id, posicion, 'medium')}
               </div>
               <div class="ejercicio-detalle">
                 <div class="ejercicio-nombre">${corregirTypos(ej.nombre)}</div>
@@ -240,7 +276,7 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
         .ejercicio-card { display: flex; gap: 12px; padding: 12px; margin-bottom: 12px; border: 1px solid #e2e8f0; border-radius: 8px; page-break-inside: avoid; background: #fafafa; }
         .ejercicio-numero { flex: 0 0 40px; height: 40px; background: #22d3ee; color: white; font-weight: 900; font-size: 18pt; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
         .ejercicio-contenido { flex: 1; display: flex; flex-direction: column; gap: 8px; }
-        .ejercicio-stickman { background: #f1f5f9; border-radius: 8px; padding: 8px; display: flex; justify-content: center; }
+        .ejercicio-stickman { background: #f1f5f9; border-radius: 8px; padding: 14px 10px; display: flex; justify-content: center; align-items: center; min-height: 170px; }
         .poses-container { display: flex; align-items: center; gap: 10px; }
         .pose-item { text-align: center; }
         .pose-label { font-size: 8pt; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
@@ -329,30 +365,31 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
             </div>
           ` : ''}
         </div>
-        <div class="pie">Plan de Ejercicios — ${centroNombre} — Página 1</div>
-
-        <div style="margin-top:12px; padding:12px 14px; background:#fef2f2; border-left:4px solid #ef4444; border-radius:6px; page-break-inside:avoid;">
-  <div style="font-size:10pt; font-weight:700; color:#991b1b; margin-bottom:6px;">⚠️ Evita estos errores:</div>
-  <ul style="margin:0; padding-left:20px; font-size:9pt; line-height:1.55; color:#991b1b;">
-    <li>No hagas los ejercicios rápido ni con rebotes.</li>
-    <li>No aguantes la respiración durante el esfuerzo.</li>
-    <li>No ignores el dolor "para terminar la serie".</li>
-    <li>No hagas los ejercicios si tienes fiebre o inflamación aguda nueva.</li>
-  </ul>
-</div>
+                  <div style="margin-top:12px; padding:12px 14px; background:#fef2f2; border-left:4px solid #ef4444; border-radius:6px; page-break-inside:avoid;">
+            <div style="font-size:10pt; font-weight:700; color:#991b1b; margin-bottom:6px;">⚠️ Evita estos errores:</div>
+            <ul style="margin:0; padding-left:20px; font-size:9pt; line-height:1.55; color:#991b1b;">
+              <li>No hagas los ejercicios rápido ni con rebotes.</li>
+              <li>No aguantes la respiración durante el esfuerzo.</li>
+              <li>No ignores el dolor "para terminar la serie".</li>
+              <li>No hagas los ejercicios si tienes fiebre o inflamación aguda nueva.</li>
+            </ul>
+          </div>
+        </div>
+       <div class="pie">Plan de Ejercicios — ${centroNombre}</div>
+      </div>
 
       <div class="pagina">
         <div class="contenido">
-          <<h1>4. Cuidados en Casa</h1>
+          <h1>4. Cuidados en Casa</h1>
           <p style="font-size:10pt; color:#475569; margin-bottom:10px;">
             Estas recomendaciones complementan tu tratamiento y ayudan a una mejor recuperación.
           </p>
           ${recomendacionesHTML}
 
-          <h1>4. Cuándo Consultar</h1>
+          <h1>5. Cuándo Consultar</h1>
           ${alertasHTML}
 
-          <h1>5. Mi Seguimiento Semanal</h1>
+          <h1>6. Mi Seguimiento Semanal</h1>
           <table class="seguimiento">
             <thead>
               <tr>
@@ -382,7 +419,7 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
           </div>
 
           <div class="seccion-final">
-            <h1 class="h1-proxima-cita">6. Próxima Cita</h1>
+           <h1 class="h1-proxima-cita">7. Próxima Cita</h1>
             <div class="proxima-cita">
               <div class="label">Fecha sugerida</div>
               <div class="linea-fecha">&nbsp;</div>
@@ -411,7 +448,7 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
             --- Fin del plan ---
           </div>
         </div>
-        <div class="pie">Plan de Ejercicios — ${centroNombre} — Página 2</div>
+       <div class="pie">Plan de Ejercicios — ${centroNombre}</div>
       </div>
     </body>
     </html>

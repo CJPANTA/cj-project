@@ -48,7 +48,7 @@ export default function VistaColumna({ cara, regionesSeleccionadas = [], onRegio
       <h4 className="text-sm font-bold text-cyan-400 mb-2">
         Columna Vertebral {cara === 'posterior' ? '(Vista Posterior)' : '(Vista Lateral)'}
       </h4>
-      <svg viewBox="0 0 220 500" className="w-full max-w-xs drop-shadow-xl touch-manipulation">
+       <svg viewBox="0 0 220 500" className="w-full max-w-sm drop-shadow-xl touch-manipulation">
         <style>{`
           .zona-label { font-size: 11px; font-weight: 700; text-anchor: middle; pointer-events: none; letter-spacing: 1px; }
           .zona-label.activa { fill: #22d3ee; }
