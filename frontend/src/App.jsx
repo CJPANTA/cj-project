@@ -11,6 +11,7 @@ import Landing from './pages/Landing';
 import { AuraProvider } from './context/AuraContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import LoadingFallback from './components/LoadingFallback';
+const SolicitarReset = lazy(() => import('./pages/SolicitarReset'));
 
 // ============================================================
 // LAZY IMPORTS — el resto se carga bajo demanda
@@ -48,6 +49,7 @@ function LayoutConSidebar({ children, temaOscuro, setTemaOscuro }) {
     const esRutaPublica =
     location.pathname === '/login' ||
     location.pathname === '/' ||
+    location.pathname === '/solicitar-reset' ||
     location.pathname === '/terminos' ||
     location.pathname === '/privacidad';
   const [menuAbierto, setMenuAbierto] = useState(false);
@@ -151,6 +153,7 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/" element={<Landing />} />
                 <Route path="/inicio" element={<RutaProtegida><Dashboard temaOscuro={temaOscuro} /></RutaProtegida>} />
+                <Route path="/solicitar-reset" element={<SolicitarReset />} />
                 <Route path="/terminos" element={<Terminos />} />
                 <Route path="/privacidad" element={<Privacidad />} />
                 <Route path="/area-estudio" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />

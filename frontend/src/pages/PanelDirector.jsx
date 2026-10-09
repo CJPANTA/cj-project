@@ -21,6 +21,7 @@ export default function PanelDirector({ temaOscuro }) {
   const [historial, setHistorial] = useState([]);
   const [cargandoHistorial, setCargandoHistorial] = useState(false);
   const [filtroHistorial, setFiltroHistorial] = useState('');
+  const [solicitudesReset, setSolicitudesReset] = useState([]);
 
   const [modalEditar, setModalEditar] = useState(false);
   const [usuarioEditando, setUsuarioEditando] = useState(null);
@@ -48,11 +49,98 @@ export default function PanelDirector({ temaOscuro }) {
     cargarDatos();
   }, []);
 
-  useEffect(() => {
+    useEffect(() => {
     if (pestana === 'historial') {
       cargarHistorial();
     }
+    if (pestana === 'resets') {
+      cargarSolicitudesReset();
+    }
   }, [pestana]);
+
+  const cargarSolicitudesReset = async () => {
+    try {
+      let query = supabase
+        .from('solicitudes_reset')
+        .select('*')
+        .eq('estado', 'pendiente')
+        .order('created_at', { ascending: false });
+
+      // Si es Admin Centro (rol 7), solo las de su centro
+      if (!esDirectorGlobal && centroDirector) {
+        query = query.eq('centro_id', centroDirector);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      // Hidratar con nombre del usuario
+      const ids = [...new Set((data || []).map((s) => s.usuario_id).filter(Boolean))];
+      let perfilMap = {};
+      if (ids.length > 0) {
+        const { data: perfiles } = await supabase
+          .from('profiles')
+          .select('id, nombre_completo, email')
+          .in('id', ids);
+        (perfiles || []).forEach((p) => { perfilMap[p.id] = p; });
+      }
+
+      setSolicitudesReset((data || []).map((s) => ({
+        ...s,
+        perfil: perfilMap[s.usuario_id] || null,
+      })));
+    } catch (err) {
+      console.error('Error cargando solicitudes:', err);
+    }
+  };
+
+  const resetearPassword = async (solicitud) => {
+    if (!confirm(`¿Resetear la contraseña de "${solicitud.perfil?.nombre_completo || 'este usuario'}" a 12345678?`)) {
+      return;
+    }
+    try {
+      // 1) Llamar a la Edge Function que resetea la contraseña real
+      const { data: { session } } = await supabase.auth.getSession();
+      const SUPABASE_URL = 'https://xjxsuxtehkdtphvgkvbd.supabase.co';
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/reset-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token || ''}`,
+        },
+        body: JSON.stringify({
+          usuario_id: solicitud.usuario_id,
+          password_nuevo: '12345678',
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Error al resetear la contraseña');
+      }
+
+      // 2) Marcar la solicitud como resuelta
+      await supabase.rpc('marcar_solicitud_resuelta', { solicitud_id: solicitud.id });
+
+      alert('✅ Contraseña reseteada a 12345678. Avisa al usuario por WhatsApp.');
+      cargarSolicitudesReset();
+    } catch (err) {
+      console.error(err);
+      alert('Error: ' + err.message);
+    }
+  };
+
+  const denegarSolicitud = async (solicitud) => {
+    if (!confirm('¿Denegar esta solicitud de reset?')) return;
+    try {
+      await supabase.rpc('marcar_solicitud_denegada', { solicitud_id: solicitud.id });
+      alert('✅ Solicitud denegada.');
+      cargarSolicitudesReset();
+    } catch (err) {
+      console.error(err);
+      alert('Error: ' + err.message);
+    }
+  };
 
   const cargarDatos = async () => {
     setLoading(true);
@@ -502,6 +590,7 @@ export default function PanelDirector({ temaOscuro }) {
           <button onClick={() => setPestana('usuarios')} className={`px-4 py-2 text-sm font-bold uppercase tracking-wider border-b-2 transition-all ${pestana === 'usuarios' ? 'border-[#22d3ee] text-[#22d3ee]' : `border-transparent ${textoSecundario} hover:text-[#22d3ee]`}`}>👥 Usuarios</button>
           <button onClick={() => setPestana('evaluaciones')} className={`px-4 py-2 text-sm font-bold uppercase tracking-wider border-b-2 transition-all ${pestana === 'evaluaciones' ? 'border-[#22d3ee] text-[#22d3ee]' : `border-transparent ${textoSecundario} hover:text-[#22d3ee]`}`}>📋 Evaluaciones Pendientes ({evaluacionesPendientes.length})</button>
           <button onClick={() => setPestana('historial')} className={`px-4 py-2 text-sm font-bold uppercase tracking-wider border-b-2 transition-all ${pestana === 'historial' ? 'border-[#22d3ee] text-[#22d3ee]' : `border-transparent ${textoSecundario} hover:text-[#22d3ee]`}`}>📜 Historial de Cambios</button>
+          <button onClick={() => setPestana('resets')} className={`px-4 py-2 text-sm font-bold uppercase tracking-wider border-b-2 transition-all ${pestana === 'resets' ? 'border-[#22d3ee] text-[#22d3ee]' : `border-transparent ${textoSecundario} hover:text-[#22d3ee]`}`}>🔑 Solicitudes de Reset ({solicitudesReset.length})</button>
         </div>
 
         {esDirectorGlobal && mostrarCentros && (
@@ -768,6 +857,80 @@ export default function PanelDirector({ temaOscuro }) {
                     </div>
                   );
                 })()}
+              </div>
+            )}
+
+            {pestana === 'resets' && (
+              <div className={`${bgTarjeta} p-6 rounded-2xl border`}>
+                <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
+                  <div>
+                    <h2 className={`text-xl font-bold ${textoPrincipal}`}>🔑 Solicitudes de Reset</h2>
+                    <p className={`text-xs ${textoSecundario} mt-1`}>
+                      Usuarios que olvidaron su contraseña y necesitan reactivación
+                    </p>
+                  </div>
+                  <button
+                    onClick={cargarSolicitudesReset}
+                    className="px-4 py-2 bg-[#22d3ee]/20 text-[#22d3ee] font-bold rounded-xl text-xs hover:bg-[#22d3ee] hover:text-black transition-all"
+                  >
+                    🔄 Recargar
+                  </button>
+                </div>
+
+                {solicitudesReset.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-4xl mb-2">✨</p>
+                    <p className={`text-sm ${textoSecundario}`}>No hay solicitudes pendientes</p>
+                    <p className={`text-xs ${textoSecundario} mt-1`}>
+                      Los usuarios que olviden su contraseña aparecerán aquí
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {solicitudesReset.map((s) => (
+                      <div
+                        key={s.id}
+                        className={`p-4 rounded-xl border ${bordeFila} ${temaOscuro ? 'bg-[#0f1a24]' : 'bg-gray-50'}`}
+                      >
+                        <div className="flex flex-wrap justify-between items-start gap-3">
+                          <div className="flex-1 min-w-[250px]">
+                            <p className={`text-sm font-bold ${textoPrincipal} mb-1`}>
+                              👤 {s.perfil?.nombre_completo || 'Usuario desconocido'}
+                            </p>
+                            <p className={`text-xs ${textoSecundario} mb-1`}>
+                              📧 {s.email_solicitado}
+                            </p>
+                            <p className={`text-xs ${textoSecundario} mb-1`}>
+                              🏥 Centro: <span className="font-mono font-bold text-[#22d3ee]">{s.centro_id || 'Sin centro'}</span>
+                            </p>
+                            <p className={`text-[10px] ${textoSecundario} italic`}>
+                              🕐 Solicitado: {new Date(s.created_at).toLocaleString('es-PE', {
+                                day: '2-digit',
+                                month: 'short',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </p>
+                          </div>
+                          <div className="flex gap-2 flex-wrap">
+                            <button
+                              onClick={() => resetearPassword(s)}
+                              className="px-4 py-2 bg-emerald-500/20 text-emerald-400 font-bold rounded-xl text-xs hover:bg-emerald-500 hover:text-white transition-all"
+                            >
+                              🔑 Resetear a 12345678
+                            </button>
+                            <button
+                              onClick={() => denegarSolicitud(s)}
+                              className="px-4 py-2 bg-red-500/20 text-red-400 font-bold rounded-xl text-xs hover:bg-red-500 hover:text-white transition-all"
+                            >
+                              ❌ Denegar
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
