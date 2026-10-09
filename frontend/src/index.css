@@ -331,3 +331,151 @@ html[data-tema="claro"] .bg-black\/30 {
 html[data-tema="claro"] .text-gray-400 {
   color: #64748b !important;
 }
+
+/* ============================================================ */
+/* IMPRESIÓN UNIFICADA — @media print                           */
+/* ------------------------------------------------------------ */
+/* Este bloque actúa como RED DE SEGURIDAD cuando el usuario    */
+/* hace Ctrl+P directamente desde la app (no desde la ventana   */
+/* de printService.js, que ya trae su propio CSS).              */
+/*                                                              */
+/* Reglas:                                                      */
+/*  1. Fondo SIEMPRE blanco (aunque esté en modo oscuro).       */
+/*  2. Márgenes A4 consistentes.                                */
+/*  3. Evitar cortes feos en tablas, imágenes y tarjetas.       */
+/*  4. Utilidades .no-print / .print-only para control fino.    */
+/* ============================================================ */
+@media print {
+  /* ---- Márgenes de página A4 ---- */
+  @page {
+    size: A4 portrait;
+    margin: 1.5cm 1.5cm 1cm 1.5cm;
+  }
+
+  /* ---- Reset: fondo blanco, texto negro, sin overflow ---- */
+  html,
+  body,
+  #root,
+  html[data-tema="oscuro"],
+  html[data-tema="oscuro"] body,
+  html[data-tema="claro"],
+  html[data-tema="claro"] body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    overflow: visible !important;
+    height: auto !important;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transition: none !important;
+  }
+
+  /* Neutralizar contain/isolation que rompen la paginación */
+  main {
+    contain: none !important;
+    isolation: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* ---- Ocultar chrome de la UI (solo si están marcados) ---- */
+  .no-print,
+  [data-no-print="true"] {
+    display: none !important;
+  }
+
+  /* Botones flotantes (FABs) y overlays: fuera del papel */
+  .fixed.bottom-6.right-6,
+  .fixed.bottom-4.right-4,
+  [class*="fixed"][class*="bottom-6"],
+  [class*="fixed"][class*="bottom-4"] {
+    display: none !important;
+  }
+
+  /* ---- Evitar cortes feos ---- */
+  table,
+  tr,
+  td,
+  th,
+  img,
+  figure,
+  pre,
+  blockquote,
+  .card,
+  .evitar-corte {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  /* ---- Tablas visibles en papel ---- */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 9.5pt !important;
+  }
+  th, td {
+    border: 1px solid #94a3b8 !important;
+    color: #0f172a !important;
+    padding: 6px 8px !important;
+    background: transparent !important;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  th {
+    background: #f1f5f9 !important;
+    font-weight: 700 !important;
+  }
+
+  /* ---- Prose: neutralizar fondos decorativos ---- */
+  .prose,
+  .prose-invert,
+  .prose p,
+  .prose li,
+  .prose td,
+  .prose th,
+  .prose-invert p,
+  .prose-invert li,
+  .prose-invert td,
+  .prose-invert th {
+    color: #0f172a !important;
+    background: transparent !important;
+  }
+
+  /* ---- Forzar tipografía legible en papel ---- */
+  body {
+    font-family: 'Calibri', 'Roboto', 'Segoe UI', Arial, sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.5;
+  }
+
+  /* ---- Links: sin subrayado chillón ---- */
+  a, a:visited {
+    color: #0f172a !important;
+    text-decoration: none !important;
+  }
+
+  /* ---- Reducir sombras y blurs (no se imprimen bien) ---- */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+
+  /* ---- Utilidades de salto ---- */
+  .salto-antes  { page-break-before: always; break-before: page; }
+  .salto-despues { page-break-after: always; break-after: page; }
+
+  /* ---- Utilidad inversa: solo en papel ---- */
+  .print-only { display: block !important; }
+}
+
+/* La clase .print-only está oculta en pantalla */
+.print-only {
+  display: none;
+}

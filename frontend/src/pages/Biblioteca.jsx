@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import PrintButton from '../components/PrintButton';
+import { catalogoAHtml } from '../utils/printService';
 
 export default function Biblioteca({ temaOscuro }) {
   const [libros, setLibros] = useState([]);
@@ -101,7 +103,24 @@ export default function Biblioteca({ temaOscuro }) {
     const coincideBusq = !busqueda || normalizar(textoBusqueda).includes(normalizar(busqueda));
     return coincideCat && coincideBusq;
   });
-
+  // ============================================================
+  // Preparar items para imprimir el catálogo filtrado
+  // ============================================================
+  const prepararCatalogoImprimible = () => {
+    return filtrados.map((l) => {
+      const nombre = l.TITULO_LIBRO || 'Desconocido';
+      const extension = (nombre.match(/\.([^.]+)$/)?.[1] || 'PDF').toUpperCase();
+      const tituloLimpio = nombre
+        .replace(/_/g, ' ')
+        .replace(`.${extension.toLowerCase()}`, '');
+      return {
+        titulo: tituloLimpio,
+        subtitulo: `Por: ${l.AUTOR || 'Institucional'}`,
+        meta: `Categoría: ${l.CATEGORIA || 'General'} · Curso: ${l.CURSO_RELACIONADO || '—'}`,
+        badge: extension,
+      };
+    });
+  };
   // PALETA GLOBAL (Día/Noche)
   const bgPanel = temaOscuro ? 'bg-[#0a141d]' : 'bg-white shadow-xl';
   const bgTarjeta = temaOscuro ? 'bg-black/40' : 'bg-white';
@@ -116,9 +135,27 @@ export default function Biblioteca({ temaOscuro }) {
           <h1 className={`text-3xl font-black uppercase tracking-tighter ${textoColor}`}>BIBLIOTECA <span className="text-[#22d3ee]">SISTEMAS</span></h1>
           <p className={`${subTexto} text-[10px] font-bold uppercase tracking-[0.2em]`}>Fuente: libros_maestro.csv | Carpeta: 02_SISTEMAS</p>
         </div>
-        <div className={`px-4 py-2 rounded-lg border text-[10px] font-black uppercase tracking-widest ${temaOscuro ? 'bg-[#10b981]/10 border-[#10b981]/30 text-[#10b981]' : 'bg-emerald-50 border-emerald-200 text-emerald-600'}`}>
-          {cargando ? '🔄 Sincronizando...' : `${libros.length} TÍTULOS`}
-        </div>
+        <div className="flex items-center gap-2">
+  <div className={`px-4 py-2 rounded-lg border text-[10px] font-black uppercase tracking-widest ${temaOscuro ? 'bg-[#10b981]/10 border-[#10b981]/30 text-[#10b981]' : 'bg-emerald-50 border-emerald-200 text-emerald-600'}`}>
+    {cargando ? '🔄 Sincronizando...' : `${libros.length} TÍTULOS`}
+  </div>
+
+  <PrintButton
+    titulo="Biblioteca de Sistemas"
+    subtitulo={`Catálogo — ${catActiva === 'Todas' ? 'Todo el acervo' : catActiva}${busqueda ? ` (filtro: "${busqueda}")` : ''}`}
+    contenido={catalogoAHtml(prepararCatalogoImprimible())}
+    metadata={{
+      fecha: new Date().toLocaleDateString('es-PE'),
+      autor: 'CJ Fisioterapia',
+      extra: [`${filtrados.length} título${filtrados.length === 1 ? '' : 's'}`],
+    }}
+    className="px-4 py-2 rounded-lg border border-[#22d3ee]/30 bg-[#22d3ee]/10 text-[#22d3ee] text-[10px] font-black uppercase tracking-widest hover:bg-[#22d3ee]/20 transition-all disabled:opacity-50"
+    icon="🖨️"
+    label="Imprimir catálogo"
+    disabled={filtrados.length === 0}
+    title="Imprimir el catálogo filtrado actual"
+  />
+</div>
       </header>
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-6 min-h-0 overflow-hidden">

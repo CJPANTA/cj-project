@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useGitHubScanner } from '../hooks/useGitHubScanner';
 import { useAura } from '../context/AuraContext';
+import PrintButton from '../components/PrintButton';
+import { catalogoAHtml } from '../utils/printService';
 
 const STORAGE_KEY = 'cj_favoritos';
 
@@ -219,6 +221,24 @@ export default function AreaDeEstudio({ temaOscuro }) {
     return ext.endsWith('.pptx') || ext.endsWith('.ppt') ||
            ext.endsWith('.docx') || ext.endsWith('.doc') ||
            ext.endsWith('.xlsx') || ext.endsWith('.xls');
+  };
+
+  // ============================================================
+  // Preparar items para imprimir el curso actual
+  // ============================================================
+  const prepararArchivosImprimibles = () => {
+    return archivosCurso.map((f) => {
+      const nombreMostrar = f
+        .replace(/\.(pdf|pptx|ppt|docx|doc|xlsx|xls)$/i, '')
+        .replace(/[_-]/g, ' ');
+      const ext = (f.match(/\.([^.]+)$/)?.[1] || 'archivo').toUpperCase();
+      return {
+        titulo: nombreMostrar,
+        subtitulo: esFavorito(f) ? '⭐ Marcado como favorito' : '',
+        meta: '',
+        badge: ext,
+      };
+    });
   };
 
   // ===== Estilos =====
@@ -536,26 +556,44 @@ export default function AreaDeEstudio({ temaOscuro }) {
           </div>
         </div>
         <div className="flex gap-3 items-center">
-          <button onClick={forzarSincronizacion} className="p-2 rounded-full hover:bg-white/10" title="Refrescar">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
-          </button>
-          <button
-            onClick={() => {
-              if (esCarrion) {
-                setNivelIntermedio(null);
-              } else {
-                setCursoActivo('');
-              }
-            }}
-            className={`text-[10px] font-black uppercase border px-4 py-2 rounded-xl transition-all`}
-            style={{
-              borderColor: instActual.colorPrimario + '50',
-              color: instActual.colorPrimario,
-            }}
-          >
-            {esCarrion ? '← Cambiar Ciclo' : '← Cambiar Curso'}
-          </button>
-        </div>
+  <button onClick={forzarSincronizacion} className="p-2 rounded-full hover:bg-white/10" title="Refrescar">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+  </button>
+
+  <PrintButton
+    titulo={`Repositorio — ${tituloNivel}`}
+    subtitulo={cursoMostrar}
+    contenido={catalogoAHtml(prepararArchivosImprimibles())}
+    metadata={{
+      fecha: new Date().toLocaleDateString('es-PE'),
+      autor: 'CJ Fisioterapia',
+      centro: instActual.nombre,
+      extra: [`${archivosCurso.length} documento${archivosCurso.length === 1 ? '' : 's'}`],
+    }}
+    className="text-[10px] font-black uppercase border px-4 py-2 rounded-xl transition-all disabled:opacity-50"
+    icon="🖨️"
+    label="Imprimir lista"
+    disabled={archivosCurso.length === 0}
+    title="Imprimir la lista de documentos del curso actual"
+  />
+
+  <button
+    onClick={() => {
+      if (esCarrion) {
+        setNivelIntermedio(null);
+      } else {
+        setCursoActivo('');
+      }
+    }}
+    className={`text-[10px] font-black uppercase border px-4 py-2 rounded-xl transition-all`}
+    style={{
+      borderColor: instActual.colorPrimario + '50',
+      color: instActual.colorPrimario,
+    }}
+  >
+    {esCarrion ? '← Cambiar Ciclo' : '← Cambiar Curso'}
+  </button>
+</div>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">

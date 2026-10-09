@@ -10,6 +10,9 @@ import { supabase } from '../lib/supabaseClient';
 import FavoritosWidget from '../components/FavoritosWidget';
 import NotificacionesActivador from '../components/NotificacionesActivador';
 import DashboardGerencial from '../components/clinica/DashboardGerencial';
+import { mdAHtml } from '../utils/printService';
+import PrintButton from '../components/PrintButton';
+import { hablar, consultaMencionaVideo } from '../utils/vozService';
 
 export default function Dashboard({ temaOscuro }) {
   const [saludo, setSaludo] = useState('');
@@ -19,7 +22,15 @@ export default function Dashboard({ temaOscuro }) {
   const [fraseMotivacional, setFraseMotivacional] = useState('');
   const [ultimoPDF, setUltimoPDF] = useState(null);
   const [progresoExamenes, setProgresoExamenes] = useState({ promedio: 0, total: 0 });
-  const [historialConversacion, setHistorialConversacion] = useState([]);
+  const [historialConversacion, setHistorialConversacion] = useState(() => {
+  try {
+    const saved = sessionStorage.getItem('cj_aura_chat');
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+});
+const [puedeYouTube, setPuedeYouTube] = useState(false);
   const [generandoFrase, setGenerandoFrase] = useState(false);
   const [resumiendoPDF, setResumiendoPDF] = useState(false);
   const [escuchandoVoz, setEscuchandoVoz] = useState(false);
@@ -48,6 +59,16 @@ export default function Dashboard({ temaOscuro }) {
     window.addEventListener('cj-modo-change', handleChange);
     return () => window.removeEventListener('cj-modo-change', handleChange);
   }, []);
+
+ // Persistir conversación en sessionStorage (últimos 6 mensajes)
+useEffect(() => {
+  try {
+    const ultimos6 = historialConversacion.slice(-6);
+    sessionStorage.setItem('cj_aura_chat', JSON.stringify(ultimos6));
+  } catch (e) {
+    console.warn('No se pudo guardar la conversación:', e);
+  }
+}, [historialConversacion]); 
 
   // ========== CARGAR DATOS DE PERFIL Y KPIs ==========
   const cargarPerfil = async () => {
@@ -87,8 +108,24 @@ export default function Dashboard({ temaOscuro }) {
     }
   };
 
+  // ========== HELPER: procesar markdown inline ==========
+  const escaparHtml = (s) =>
+    String(s ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+  const procesarInline = (texto) => {
+    if (texto == null) return '';
+    let t = escaparHtml(texto);
+    t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    t = t.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    return t;
+  };
+
   // ========== CONVERSIÓN DE TABLAS ==========
   const convertirTablasHTML = (texto) => {
+    if (!texto) return [];
     const lineas = texto.split('\n');
     const resultado = [];
     let i = 0;
@@ -105,14 +142,21 @@ export default function Dashboard({ temaOscuro }) {
         );
         if (celdasPorFila.length > 0) {
           const encabezados = celdasPorFila[0];
-          const datos = celdasPorFila.slice(1);
+          let datos = celdasPorFila.slice(1);
+          if (datos.length > 0 && datos[0].every(c => /^[-:]+$/.test(c))) {
+            datos = datos.slice(1);
+          }
           resultado.push(
             <div key={`table-${i}`} className="overflow-x-auto my-4">
               <table className="min-w-full border-collapse border border-gray-300 dark:border-gray-700 text-sm">
                 <thead>
                   <tr>
                     {encabezados.map((th, idx) => (
-                      <th key={idx} className="border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 p-2 font-bold text-left">{th}</th>
+                      <th
+                        key={idx}
+                        className="border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 p-2 font-bold text-left"
+                        dangerouslySetInnerHTML={{ __html: procesarInline(th) }}
+                      />
                     ))}
                   </tr>
                 </thead>
@@ -120,7 +164,11 @@ export default function Dashboard({ temaOscuro }) {
                   {datos.map((fila, idxFila) => (
                     <tr key={idxFila}>
                       {fila.map((celda, idxCelda) => (
-                        <td key={idxCelda} className="border border-gray-300 dark:border-gray-700 p-2">{celda}</td>
+                        <td
+                          key={idxCelda}
+                          className="border border-gray-300 dark:border-gray-700 p-2"
+                          dangerouslySetInnerHTML={{ __html: procesarInline(celda) }}
+                        />
                       ))}
                     </tr>
                   ))}
@@ -131,10 +179,8 @@ export default function Dashboard({ temaOscuro }) {
           continue;
         }
       } else {
-        let lineaProcesada = linea;
-        lineaProcesada = lineaProcesada.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-        lineaProcesada = lineaProcesada.replace(/\*(.+?)\*/g, '<em>$1</em>');
-        if (lineaProcesada.trim() === '') {
+        const lineaProcesada = procesarInline(linea);
+        if (!linea.trim()) {
           resultado.push(<br key={`br-${i}`} />);
         } else {
           resultado.push(<p key={`p-${i}`} className="my-2" dangerouslySetInnerHTML={{ __html: lineaProcesada }} />);
@@ -282,21 +328,46 @@ export default function Dashboard({ temaOscuro }) {
   };
 
   const ejecutarConsultaIA = async (texto = null) => {
-    const consulta = texto !== null ? texto : busqueda;
-    if (!consulta.trim()) return;
-    setCargandoIA(true);
-    setRespuestaIA('');
-    const ultimoPDFAlmacenado = localStorage.getItem('ultimo_pdf_visto');
-    let contextoCompleto = { ...contexto };
-    if (ultimoPDFAlmacenado) contextoCompleto.ultimoPDF = JSON.parse(ultimoPDFAlmacenado);
-    const historialLimitado = historialConversacion.slice(-4);
-    let respuestaRaw = await consultarAuraIA(consulta, contextoCompleto, historialLimitado);
-    respuestaRaw = limpiarRespuesta(respuestaRaw);
-    setHistorialConversacion(prev => [...prev.slice(-4), { role: 'user', content: consulta }, { role: 'assistant', content: respuestaRaw }]);
-    setRespuestaIA(respuestaRaw);
-    setBusqueda('');
-    setCargandoIA(false);
-  };
+  const consulta = texto !== null ? texto : busqueda;
+  if (!consulta.trim()) return;
+  setCargandoIA(true);
+  setRespuestaIA('');
+
+  const ultimoPDFAlmacenado = localStorage.getItem('ultimo_pdf_visto');
+  let contextoCompleto = { ...contexto };
+  if (ultimoPDFAlmacenado) contextoCompleto.ultimoPDF = JSON.parse(ultimoPDFAlmacenado);
+
+  // Memoria de 6 mensajes (3 user + 3 assistant)
+  const historialLimitado = historialConversacion.slice(-6);
+
+  let respuestaRaw = await consultarAuraIA(consulta, contextoCompleto, historialLimitado);
+  respuestaRaw = limpiarRespuesta(respuestaRaw);
+
+  // Guardar solo los últimos 6
+  setHistorialConversacion(prev =>
+    [...prev, { role: 'user', content: consulta }, { role: 'assistant', content: respuestaRaw }].slice(-6)
+  );
+
+  // ¿Mostrar botón YouTube contextual?
+  const mencionaVideo =
+    consultaMencionaVideo(consulta) || consultaMencionaVideo(respuestaRaw);
+  setPuedeYouTube(mencionaVideo);
+
+  setRespuestaIA(respuestaRaw);
+  setBusqueda('');
+  setCargandoIA(false);
+};
+
+// Nueva conversación
+const nuevaConversacion = () => {
+  setHistorialConversacion([]);
+  setRespuestaIA('');
+  setPuedeYouTube(false);
+  try {
+    sessionStorage.removeItem('cj_aura_chat');
+  } catch (_) { /* noop */ }
+  console.log('🔄 Conversación reiniciada');
+};
 
   const buscarReferencias = () => {
     if (!busqueda && !respuestaIA) return;
@@ -391,9 +462,23 @@ export default function Dashboard({ temaOscuro }) {
 
         <section className={`${bgTarjeta} p-6 rounded-3xl border transition-all`}>
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-10 h-10 rounded-full bg-[#22d3ee] flex items-center justify-center animate-pulse"><span className="text-white text-xl">✨</span></div>
-            <div><h2 className={`text-sm font-black uppercase tracking-tighter ${textoColor}`}>Oráculo Aura IA</h2><p className="text-[10px] text-gray-500 font-bold">CONSULTA CLÍNICA INSTANTÁNEA</p></div>
-          </div>
+  <div className="w-10 h-10 rounded-full bg-[#22d3ee] flex items-center justify-center animate-pulse">
+    <span className="text-white text-xl">✨</span>
+  </div>
+  <div className="flex-1">
+    <h2 className={`text-sm font-black uppercase tracking-tighter ${textoColor}`}>Oráculo Aura IA</h2>
+    <p className="text-[10px] text-gray-500 font-bold">CONSULTA CLÍNICA INSTANTÁNEA</p>
+  </div>
+  {historialConversacion.length > 0 && (
+    <button
+      onClick={nuevaConversacion}
+      className="px-3 py-1.5 rounded-full bg-purple-600/20 border border-purple-500/40 text-purple-400 text-[10px] font-black uppercase tracking-wider hover:bg-purple-600/30 transition-all"
+      title="Borrar memoria del chat (últimos 6 mensajes)"
+    >
+      🔄 Nueva conversación
+    </button>
+  )}
+</div>
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <textarea value={busqueda} onChange={handleTextareaChange} onKeyDown={handleKeyDown} placeholder="¿Qué patología o protocolo revisamos hoy?" className={`w-full ${bgInput} border p-4 rounded-2xl outline-none focus:border-[#22d3ee] transition-all text-sm ${textoColor} resize-none overflow-hidden min-h-[60px]`} rows={1} style={{ height: 'auto' }} />
@@ -404,10 +489,52 @@ export default function Dashboard({ temaOscuro }) {
           {respuestaIA && (
             <div className="mt-6 p-5 rounded-2xl bg-[#22d3ee]/5 border border-[#22d3ee]/20 backdrop-blur-sm relative">
               <div className="flex gap-2 absolute top-2 right-2">
-                <button onClick={leerRespuesta} className={`p-2 rounded-full ${reproduciendoAudio ? (audioPausado ? 'bg-yellow-600' : 'bg-green-800') : 'bg-green-600'} text-white hover:bg-opacity-80 transition-all`}>{reproduciendoAudio ? (audioPausado ? '▶️' : '⏸️') : '🔊'}</button>
-                <button onClick={buscarReferencias} className="p-2 rounded-full bg-yellow-600 text-white hover:bg-yellow-700 transition-all">📺</button>
-              </div>
-              <div className={`prose prose-sm max-w-none ${temaOscuro ? 'prose-invert' : ''} mt-6`}>{convertirTablasHTML(respuestaIA)}</div>
+  {/* Voz */}
+  <button
+    onClick={() =>
+      hablar(respuestaIA, {
+        onStart: () => { setReproduciendoAudio(true); setAudioPausado(false); },
+        onEnd: () => { setReproduciendoAudio(false); setAudioPausado(false); },
+        onError: () => { setReproduciendoAudio(false); setAudioPausado(false); },
+        onPause: () => { setAudioPausado(true); setReproduciendoAudio(true); },
+        onResume: () => { setAudioPausado(false); setReproduciendoAudio(true); },
+      })
+    }
+    className={`p-2 rounded-full ${reproduciendoAudio ? (audioPausado ? 'bg-yellow-600' : 'bg-green-800') : 'bg-green-600'} text-white hover:bg-opacity-80 transition-all`}
+    title={reproduciendoAudio ? (audioPausado ? 'Reanudar' : 'Pausar') : 'Leer respuesta'}
+  >
+    {reproduciendoAudio ? (audioPausado ? '▶️' : '⏸️') : '🔊'}
+  </button>
+
+  {/* YouTube contextual (solo si aplica) */}
+  {puedeYouTube && (
+    <button
+      onClick={buscarReferencias}
+      className="p-2 rounded-full bg-yellow-600 text-white hover:bg-yellow-700 transition-all"
+      title="Buscar en YouTube"
+    >
+      📺
+    </button>
+  )}
+
+  {/* Imprimir */}
+  <PrintButton
+    titulo="Consulta — Oráculo Aura IA"
+    subtitulo={busqueda ? `Consulta: ${busqueda.slice(0, 80)}` : ''}
+    contenido={mdAHtml(respuestaIA)}
+    metadata={{
+      fecha: new Date().toLocaleDateString('es-PE'),
+      autor: 'Aura IA',
+      centro: 'CJ Fisioterapia',
+    }}
+    className="p-2 rounded-full bg-red-600 text-white hover:bg-red-700 transition-all"
+    title="Imprimir / Guardar como PDF"
+  />
+</div>
+              <div
+  className={`prose prose-sm max-w-none ${temaOscuro ? 'prose-invert' : ''} mt-6`}
+  dangerouslySetInnerHTML={{ __html: mdAHtml(respuestaIA) }}
+/>
             </div>
           )}
         </section>
@@ -479,12 +606,23 @@ export default function Dashboard({ temaOscuro }) {
 {/* ==================== ORÁCULO IA (visible siempre) ==================== */}
       <section className={`${bgTarjeta} p-6 rounded-3xl border transition-all`}>
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-10 h-10 rounded-full bg-[#22d3ee] flex items-center justify-center animate-pulse"><span className="text-white text-xl">✨</span></div>
-          <div>
-            <h2 className={`text-sm font-black uppercase tracking-tighter ${textoColor}`}>Oráculo Aura IA</h2>
-            <p className="text-[10px] text-gray-500 font-bold">CONSULTA CLÍNICA INSTANTÁNEA</p>
-          </div>
-        </div>
+  <div className="w-10 h-10 rounded-full bg-[#22d3ee] flex items-center justify-center animate-pulse">
+    <span className="text-white text-xl">✨</span>
+  </div>
+  <div className="flex-1">
+    <h2 className={`text-sm font-black uppercase tracking-tighter ${textoColor}`}>Oráculo Aura IA</h2>
+    <p className="text-[10px] text-gray-500 font-bold">CONSULTA CLÍNICA INSTANTÁNEA</p>
+  </div>
+  {historialConversacion.length > 0 && (
+    <button
+      onClick={nuevaConversacion}
+      className="px-3 py-1.5 rounded-full bg-purple-600/20 border border-purple-500/40 text-purple-400 text-[10px] font-black uppercase tracking-wider hover:bg-purple-600/30 transition-all"
+      title="Borrar memoria del chat (últimos 6 mensajes)"
+    >
+      🔄 Nueva conversación
+    </button>
+  )}
+</div>
 
         {(contexto.ciclo || contexto.materia || contexto.archivo) && (
           <div className={`mb-4 p-3 rounded-xl border ${bgContexto} text-xs font-mono flex flex-wrap gap-2 items-center`}>
@@ -527,17 +665,53 @@ export default function Dashboard({ temaOscuro }) {
         {respuestaIA && (
           <div className="mt-6 p-5 rounded-2xl bg-[#22d3ee]/5 border border-[#22d3ee]/20 backdrop-blur-sm relative">
             <div className="flex gap-2 absolute top-2 right-2">
-              <button
-                onClick={leerRespuesta}
-                className={`p-2 rounded-full ${reproduciendoAudio ? (audioPausado ? 'bg-yellow-600' : 'bg-green-800') : 'bg-green-600'} text-white hover:bg-opacity-80 transition-all`}
-                title={reproduciendoAudio ? (audioPausado ? 'Reanudar' : 'Pausar') : 'Leer respuesta'}
-              >
-                {reproduciendoAudio ? (audioPausado ? '▶️' : '⏸️') : '🔊'}
-              </button>
-              <button onClick={buscarReferencias} className="p-2 rounded-full bg-yellow-600 text-white hover:bg-yellow-700 transition-all" title="Buscar en YouTube">📺</button>
-            </div>
+  {/* Voz */}
+  <button
+    onClick={() =>
+      hablar(respuestaIA, {
+        onStart: () => { setReproduciendoAudio(true); setAudioPausado(false); },
+        onEnd: () => { setReproduciendoAudio(false); setAudioPausado(false); },
+        onError: () => { setReproduciendoAudio(false); setAudioPausado(false); },
+        onPause: () => { setAudioPausado(true); setReproduciendoAudio(true); },
+        onResume: () => { setAudioPausado(false); setReproduciendoAudio(true); },
+      })
+    }
+    className={`p-2 rounded-full ${reproduciendoAudio ? (audioPausado ? 'bg-yellow-600' : 'bg-green-800') : 'bg-green-600'} text-white hover:bg-opacity-80 transition-all`}
+    title={reproduciendoAudio ? (audioPausado ? 'Reanudar' : 'Pausar') : 'Leer respuesta'}
+  >
+    {reproduciendoAudio ? (audioPausado ? '▶️' : '⏸️') : '🔊'}
+  </button>
+
+  {/* YouTube contextual (solo si aplica) */}
+  {puedeYouTube && (
+    <button
+      onClick={buscarReferencias}
+      className="p-2 rounded-full bg-yellow-600 text-white hover:bg-yellow-700 transition-all"
+      title="Buscar en YouTube"
+    >
+      📺
+    </button>
+  )}
+
+  {/* Imprimir */}
+  <PrintButton
+    titulo="Consulta — Oráculo Aura IA"
+    subtitulo={busqueda ? `Consulta: ${busqueda.slice(0, 80)}` : ''}
+    contenido={mdAHtml(respuestaIA)}
+    metadata={{
+      fecha: new Date().toLocaleDateString('es-PE'),
+      autor: 'Aura IA',
+      centro: 'CJ Fisioterapia',
+    }}
+    className="p-2 rounded-full bg-red-600 text-white hover:bg-red-700 transition-all"
+    title="Imprimir / Guardar como PDF"
+  />
+</div>
             <div className={`prose prose-sm max-w-none ${temaOscuro ? 'prose-invert' : ''} mt-6`}>
-              {convertirTablasHTML(respuestaIA)}
+              <div
+  className={`prose prose-sm max-w-none ${temaOscuro ? 'prose-invert' : ''} mt-6`}
+  dangerouslySetInnerHTML={{ __html: mdAHtml(respuestaIA) }}
+/>
             </div>
           </div>
         )}

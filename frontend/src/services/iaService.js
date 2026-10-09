@@ -110,7 +110,7 @@ export const consultarAuraIA = async (pregunta, contexto = {}, historial = [], s
           model: MODELO,
           messages: messages,
           temperature: 0.4,
-          max_tokens: 2000,
+          max_tokens: 4000,
         }),
       });
 

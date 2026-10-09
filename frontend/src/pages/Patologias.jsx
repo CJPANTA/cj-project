@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { consultarAuraIA } from '../services/iaService';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import html2canvas from 'html2canvas-pro';
-import jsPDF from 'jspdf';
+import PrintButton from '../components/PrintButton';
+import { mdAHtml } from '../utils/printService';
+import { hablar } from '../utils/vozService';
 
 const FAVORITOS_PATOLOGIAS_KEY = 'cj_favoritos_patologias';
 const PATOLOGIAS_GENERADAS_KEY = 'cj_patologias_generadas';
@@ -24,7 +25,22 @@ export default function Patologias({ temaOscuro }) {
   const [reproduciendoAudio, setReproduciendoAudio] = useState(false);
   const [audioPausado, setAudioPausado] = useState(false);
   const [buscandoAutomatico, setBuscandoAutomatico] = useState(false);
-  const [exportandoPDF, setExportandoPDF] = useState(false);
+
+  // ========== HELPER: procesar markdown inline ==========
+  const escaparHtml = (s) =>
+    String(s ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+  const procesarInline = (texto) => {
+    if (texto == null) return '';
+    let t = escaparHtml(texto);
+    t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    t = t.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    return t;
+  };
+
 
   // ========== FUNCIÓN DE CONVERSIÓN DE TABLAS ==========
   const convertirTablasHTML = (texto) => {
@@ -62,15 +78,13 @@ export default function Patologias({ temaOscuro }) {
                 <thead>
                   <tr>
                     {encabezados.map((th, idx) => (
-                      <th key={idx} className="border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 p-2 font-bold text-left" style={{ 
+                                            <th key={idx} className="border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 p-2 font-bold text-left" style={{ 
                         padding: '6px 10px', 
                         whiteSpace: 'normal',
                         wordBreak: 'break-word',
                         maxWidth: '180px',
                         color: '#000000'
-                      }}>
-                        {th}
-                      </th>
+                      }} dangerouslySetInnerHTML={{ __html: procesarInline(th) }} />
                     ))}
                   </tr>
                 </thead>
@@ -78,15 +92,13 @@ export default function Patologias({ temaOscuro }) {
                   {datos.map((fila, idxFila) => (
                     <tr key={idxFila}>
                       {fila.map((celda, idxCelda) => (
-                        <td key={idxCelda} className="border border-gray-300 dark:border-gray-700 p-2" style={{ 
+                                                <td key={idxCelda} className="border border-gray-300 dark:border-gray-700 p-2" style={{ 
                           padding: '6px 10px', 
                           wordBreak: 'break-word', 
                           maxWidth: '180px',
                           whiteSpace: 'normal',
                           color: '#000000'
-                        }}>
-                          {celda}
-                        </td>
+                        }} dangerouslySetInnerHTML={{ __html: procesarInline(celda) }} />
                       ))}
                     </tr>
                   ))}
@@ -290,280 +302,6 @@ export default function Patologias({ temaOscuro }) {
     }
   };
 
-  // ========== AUDIO ==========
-  const reproducirTexto = useCallback((texto) => {
-    if (!texto) return;
-    let limpio = texto
-      .replace(/\*\*/g, '')
-      .replace(/\*/g, '')
-      .replace(/#{1,6}\s/g, '')
-      .replace(/\[.*?\]\(.*?\)/g, '')
-      .replace(/[^\w\s.,;:áéíóúüñÑ¿?¡!()\-]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-
-    if ('speechSynthesis' in window) {
-      if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
-        window.speechSynthesis.pause();
-        setAudioPausado(true);
-        setReproduciendoAudio(true);
-        return;
-      }
-      if (window.speechSynthesis.paused) {
-        window.speechSynthesis.resume();
-        setAudioPausado(false);
-        setReproduciendoAudio(true);
-        return;
-      }
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(limpio);
-      utterance.lang = 'es-ES';
-      utterance.rate = 0.9;
-      utterance.onstart = () => {
-        setReproduciendoAudio(true);
-        setAudioPausado(false);
-      };
-      utterance.onend = () => {
-        setReproduciendoAudio(false);
-        setAudioPausado(false);
-      };
-      utterance.onerror = () => {
-        setReproduciendoAudio(false);
-        setAudioPausado(false);
-      };
-      window.speechSynthesis.speak(utterance);
-    } else {
-      alert('Tu navegador no soporta síntesis de voz.');
-    }
-  }, []);
-
-  // ========== EXPORTAR PDF CON SALTO DE PÁGINA Y PIE DE PÁGINA CORREGIDO ==========
-  const exportarPDF = async () => {
-    if (!protocoloGenerado) {
-      alert('No hay protocolo para exportar.');
-      return;
-    }
-
-    setExportandoPDF(true);
-    const botonPDF = document.querySelector('button[title="Exportar a PDF"]');
-    if (botonPDF) botonPDF.textContent = '⏳';
-
-    try {
-      // 1. Construir HTML limpio
-      const contenedor = document.createElement('div');
-      contenedor.style.position = 'fixed';
-      contenedor.style.left = '-9999px';
-      contenedor.style.top = '0';
-      contenedor.style.width = '850px';
-      contenedor.style.backgroundColor = '#ffffff';
-      contenedor.style.color = '#000000';
-      contenedor.style.padding = '40px 50px';
-      contenedor.style.fontFamily = 'Arial, Helvetica, sans-serif';
-      contenedor.style.fontSize = '14px';
-      contenedor.style.lineHeight = '1.7';
-      contenedor.style.boxSizing = 'border-box';
-
-      const styles = `
-        h1 { font-size: 24px; font-weight: bold; margin: 0 0 10px 0; color: #000000; }
-        h2 { font-size: 20px; font-weight: bold; margin: 18px 0 6px 0; color: #000000; }
-        h3 { font-size: 18px; font-weight: bold; margin: 14px 0 4px 0; color: #000000; }
-        p { margin: 6px 0; color: #000000; }
-        table { width: auto; min-width: 650px; border-collapse: collapse; font-size: 13px; margin: 14px 0; border: 1px solid #cccccc; }
-        th { border: 1px solid #cccccc; padding: 8px 12px; background-color: #f0f0f0; font-weight: bold; text-align: left; color: #000000; }
-        td { border: 1px solid #cccccc; padding: 8px 12px; word-break: break-word; max-width: 200px; color: #000000; }
-        strong { color: #000000; }
-        ul { margin: 6px 0; padding-left: 24px; }
-        li { color: #000000; margin-bottom: 2px; }
-        hr { border: 1px solid #ddd; margin: 16px 0; }
-      `;
-
-      let htmlContent = `
-        <style>${styles}</style>
-        <h1>Protocolo de atención</h1>
-        <h2>${patologiaSeleccionada?.nombre || 'Patología'}</h2>
-        <p style="font-size:13px; color:#666; margin-bottom:18px;">Sistema: ${patologiaSeleccionada?.sistema || 'No clasificado'}</p>
-        <hr>
-      `;
-
-      const lineas = protocoloGenerado.split('\n');
-      let enTabla = false;
-      let filasTabla = [];
-
-      for (let linea of lineas) {
-        linea = linea.trim();
-        if (linea.startsWith('|') && linea.endsWith('|')) {
-          enTabla = true;
-          filasTabla.push(linea);
-        } else {
-          if (enTabla) {
-            if (filasTabla.length > 0) {
-              const celdasPorFila = filasTabla.map(fila =>
-                fila.split('|').slice(1, -1).map(celda => celda.trim())
-              );
-              const encabezados = celdasPorFila[0];
-              let datos = celdasPorFila.slice(1);
-              if (datos.length > 0 && datos[0].every(celda => /^[-:]+$/.test(celda))) {
-                datos = datos.slice(1);
-              }
-              htmlContent += '<table>';
-              htmlContent += '<thead><tr>';
-              for (let th of encabezados) {
-                htmlContent += `<th>${th}</th>`;
-              }
-              htmlContent += '</tr></thead><tbody>';
-              for (let fila of datos) {
-                htmlContent += '<tr>';
-                for (let celda of fila) {
-                  htmlContent += `<td>${celda}</td>`;
-                }
-                htmlContent += '</tr>';
-              }
-              htmlContent += '</tbody></table>';
-              filasTabla = [];
-              enTabla = false;
-            }
-            if (linea) {
-              let texto = linea
-                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*(.+?)\*/g, '<em>$1</em>')
-                .replace(/^### (.+)$/, '<h3>$1</h3>')
-                .replace(/^## (.+)$/, '<h2>$1</h2>')
-                .replace(/^# (.+)$/, '<h1>$1</h1>');
-              htmlContent += `<p>${texto}</p>`;
-            }
-          } else {
-            if (linea) {
-              let texto = linea
-                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*(.+?)\*/g, '<em>$1</em>')
-                .replace(/^### (.+)$/, '<h3>$1</h3>')
-                .replace(/^## (.+)$/, '<h2>$1</h2>')
-                .replace(/^# (.+)$/, '<h1>$1</h1>');
-              htmlContent += `<p>${texto}</p>`;
-            } else {
-              htmlContent += '<br>';
-            }
-          }
-        }
-      }
-      if (enTabla && filasTabla.length > 0) {
-        const celdasPorFila = filasTabla.map(fila =>
-          fila.split('|').slice(1, -1).map(celda => celda.trim())
-        );
-        const encabezados = celdasPorFila[0];
-        let datos = celdasPorFila.slice(1);
-        if (datos.length > 0 && datos[0].every(celda => /^[-:]+$/.test(celda))) {
-          datos = datos.slice(1);
-        }
-        htmlContent += '<table>';
-        htmlContent += '<thead><tr>';
-        for (let th of encabezados) {
-          htmlContent += `<th>${th}</th>`;
-        }
-        htmlContent += '</tr></thead><tbody>';
-        for (let fila of datos) {
-          htmlContent += '<tr>';
-          for (let celda of fila) {
-            htmlContent += `<td>${celda}</td>`;
-          }
-          htmlContent += '</tr>';
-        }
-        htmlContent += '</tbody></table>';
-      }
-
-      contenedor.innerHTML = htmlContent;
-      document.body.appendChild(contenedor);
-
-      // 2. Capturar con html2canvas-pro
-      const canvas = await html2canvas(contenedor, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-        width: 850,
-        height: contenedor.scrollHeight,
-        windowWidth: 850,
-        windowHeight: contenedor.scrollHeight
-      });
-
-      document.body.removeChild(contenedor);
-
-      // 3. Crear PDF con salto de página y PIE DE PÁGINA CORREGIDO
-      const imgData = canvas.toDataURL('image/png');
-      const doc = new jsPDF('portrait', 'mm', 'a4');
-      const pdfWidth = 210;
-      const pdfHeight = 297;
-      
-      // Márgenes
-      const marginTop = 15;
-      const marginBottom = 22; // <-- AUMENTADO DE 15 A 20 mm para dar espacio al pie
-      const marginLeft = 12;
-      const marginRight = 12;
-      
-      const usableWidth = pdfWidth - marginLeft - marginRight;
-      const usableHeight = pdfHeight - marginTop - marginBottom;
-      
-      const imgWidth = usableWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      // Calcular número de páginas
-      const totalPages = Math.ceil(imgHeight / usableHeight);
-      
-      // Recortar y añadir cada página con margen inferior
-      for (let page = 0; page < totalPages; page++) {
-        if (page > 0) {
-          doc.addPage('portrait');
-        }
-        
-        // Calcular el desplazamiento Y
-        const yOffset = page * usableHeight;
-        
-        // Calcular la altura a mostrar en esta página (con margen inferior)
-        let pageHeight = usableHeight;
-        // Si es la última página, usar solo lo que queda
-        if (page === totalPages - 1) {
-          pageHeight = imgHeight - yOffset;
-        }
-        
-        // Crear un canvas temporal para recortar la parte correspondiente
-        const tempCanvas = document.createElement('canvas');
-        const scaleX = canvas.width / 850;
-        const tempWidth = canvas.width;
-        const tempHeight = pageHeight * (canvas.width / imgWidth);
-        
-        tempCanvas.width = tempWidth;
-        tempCanvas.height = tempHeight;
-        const ctx = tempCanvas.getContext('2d');
-        ctx.drawImage(
-          canvas,
-          0,
-          yOffset * (canvas.width / imgWidth),
-          canvas.width,
-          tempHeight,
-          0,
-          0,
-          tempWidth,
-          tempHeight
-        );
-        
-        const croppedData = tempCanvas.toDataURL('image/png');
-        const croppedHeight = (tempHeight * imgWidth) / tempWidth;
-        
-        // Añadir la imagen con margen superior (el inferior ya está incluido porque la altura de página es menor)
-        doc.addImage(croppedData, 'PNG', marginLeft, marginTop, imgWidth, croppedHeight);
-      }
-
-      doc.save(`protocolo_${patologiaSeleccionada?.nombre?.replace(/\s+/g, '_') || 'patologia'}.pdf`);
-
-    } catch (error) {
-      console.error('❌ Error al exportar PDF:', error);
-      alert('Error al exportar PDF. Prueba con "Guardar como" del navegador (Ctrl+P).\n' + error.message);
-    } finally {
-      setExportandoPDF(false);
-      const botonPDF = document.querySelector('button[title="Exportar a PDF"]');
-      if (botonPDF) botonPDF.textContent = '📄';
-    }
-  };
 
   // ========== RENDERIZADO ==========
   const bgPrincipal = temaOscuro ? 'bg-[#020813]' : 'bg-[#f1f5f9]';
@@ -761,22 +499,36 @@ export default function Patologias({ temaOscuro }) {
                 <div className="flex justify-between items-center mb-2">
                   <h3 className={`text-sm font-bold ${textoColor}`}>Protocolo de atención</h3>
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => reproducirTexto(protocoloGenerado)}
-                      className={`p-2 rounded-full ${reproduciendoAudio ? (audioPausado ? 'bg-yellow-600' : 'bg-green-800') : 'bg-green-600'} text-white hover:bg-opacity-80 transition-all`}
-                      title={reproduciendoAudio ? (audioPausado ? 'Reanudar' : 'Pausar') : 'Leer'}
-                    >
-                      {reproduciendoAudio ? (audioPausado ? '▶️' : '⏸️') : '🔊'}
-                    </button>
-                    <button
-                      onClick={exportarPDF}
-                      disabled={exportandoPDF}
-                      className="p-2 rounded-full bg-red-600 text-white hover:bg-red-700 transition-all disabled:opacity-50"
-                      title="Exportar a PDF"
-                    >
-                      {exportandoPDF ? '⏳' : '📄'}
-                    </button>
-                  </div>
+  <button
+  onClick={() => {
+    // Si ya está reproduciendo o pausado, delegar al service
+    hablar(protocoloGenerado, {
+      onStart: () => { setReproduciendoAudio(true); setAudioPausado(false); },
+      onEnd: () => { setReproduciendoAudio(false); setAudioPausado(false); },
+      onError: () => { setReproduciendoAudio(false); setAudioPausado(false); },
+      onPause: () => { setAudioPausado(true); setReproduciendoAudio(true); },
+      onResume: () => { setAudioPausado(false); setReproduciendoAudio(true); },
+    });
+  }}
+  className={`p-2 rounded-full ${reproduciendoAudio ? (audioPausado ? 'bg-yellow-600' : 'bg-green-800') : 'bg-green-600'} text-white hover:bg-opacity-80 transition-all`}
+  title={reproduciendoAudio ? (audioPausado ? 'Reanudar' : 'Pausar') : 'Leer'}
+>
+  {reproduciendoAudio ? (audioPausado ? '▶️' : '⏸️') : '🔊'}
+</button>
+
+  <PrintButton
+    titulo={`Protocolo — ${patologiaSeleccionada?.nombre || 'Patología'}`}
+    subtitulo={`Sistema: ${patologiaSeleccionada?.sistema || 'No clasificado'}`}
+    contenido={mdAHtml(protocoloGenerado)}
+    metadata={{
+      fecha: new Date().toLocaleDateString('es-PE'),
+      autor: 'Aura IA',
+      centro: 'CJ Fisioterapia',
+    }}
+    className="p-2 rounded-full bg-red-600 text-white hover:bg-red-700 transition-all disabled:opacity-50"
+    title="Imprimir / Guardar como PDF"
+  />
+</div>
                 </div>
                 <div
                   id="protocolo-contenido"
