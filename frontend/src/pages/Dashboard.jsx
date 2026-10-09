@@ -26,6 +26,7 @@ export default function Dashboard({ temaOscuro }) {
   const [reproduciendoAudio, setReproduciendoAudio] = useState(false);
   const [audioPausado, setAudioPausado] = useState(false);
   const [nombreUsuario, setNombreUsuario] = useState('');
+  const [nickname, setNickname] = useState('');
   const [rolUsuario, setRolUsuario] = useState(null);
   const [centroId, setCentroId] = useState(null);
   const [kpisClinicos, setKpisClinicos] = useState({ pacientesActivos: 0, evaluacionesPendientes: 0, citasHoy: 0 });
@@ -54,11 +55,12 @@ export default function Dashboard({ temaOscuro }) {
     if (!user) return;
     const { data: perfil } = await supabase
       .from('profiles')
-      .select('nombre_completo, rol, centro_id')
+      .select('nombre_completo, rol, centro_id, nickname')
       .eq('id', user.id)
       .single();
     if (perfil) {
       setNombreUsuario(perfil.nombre_completo || 'Usuario');
+      setNickname(perfil.nickname || '');
       setRolUsuario(perfil.rol);
       setCentroId(perfil.centro_id || null);
       if (perfil.centro_id) {
@@ -324,6 +326,11 @@ export default function Dashboard({ temaOscuro }) {
   const bgContexto = temaOscuro ? 'bg-[#22d3ee]/10 border-[#22d3ee]/30 text-[#22d3ee]' : 'bg-blue-50 border-blue-200 text-blue-700';
   const porcentaje = progresoExamenes.promedio;
 
+    // Nombre a mostrar en el saludo: nickname > primer nombre > nombre completo
+  const nombreMostrado = nickname?.trim()
+    || (nombreUsuario || '').split(/\s+/)[0]
+    || 'Usuario';
+
   const IconRefresh = () => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>);
   const IconSummarize = () => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-5.25 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0z" /></svg>);
   const IconChat = () => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.136-.848-2.1-1.98-2.193a48.572 48.572 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286m0 0c.078.057.158.112.24.166" /></svg>);
@@ -336,7 +343,7 @@ export default function Dashboard({ temaOscuro }) {
       <main className="flex flex-col gap-8 p-4 md:p-8 max-w-7xl mx-auto w-full">
         <header className="flex flex-col gap-2">
           <div>
-            <h1 className={`text-4xl font-black tracking-tighter ${textoColor}`}>{saludo}, <span className="text-[#22d3ee]">{nombreUsuario || 'Paciente'}</span></h1>
+            <h1 className={`text-4xl font-black tracking-tighter ${textoColor}`}>{saludo}, <span className="text-[#22d3ee]">{nombreMostrado}</span></h1>
             <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Mi Espacio Personal</p>
           </div>
         </header>
@@ -363,7 +370,7 @@ export default function Dashboard({ temaOscuro }) {
         <header className="flex flex-col gap-2">
           <div className="flex justify-between items-start flex-wrap gap-2">
             <div>
-              <h1 className={`text-4xl font-black tracking-tighter ${textoColor}`}>{saludo}, <span className="text-[#22d3ee]">{nombreUsuario || 'Usuario'}</span></h1>
+              <h1 className={`text-4xl font-black tracking-tighter ${textoColor}`}>{saludo}, <span className="text-[#22d3ee]">{nombreMostrado}</span></h1>
               <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Dashboard Clínico</p>
               {centroId && (
                 <p className="text-[10px] text-emerald-400 font-mono font-bold">Centro: {centroId}</p>
@@ -454,7 +461,7 @@ export default function Dashboard({ temaOscuro }) {
       <header className="flex flex-col gap-2">
         <div className="flex justify-between items-start flex-wrap gap-2">
           <div>
-            <h1 className={`text-4xl font-black tracking-tighter ${textoColor}`}>{saludo}, <span className="text-[#22d3ee]">{nombreUsuario || 'Usuario'}</span></h1>
+            <h1 className={`text-4xl font-black tracking-tighter ${textoColor}`}>{saludo}, <span className="text-[#22d3ee]">{nombreMostrado}</span></h1>
             <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">
               {modoNavegacion === 'clinica' ? 'Modo Clínica' : 'Modo Academia'}
             </p>

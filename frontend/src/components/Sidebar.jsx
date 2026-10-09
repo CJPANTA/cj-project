@@ -10,6 +10,7 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
 
   const [rolUsuario, setRolUsuario] = useState(null);
   const [nombreUsuario, setNombreUsuario] = useState('');
+  const [nickname, setNickname] = useState('');
   const [centroId, setCentroId] = useState(null);
     const [modoNavegacion, setModoNavegacion] = useState(() => {
     return localStorage.getItem('cj_modo_navegacion') || 'academia';
@@ -30,12 +31,13 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
         if (user) {
           const { data: perfil } = await supabase
             .from('profiles')
-            .select('rol, nombre_completo, centro_id')
+            .select('rol, nombre_completo, centro_id, nickname')
             .eq('id', user.id)
             .single();
           if (perfil) {
             setRolUsuario(perfil.rol);
             setNombreUsuario(perfil.nombre_completo || 'Usuario');
+            setNickname(perfil.nickname || '');
             setCentroId(perfil.centro_id || null);
             if ([3, 5, 6, 7, 8].includes(perfil.rol)) {
               setModoNavegacion('clinica');
@@ -252,7 +254,9 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
               {nombreUsuario.charAt(0).toUpperCase()}
             </div>
             <div>
-              <p className={`text-[11px] font-bold ${textoPrincipal} uppercase leading-none`}>{nombreUsuario || 'Usuario'}</p>
+                            <p className={`text-[11px] font-bold ${textoPrincipal} uppercase leading-none`}>
+                {nickname?.trim() || (nombreUsuario || 'Usuario').split(/\s+/)[0]}
+              </p>
               <p className="text-[8px] text-[#10b981] font-black uppercase tracking-widest">{getRolLabel(rolUsuario)}</p>
               {centroId && (
                 <p className="text-[7px] text-gray-400 font-mono uppercase tracking-wider mt-0.5">Centro: {centroId}</p>

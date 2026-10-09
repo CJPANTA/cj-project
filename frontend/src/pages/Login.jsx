@@ -50,6 +50,7 @@ export default function Login() {
   const [nombre, setNombre] = useState('');
   const [apellidos, setApellidos] = useState('');
   const [telefono, setTelefono] = useState('');
+  const [nickname, setNickname] = useState('');
   const [tipoDocumento, setTipoDocumento] = useState('DNI');
   const [numeroDocumento, setNumeroDocumento] = useState('');
   const [ctmp, setCtmp] = useState('');
@@ -260,6 +261,7 @@ export default function Login() {
           numero_colegiatura: ctmp || null,
           registro_interno: registroInterno || null,
           telefono: telefono || null,
+          nickname: nickname.trim() || null,
           email_corporativo: emailCorporativo,
           centro_id: requiereSelectorCentro ? centroSeleccionado : null,
         };
@@ -284,7 +286,7 @@ export default function Login() {
 
       // Limpiar formulario
       setEsRegistro(false);
-      setNombre(''); setApellidos(''); setTelefono('');
+      setNombre(''); setApellidos(''); setTelefono(''); setNickname('');
       setTipoDocumento('DNI'); setNumeroDocumento('');
       setCtmp(''); setRegistroInterno(''); setPassword('');
       setRolDeseado(2); setTipoProfesionalAdmin('licenciado');
@@ -709,6 +711,22 @@ export default function Login() {
                   </p>
                 </div>
               )}
+
+                            {/* NICKNAME */}
+              <div>
+                <label className={labelClass}>Nickname (opcional)</label>
+                <input
+                  type="text"
+                  placeholder="Ej: Chino"
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value.replace(/\s+/g, '').slice(0, 15))}
+                  className={inputClass}
+                  maxLength={15}
+                />
+                <p className={helpClass}>
+                  Cómo quieres que te saludemos. Si lo dejas vacío usaremos tu primer nombre.
+                </p>
+              </div>
 
               {/* TELÉFONO */}
               <div>
