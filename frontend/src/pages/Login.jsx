@@ -54,7 +54,6 @@ export default function Login() {
   const [tipoDocumento, setTipoDocumento] = useState('DNI');
   const [numeroDocumento, setNumeroDocumento] = useState('');
   const [ctmp, setCtmp] = useState('');
-  const [registroInterno, setRegistroInterno] = useState('');
   const [password, setPassword] = useState('');
 
   // ===== REGISTRO — perfil =====
@@ -96,7 +95,6 @@ export default function Login() {
   const esIndependiente = rolDeseado === 8;
 
   const requiereCTMP = esLicenciado || ((esHibrido || esAdminCentro || esIndependiente) && tipoProfesionalAdmin === 'licenciado');
-  const requiereRegistroInterno = (esAdminCentro || esHibrido) && tipoProfesionalAdmin === 'tecnico';
   const requiereSelectorCentro = esLicenciado || esHibrido || (esAdminCentro && modoAdminCentro === 'afiliarme');
 
   // ===== DOMINIO Y EMAIL CORPORATIVO =====
@@ -183,8 +181,7 @@ export default function Login() {
       if (!numeroDocumento.trim()) { mostrarError('Ingresa tu número de documento'); setCargando(false); return; }
     }
     if (requiereCTMP && !ctmp.trim()) { mostrarError('Ingresa tu número de CTMP'); setCargando(false); return; }
-    if (requiereRegistroInterno && !registroInterno.trim()) { mostrarError('Ingresa tu registro interno'); setCargando(false); return; }
-
+    
     if (requiereSelectorCentro && !centroSeleccionado) {
       mostrarError('Selecciona un centro');
       setCargando(false);
@@ -240,7 +237,6 @@ export default function Login() {
             tipo_documento: tipoDocumento,
             dni: numeroDocumento,
             numero_colegiatura: ctmp || null,
-            registro_interno: registroInterno || null,
           },
         },
       });
@@ -259,7 +255,6 @@ export default function Login() {
           tipo_documento: tipoDocumento,
           dni: numeroDocumento,
           numero_colegiatura: ctmp || null,
-          registro_interno: registroInterno || null,
           telefono: telefono || null,
           nickname: nickname.trim() || null,
           email_corporativo: emailCorporativo,
@@ -288,7 +283,7 @@ export default function Login() {
       setEsRegistro(false);
       setNombre(''); setApellidos(''); setTelefono(''); setNickname('');
       setTipoDocumento('DNI'); setNumeroDocumento('');
-      setCtmp(''); setRegistroInterno(''); setPassword('');
+      setCtmp(''); setPassword('');
       setRolDeseado(2); setTipoProfesionalAdmin('licenciado');
       setCentroSeleccionado(''); setModoAdminCentro('afiliarme');
       setDatosNuevoCentro({ nombre: '', id_propuesto: '', dominio: '', ruc: '', direccion: '', telefono: '', email_empresa: '' });
@@ -512,21 +507,6 @@ export default function Login() {
                     required
                   />
                   <p className={helpClass}>Colegio Tecnólogo Médico del Perú</p>
-                </div>
-              )}
-
-              {/* REGISTRO INTERNO */}
-              {requiereRegistroInterno && (
-                <div>
-                  <label className={labelClass}>Registro Interno *</label>
-                  <input
-                    type="text"
-                    placeholder="Ej: CJ-TEC-001"
-                    value={registroInterno}
-                    onChange={(e) => setRegistroInterno(e.target.value)}
-                    className={inputClass}
-                    required
-                  />
                 </div>
               )}
 

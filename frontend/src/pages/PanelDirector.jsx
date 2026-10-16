@@ -156,10 +156,29 @@ export default function PanelDirector({ temaOscuro }) {
       setEsDirectorGlobal(esGlobal);
       setCentroDirector(perfil.centro_id);
 
+            // Cargar centros según rol
       if (esGlobal) {
+        // Director Global ve TODOS los centros
         const { data: centrosData } = await supabase
           .from('centros').select('*').order('created_at', { ascending: false });
         setCentros(centrosData || []);
+      } else if (perfil.centro_id) {
+        // Admin Centro solo ve SU centro
+        const { data: centroData } = await supabase
+          .from('centros')
+          .select('*')
+          .eq('id', perfil.centro_id)
+          .single();
+        setCentros(centroData ? [centroData] : []);
+      } 
+      else if (perfil.centro_id) {
+        // Admin Centro solo ve SU centro
+        const { data: centroData } = await supabase
+          .from('centros')
+          .select('*')
+          .eq('id', perfil.centro_id)
+          .single();
+        setCentros(centroData ? [centroData] : []);
       }
 
       let query = supabase.from('profiles').select('*');
@@ -316,7 +335,35 @@ export default function PanelDirector({ temaOscuro }) {
       4: 'licenciado', 5: 'paciente', 6: 'demo',
       7: 'licenciado', 8: perfilPrevio?.tipo_profesional || 'licenciado',
     };
-    updateData.tipo_profesional = tipoMap[rolNum] || null;
+        updateData.tipo_profesional = tipoMap[rolNum] || null;
+
+    // ============================================================
+    // AUTO-GENERAR REGISTRO INTERNO PARA TÉCNICOS
+    // Solo aplica si:
+    //   - El tipo profesional es 'tecnico'
+    //   - Hay un centro asignado
+    //   - El usuario NO tiene ya un registro interno
+    // ============================================================
+    const esTecnico = updateData.tipo_profesional === 'tecnico'
+                   || perfilPrevio?.tipo_profesional === 'tecnico';
+    const centroParaRegistro = updateData.centro_id || perfilPrevio?.centro_id;
+
+    if (esTecnico && centroParaRegistro) {
+      // Verificar si ya tiene uno
+      const { data: perfilCheck } = await supabase
+        .from('profiles')
+        .select('registro_interno')
+        .eq('id', userId)
+        .single();
+
+      if (!perfilCheck?.registro_interno) {
+        const nuevoRegistro = await generarRegistroInterno(centroParaRegistro);
+        if (nuevoRegistro) {
+          updateData.registro_interno = nuevoRegistro;
+          console.log('📋 [Registro Interno] Generado:', nuevoRegistro);
+        }
+      }
+    }
 
         // ============================================================
     // CASO ESPECIAL: Rol 8 (Independiente) → Crear Centro Personal
@@ -501,6 +548,42 @@ export default function PanelDirector({ temaOscuro }) {
     }
   };
 
+
+    // ============================================================
+  // GENERAR REGISTRO INTERNO PARA TÉCNICOS
+  // Formato: {CENTRO}-TEC-{NÚMERO}
+  // Ejemplo: CJ-TEC-001, CJ-TEC-002, JP-TEC-001
+  // ============================================================
+  const generarRegistroInterno = async (centroId) => {
+    if (!centroId) return null;
+
+    // Buscar todos los técnicos del centro con registro interno asignado
+    const { data: tecnicos } = await supabase
+      .from('profiles')
+      .select('registro_interno')
+      .eq('centro_id', centroId)
+      .eq('tipo_profesional', 'tecnico')
+      .not('registro_interno', 'is', null);
+
+    // Extraer números existentes
+    const prefijo = `${centroId}-TEC-`;
+    let maxNumero = 0;
+
+    (tecnicos || []).forEach((t) => {
+      if (t.registro_interno && t.registro_interno.startsWith(prefijo)) {
+        const num = parseInt(t.registro_interno.replace(prefijo, ''), 10);
+        if (!isNaN(num) && num > maxNumero) {
+          maxNumero = num;
+        }
+      }
+    });
+
+    // Generar el siguiente
+    const siguiente = maxNumero + 1;
+    const numeroFormateado = String(siguiente).padStart(3, '0');
+    return `${prefijo}${numeroFormateado}`;
+  };
+
   const aprobarEvaluacion = async (evalId) => {
     try {
       const { error } = await supabase.from('evaluaciones')
@@ -523,15 +606,25 @@ export default function PanelDirector({ temaOscuro }) {
   };
 
   const ROLES = [
-  { valor: 1, label: 'Director' },
-  { valor: 2, label: 'Estudiante' },
-  { valor: 3, label: 'Licenciado' },
-  { valor: 4, label: 'Híbrido' },
-  { valor: 5, label: 'Paciente' },
-  { valor: 6, label: 'Demo' },
-  { valor: 7, label: 'Admin Centro' },
-  { valor: 8, label: 'Independiente' },
-];
+    { valor: 1, label: 'Director' },
+    { valor: 2, label: 'Estudiante' },
+    { valor: 3, label: 'Licenciado' },
+    { valor: 4, label: 'Híbrido' },
+    { valor: 5, label: 'Paciente' },
+    { valor: 6, label: 'Demo' },
+    { valor: 7, label: 'Admin Centro' },
+    { valor: 8, label: 'Independiente' },
+  ];
+
+  // ============================================================
+  // ROLES QUE PUEDE APROBAR CADA TIPO DE ADMIN
+  // - Director Global (rol 1): TODOS los roles
+  // - Admin Centro (rol 7): SOLO Licenciado (rol 3)
+  //   (el tipo_profesional licenciado/tecnico ya lo trae el usuario)
+  // ============================================================
+  const rolesAprobables = esDirectorGlobal
+    ? ROLES
+    : ROLES.filter((r) => [2, 3, 4].includes(r.valor));
 
   const TIPOS_PROFESIONALES = [
     { valor: 'director', label: 'Director', color: 'text-yellow-400 bg-yellow-500/20' },
@@ -692,14 +785,14 @@ export default function PanelDirector({ temaOscuro }) {
                             <td className={`px-4 py-3 text-xs ${textoPrincipal}`}>{getRolLabel(u.rol)}</td>
                             <td className="px-4 py-3">{getTipoProfesionalBadge(u.tipo_profesional)}</td>
                             <td className="px-4 py-3">
-                              <select className={`px-2 py-1 rounded-lg border ${bgInput} text-xs w-full max-w-[150px]`} defaultValue={u.centro_id || ''} id={`centro-${u.id}`}>
-                                <option value="">Sin centro</option>
+                              <select className={`px-2 py-1 rounded-lg border ${bgInput} text-xs w-full max-w-[150px]`} defaultValue={u.centro_id || (esDirectorGlobal ? '' : centroDirector || '')} id={`centro-${u.id}`}>
+                                {esDirectorGlobal && <option value="">Sin centro</option>}
                                 {centros.map(c => <option key={c.id} value={c.id}>{c.id}</option>)}
                               </select>
                             </td>
                             <td className="px-4 py-3 text-center">
-                              <select className={`px-2 py-1 rounded-lg border ${bgInput} text-xs`} defaultValue={u.rol || 2} id={`rol-${u.id}`}>
-                                {ROLES.map(r => <option key={r.valor} value={r.valor}>{r.label}</option>)}
+                              <select className={`px-2 py-1 rounded-lg border ${bgInput} text-xs`} defaultValue={u.rol || 3} id={`rol-${u.id}`}>
+                                {rolesAprobables.map(r => <option key={r.valor} value={r.valor}>{r.label}</option>)}
                               </select>
                               <button onClick={() => { const rolSelect = document.getElementById(`rol-${u.id}`); const centroSelect = document.getElementById(`centro-${u.id}`); aprobarUsuario(u.id, rolSelect?.value || 2, centroSelect?.value || null); }} className="ml-2 px-3 py-1 bg-[#22d3ee] text-black font-bold rounded-lg text-xs hover:scale-105">Aprobar</button>
                               <button onClick={() => eliminarUsuario(u.id)} className="ml-2 px-3 py-1 bg-red-500/20 text-red-500 font-bold rounded-lg text-xs hover:bg-red-500 hover:text-white">Eliminar</button>
@@ -1013,13 +1106,19 @@ export default function PanelDirector({ temaOscuro }) {
               <div>
                 <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoSecundario} mb-1`}>Rol</label>
                 <select value={formEditar.rol} onChange={(e) => setFormEditar({...formEditar, rol: Number(e.target.value)})} className={`w-full px-4 py-2 rounded-xl border ${bgInput} text-sm cursor-pointer`}>
-                  {ROLES.map(r => <option key={r.valor} value={r.valor}>{r.label}</option>)}
+                  {rolesAprobables.map(r => <option key={r.valor} value={r.valor}>{r.label}</option>)}
                 </select>
               </div>
 
               <div>
                 <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoSecundario} mb-1`}>Tipo Profesional</label>
-                <select value={formEditar.tipo_profesional} onChange={(e) => setFormEditar({...formEditar, tipo_profesional: e.target.value})} className={`w-full px-4 py-2 rounded-xl border ${bgInput} text-sm cursor-pointer`}>
+                <select
+                  value={formEditar.tipo_profesional}
+                  onChange={(e) => setFormEditar({...formEditar, tipo_profesional: e.target.value})}
+                  disabled={!esDirectorGlobal}
+                  className={`w-full px-4 py-2 rounded-xl border ${bgInput} text-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`}
+                  title={!esDirectorGlobal ? 'Solo el Director Global puede cambiar el tipo profesional' : ''}
+                >
                   <option value="">Sin definir</option>
                   <option value="director">Director</option>
                   <option value="estudiante">Estudiante</option>
@@ -1028,6 +1127,11 @@ export default function PanelDirector({ temaOscuro }) {
                   <option value="paciente">Paciente</option>
                   <option value="demo">Demo</option>
                 </select>
+                {!esDirectorGlobal && (
+                  <p className="text-[9px] text-gray-500 mt-1 italic">
+                    Solo el Director Global puede modificar este campo.
+                  </p>
+                )}
               </div>
 
               <div>

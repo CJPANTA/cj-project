@@ -187,10 +187,17 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
           <IconDashboard /><span className="text-xs font-bold uppercase tracking-wider">Centro de Mando</span>
         </Link>
 
-        {/* ===== PANEL DEL DIRECTOR (solo rol 1) ===== */}
-        {rolUsuario === 1 && (
-          <Link to="/panel-director" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${path === '/panel-director' ? 'bg-[#facc15]/10 text-[#facc15]' : `${textoSecundario} ${hoverBg}`}`}>
-            <IconDirector /><span className="text-xs font-bold uppercase tracking-wider">Panel del Director</span>
+        {/* ===== PANEL DE GESTIÓN (Director Global y Admin Centro) ===== */}
+        {[1, 7].includes(rolUsuario) && (
+          <Link to="/panel-director" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+            path === '/panel-director'
+              ? (rolUsuario === 1 ? 'bg-[#facc15]/10 text-[#facc15]' : 'bg-emerald-500/10 text-emerald-400')
+              : `${textoSecundario} ${hoverBg}`
+          }`}>
+            <IconDirector />
+            <span className="text-xs font-bold uppercase tracking-wider">
+              {rolUsuario === 1 ? 'Panel del Director' : 'Panel de mi Centro'}
+            </span>
           </Link>
         )}
 

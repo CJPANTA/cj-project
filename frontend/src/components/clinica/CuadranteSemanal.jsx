@@ -130,21 +130,21 @@ export default function CuadranteSemanal({
                         title={`${formatearHora(turno.hora_inicio)} — ${formatearHora(turno.hora_fin)} ${turno.tipo_excepcion ? `(${turno.tipo_excepcion})` : ''}`}
                       >
                                                 {turno.es_excepcion && turno.tipo_excepcion === 'libre' ? (
-                          <p className="text-[10px] font-black leading-tight">
-                            🛌 LIBRE
-                          </p>
-                        ) : (
-                          <>
-                            <p className="text-[10px] font-black leading-tight">
-                              {emojiTurno(turno.tipo_turno)} {formatearHora(turno.hora_inicio)}–{formatearHora(turno.hora_fin)}
-                            </p>
-                            {turno.es_excepcion && turno.tipo_excepcion && (
-                              <p className="text-[8px] uppercase opacity-70 leading-tight">
-                                {turno.tipo_excepcion}
-                              </p>
-                            )}
-                          </>
-                        )}
+  <p className={`text-[10px] font-black leading-tight ${temaOscuro ? '' : 'text-slate-900'}`}>
+    🛌 LIBRE
+  </p>
+) : (
+  <>
+    <p className={`text-[10px] font-black leading-tight ${temaOscuro ? '' : 'text-slate-900'}`}>
+      {emojiTurno(turno.tipo_turno)} {formatearHora(turno.hora_inicio)}–{formatearHora(turno.hora_fin)}
+    </p>
+    {turno.es_excepcion && turno.tipo_excepcion && (
+      <p className={`text-[8px] uppercase leading-tight ${temaOscuro ? 'opacity-70' : 'text-slate-700 opacity-90'}`}>
+        {turno.tipo_excepcion}
+      </p>
+    )}
+  </>
+)}
                       </button>
                     ))}
                   </div>

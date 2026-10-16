@@ -222,12 +222,32 @@ export default function ProgramacionPersonal({ temaOscuro = true }) {
         </div>
 
         <div className={`flex flex-wrap gap-2 mb-4 text-[10px] font-bold ${textoSec}`}>
-          <span className="px-2 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30">Mañana</span>
-          <span className="px-2 py-1 rounded-lg bg-orange-500/20 text-orange-300 border border-orange-500/30">Tarde</span>
-          <span className="px-2 py-1 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Noche</span>
-          <span className="px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Partido</span>
-          <span className="px-2 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">Personalizado</span>
-        </div>
+  <span className={`px-2 py-1 rounded-lg border ${
+    temaOscuro
+      ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+      : 'bg-amber-100 text-amber-900 border-amber-300'
+  }`}>Mañana</span>
+  <span className={`px-2 py-1 rounded-lg border ${
+    temaOscuro
+      ? 'bg-orange-500/20 text-orange-300 border-orange-500/30'
+      : 'bg-orange-100 text-orange-900 border-orange-300'
+  }`}>Tarde</span>
+  <span className={`px-2 py-1 rounded-lg border ${
+    temaOscuro
+      ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
+      : 'bg-indigo-100 text-indigo-900 border-indigo-300'
+  }`}>Noche</span>
+  <span className={`px-2 py-1 rounded-lg border ${
+    temaOscuro
+      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+      : 'bg-emerald-100 text-emerald-900 border-emerald-300'
+  }`}>Partido</span>
+  <span className={`px-2 py-1 rounded-lg border ${
+    temaOscuro
+      ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
+      : 'bg-cyan-100 text-cyan-900 border-cyan-300'
+  }`}>Personalizado</span>
+</div>
 
         {cargando ? (
           <div className={`${temaOscuro ? 'bg-[#0a141d]' : 'bg-white'} rounded-2xl border ${bordeBtn} p-12 flex justify-center`}>

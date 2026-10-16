@@ -479,3 +479,57 @@ html[data-tema="claro"] .text-gray-400 {
 .print-only {
   display: none;
 }
+
+/* ============================================================ */
+/* TURNOS DE PROGRAMACIÓN — Contraste en modo claro             */
+/* ------------------------------------------------------------ */
+/* Los turnos usan colores pastel (bg-X-500/20 + text-X-300)    */
+/* que se ven bien en oscuro pero mal en claro. Estas reglas    */
+/* fuerzan versiones oscuras del mismo color en modo claro.     */
+/* ============================================================ */
+html[data-tema="claro"] .bg-amber-500\/20 {
+  background-color: #fef3c7 !important; /* amber-100 */
+}
+html[data-tema="claro"] .text-amber-300 {
+  color: #78350f !important; /* amber-900 */
+  filter: none !important;
+}
+
+html[data-tema="claro"] .bg-orange-500\/20 {
+  background-color: #ffedd5 !important; /* orange-100 */
+}
+html[data-tema="claro"] .text-orange-300 {
+  color: #7c2d12 !important; /* orange-900 */
+  filter: none !important;
+}
+
+html[data-tema="claro"] .bg-indigo-500\/20 {
+  background-color: #e0e7ff !important; /* indigo-100 */
+}
+html[data-tema="claro"] .text-indigo-300 {
+  color: #312e81 !important; /* indigo-900 */
+  filter: none !important;
+}
+
+html[data-tema="claro"] .bg-emerald-500\/20 {
+  background-color: #d1fae5 !important; /* emerald-100 */
+}
+html[data-tema="claro"] .text-emerald-300 {
+  color: #064e3b !important; /* emerald-900 */
+  filter: none !important;
+}
+
+html[data-tema="claro"] .bg-cyan-500\/20 {
+  background-color: #cffafe !important; /* cyan-100 */
+}
+html[data-tema="claro"] .text-cyan-300 {
+  color: #164e63 !important; /* cyan-900 */
+  filter: none !important;
+}
+
+/* Bordes de los turnos — más definidos en claro */
+html[data-tema="claro"] .border-amber-500\/30 { border-color: #fcd34d !important; }
+html[data-tema="claro"] .border-orange-500\/30 { border-color: #fdba74 !important; }
+html[data-tema="claro"] .border-indigo-500\/30 { border-color: #a5b4fc !important; }
+html[data-tema="claro"] .border-emerald-500\/30 { border-color: #6ee7b7 !important; }
+html[data-tema="claro"] .border-cyan-500\/30 { border-color: #67e8f9 !important; }
