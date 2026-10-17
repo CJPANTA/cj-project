@@ -406,27 +406,104 @@ const nuevaConversacion = () => {
   const IconSummarize = () => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-5.25 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0z" /></svg>);
   const IconChat = () => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.136-.848-2.1-1.98-2.193a48.572 48.572 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286m0 0c.078.057.158.112.24.166" /></svg>);
 
-  // ==========================================
-  // CASO 1: PACIENTE (rol 5)
+    // ==========================================
+  // CASO 1: PACIENTE (rol 5) - PORTAL DEL PACIENTE
   // ==========================================
   if (rolUsuario === 5) {
     return (
-      <main className="flex flex-col gap-8 p-4 md:p-8 max-w-7xl mx-auto w-full">
-        <header className="flex flex-col gap-2">
+      <main className="flex flex-col gap-8 p-4 md:p-8 max-w-5xl mx-auto w-full">
+        <header className="flex flex-col gap-2 mb-2">
           <div>
-            <h1 className={`text-4xl font-black tracking-tighter ${textoColor}`}>{saludo}, <span className="text-[#22d3ee]">{nombreMostrado}</span></h1>
-            <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Mi Espacio Personal</p>
+            <h1 className={`text-4xl font-black tracking-tighter ${textoColor}`}>
+              Hola, <span className="text-[#22d3ee]">{nombreMostrado}</span> 👋
+            </h1>
+            <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">
+              Mi Espacio Personal
+            </p>
           </div>
         </header>
-        <div className={`${bgTarjeta} p-8 rounded-3xl border text-center`}>
-          <p className="text-gray-400 text-lg">Bienvenido a tu espacio personal.</p>
-          <p className="text-sm text-gray-500 mt-2">Aquí podrás ver tu ficha y tus citas.</p>
-          <div className="flex justify-center gap-4 mt-6">
-            <Link to="/clinica/pacientes" className="px-6 py-3 bg-[#22d3ee] text-black font-bold rounded-xl text-sm hover:scale-105 transition-all">Ver mi ficha</Link>
+
+        {/* TARJETA: PRÓXIMA CITA (Placeholder visual para el manual) */}
+        <div className={`${bgTarjeta} p-6 rounded-3xl border flex flex-col md:flex-row justify-between items-center gap-4`}>
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-[#22d3ee]/20 text-[#22d3ee] flex items-center justify-center text-2xl">
+              📅
+            </div>
+            <div>
+              <h2 className="text-sm font-black uppercase tracking-wider text-[#22d3ee]">Mi Próxima Cita</h2>
+              <p className={`text-lg font-bold ${textoColor}`}>Hoy, 15:30 hrs</p>
+              <p className="text-xs text-gray-500">Centro: CJ Fisio · Terapeuta: Jorge Luis</p>
+            </div>
+          </div>
+          <Link 
+            to="/mis-citas" 
+            className="px-6 py-3 bg-[#22d3ee] text-black font-black rounded-xl text-xs uppercase hover:scale-105 transition-all"
+          >
+            Ver todas mis citas →
+          </Link>
+        </div>
+
+        {/* GRID: FICHA Y PROGRESO */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* TARJETA: MI FICHA */}
+          <div className={`${bgTarjeta} p-6 rounded-3xl border flex flex-col justify-between h-48`}>
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-2xl">📋</span>
+                <h2 className={`text-sm font-black uppercase tracking-tighter ${textoColor}`}>Mi Ficha</h2>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Revisa tus datos personales, tu diagnóstico actual y el historial de tus sesiones.
+              </p>
+            </div>
+            <Link 
+              to="/mi-ficha"
+              className="mt-4 text-[#22d3ee] text-xs font-bold hover:underline"
+            >
+              Abrir mi ficha →
+            </Link>
+          </div>
+
+          {/* TARJETA: MI PROGRESO */}
+          <div className={`${bgTarjeta} p-6 rounded-3xl border flex flex-col justify-between h-48`}>
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-2xl">📈</span>
+                <h2 className={`text-sm font-black uppercase tracking-tighter ${textoColor}`}>Mi Progreso</h2>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Tu dolor ha bajado un 40% desde que comenzaste el tratamiento. ¡Sigue así!
+              </p>
+            </div>
+            <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-2 mt-4">
+              <div className="bg-emerald-500 h-2 rounded-full" style={{ width: '70%' }}></div>
+            </div>
           </div>
         </div>
-        <div className="flex justify-center">
-          <button onClick={() => navigate('/login')} className="text-red-500 hover:text-red-400 text-sm font-bold">Cerrar sesión</button>
+
+        {/* TARJETA: EJERCICIOS DE CASA */}
+        <div className={`${bgTarjeta} p-6 rounded-3xl border`}>
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-2xl">🏋️‍♂️</span>
+            <h2 className={`text-sm font-black uppercase tracking-tighter ${textoColor}`}>Ejercicios para Casa</h2>
+          </div>
+          <p className="text-xs text-gray-500 mb-4">
+            Estos son los ejercicios que tu fisioterapeuta te asignó para esta semana.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <span className="px-3 py-1 bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded-lg text-xs font-bold">
+              Estiramiento de psoas (2x30s)
+            </span>
+            <span className="px-3 py-1 bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded-lg text-xs font-bold">
+              Bird-dog (3x10 reps)
+            </span>
+          </div>
+        </div>
+
+        <div className="flex justify-center mt-4">
+          <button onClick={() => navigate('/login')} className="text-red-500 hover:text-red-400 text-sm font-bold">
+            Cerrar sesión
+          </button>
         </div>
       </main>
     );
