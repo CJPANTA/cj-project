@@ -695,7 +695,7 @@ const nuevaConversacion = () => {
 
   {/* Imprimir */}
   <PrintButton
-    titulo="Consulta — Oráculo Aura IA"
+    titulo="Aura, tu asistente clínico"
     subtitulo={busqueda ? `Consulta: ${busqueda.slice(0, 80)}` : ''}
     contenido={mdAHtml(respuestaIA)}
     metadata={{
