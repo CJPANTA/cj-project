@@ -397,10 +397,10 @@ const nuevaConversacion = () => {
   const bgContexto = temaOscuro ? 'bg-[#22d3ee]/10 border-[#22d3ee]/30 text-[#22d3ee]' : 'bg-blue-50 border-blue-200 text-blue-700';
   const porcentaje = progresoExamenes.promedio;
 
-    // Nombre a mostrar en el saludo: nickname > primer nombre > nombre completo
-  const nombreMostrado = nickname?.trim()
-    || (nombreUsuario || '').split(/\s+/)[0]
-    || 'Usuario';
+    // Si es paciente (rol 5), mostramos el nombre completo. Si no, solo el nickname o primer nombre.
+const nombreMostrado = rolUsuario === 5 
+  ? (nombreUsuario || 'Paciente') 
+  : (nickname?.trim() || (nombreUsuario || '').split(/\s+/)[0] || 'Usuario');
 
   const IconRefresh = () => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>);
   const IconSummarize = () => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-5.25 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0z" /></svg>);

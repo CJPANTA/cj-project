@@ -331,9 +331,9 @@ const [modalImportarAbierto, setModalImportarAbierto] = useState(false);
     }
   };
 
-  // Guardar nuevo paciente
+    // Guardar nuevo paciente (CON CREACIÓN AUTOMÁTICA DE CREDENCIALES)
   const guardarPaciente = async () => {
-    // Validaciones
+    // 1. Validaciones
     if (!nuevoPaciente.nombre.trim() || !nuevoPaciente.apellidos.trim()) {
       return alert('Nombre y apellidos son obligatorios.');
     }
@@ -346,37 +346,71 @@ const [modalImportarAbierto, setModalImportarAbierto] = useState(false);
 
     setGuardando(true);
     try {
-      const { error } = await supabase.from('pacientes').insert([{
+      // 2. Generar el correo corporativo (ej: rosa.quispe.paciente@jp.com)
+      const limpiarTexto = (texto) => 
+        texto.toLowerCase()
+          .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Quita tildes
+          .replace(/[^a-z0-9]/g, ''); // Quita espacios y símbolos
+
+      const nombreLimpio = limpiarTexto(nuevoPaciente.nombre.split(' ')[0]);
+      const apellidoLimpio = limpiarTexto(nuevoPaciente.apellidos.split(' ')[0]);
+      const centroLimpio = (centroId || 'cj').toLowerCase();
+      
+      const emailCorporativo = `${nombreLimpio}.${apellidoLimpio}.paciente@${centroLimpio}.com`;
+      const passwordTemporal = '12345678';
+
+      // 3. Llamar al Edge Function para crear el usuario en Auth y en Profiles
+      const { data: fnData, error: fnError } = await supabase.functions.invoke('crear-usuario-paciente', {
+        body: {
+          email: emailCorporativo,
+          password: passwordTemporal,
+          nombre_completo: `${nuevoPaciente.nombre.trim()} ${nuevoPaciente.apellidos.trim()}`,
+          rol: 5, // Rol de Paciente
+          centro_id: centroId,
+        },
+      });
+
+      if (fnError) throw fnError;
+      if (fnData.error) throw new Error(fnData.error);
+
+      const userIdPaciente = fnData.user_id;
+
+      // 4. Insertar la ficha del paciente con el user_id recién creado
+      const { error: insertError } = await supabase.from('pacientes').insert([{
         nombre: nuevoPaciente.nombre.trim(),
         apellidos: nuevoPaciente.apellidos.trim(),
         fecha_nacimiento: nuevoPaciente.fecha_nacimiento,
         motivo_de_visita: nuevoPaciente.motivo_de_visita.trim(),
         telefono: nuevoPaciente.telefono?.trim() || null,
-        email: nuevoPaciente.email?.trim() || null,
+        email: nuevoPaciente.email?.trim() || null, // Correo personal (contacto)
         dni: nuevoPaciente.dni?.trim() || null,
         direccion: nuevoPaciente.direccion?.trim() || null,
         diagnostico: nuevoPaciente.diagnostico?.trim() || null,
-        user_id: userId,
+        user_id: userIdPaciente, // <-- ID del usuario creado
         centro_id: centroId,
         created_at: new Date().toISOString(),
       }]);
-      if (error) throw error;
+
+      if (insertError) throw insertError;
+
+      // 5. Mostrar confirmación con las credenciales
+      alert(
+        `✅ Paciente guardado correctamente.\n\n` +
+        `🔑 CREDENCIALES DE ACCESO:\n` +
+        `Email: ${emailCorporativo}\n` +
+        `Contraseña: ${passwordTemporal}\n\n` +
+        `(El correo personal que registraste se guardó para contacto).`
+      );
 
       setModalAbierto(false);
       setNuevoPaciente({
-        nombre: '',
-        apellidos: '',
-        fecha_nacimiento: '',
-        motivo_de_visita: '',
-        telefono: '',
-        email: '',
-        dni: '',
-        direccion: '',
-        diagnostico: '',
+        nombre: '', apellidos: '', fecha_nacimiento: '', motivo_de_visita: '',
+        telefono: '', email: '', dni: '', direccion: '', diagnostico: '',
       });
-      alert('✅ Paciente guardado correctamente.');
       await cargarPacientes();
+      
     } catch (error) {
+      console.error(error);
       alert('Error al guardar: ' + error.message);
     } finally {
       setGuardando(false);

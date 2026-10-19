@@ -12,6 +12,8 @@ import { AuraProvider } from './context/AuraContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import LoadingFallback from './components/LoadingFallback';
 const SolicitarReset = lazy(() => import('./pages/SolicitarReset'));
+const MiFichaPaciente = lazy(() => import('./pages/MiFichaPaciente'));
+const MisCitasPaciente = lazy(() => import('./pages/MisCitasPaciente'));
 
 // ============================================================
 // LAZY IMPORTS — el resto se carga bajo demanda
@@ -179,6 +181,8 @@ function App() {
                 <Route path="/clinica/evaluacion/:pacienteId" element={<RutaProtegida><EvaluacionPostural temaOscuro={temaOscuro} /></RutaProtegida>} />
                 <Route path="/stickman-preview" element={<RutaProtegida><StickmanPreview temaOscuro={temaOscuro} /></RutaProtegida>} />
                 <Route path="/mi-equipamiento" element={<MiEquipamiento temaOscuro={temaOscuro} />} />
+                <Route path="/mi-ficha" element={<RutaProtegida><MiFichaPaciente temaOscuro={temaOscuro} /></RutaProtegida>} />
+                <Route path="/mis-citas" element={<RutaProtegida><MisCitasPaciente temaOscuro={temaOscuro} /></RutaProtegida>} />
               </Routes>
             </Suspense>
           </LayoutConSidebar>

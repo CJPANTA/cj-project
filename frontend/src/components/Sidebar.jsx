@@ -123,33 +123,41 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
   }
 
   // ===== SIDEBAR ESPECIAL PARA PACIENTE (rol 5) =====
-  if (rolUsuario === 5) {
-    return (
-      <aside className={`${bgSidebar} border-r ${bordeColor} rounded-3xl p-5 h-full flex flex-col shadow-2xl overflow-y-auto custom-scrollbar transition-colors duration-500`}>
-        <div className="mb-6 flex items-center gap-3 shrink-0">
-          <img src="/logos_cj_circular.png" alt="Logo CJ" className="w-12 h-12 rounded-full border-2 border-[#22d3ee]/30" />
-          <div>
-            <h2 className={`${textoPrincipal} font-black text-xl tracking-wider leading-none`}>CJ Fisio</h2>
-            <span className="text-[#22d3ee] text-[8px] font-black uppercase tracking-[0.4em]">Mi espacio</span>
-          </div>
+if (rolUsuario === 5) {
+  return (
+    <aside className={`${bgSidebar} border-r ${bordeColor} rounded-3xl p-5 h-full flex flex-col shadow-2xl overflow-y-auto custom-scrollbar transition-colors duration-500`}>
+      <div className="mb-6 flex items-center gap-3 shrink-0">
+        <img src="/logos_cj_circular.png" alt="Logo CJ" className="w-12 h-12 rounded-full border-2 border-[#22d3ee]/30" />
+        <div>
+          <h2 className={`${textoPrincipal} font-black text-xl tracking-wider leading-none`}>CJ Fisio</h2>
+          <span className="text-[#22d3ee] text-[8px] font-black uppercase tracking-[0.4em]">Mi espacio</span>
         </div>
-        <nav className="flex-1 space-y-1">
-          <Link to="/inicio" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${path === '/inicio' ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}>
-            <IconDashboard /><span className="text-xs font-bold uppercase tracking-wider">Mi Ficha</span>
-          </Link>
-          <Link to="/clinica/pacientes" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${path.startsWith('/clinica/pacientes') ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}>
-            <IconPacientes /><span className="text-xs font-bold uppercase tracking-wider">Mis Citas</span>
-          </Link>
-        </nav>
-        <div className={`mt-4 pt-4 border-t ${bordeColor}`}>
-          <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 text-red-500 hover:text-red-400 transition-colors p-2 text-sm font-bold">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-            Cerrar sesión
-          </button>
-        </div>
-      </aside>
-    );
-  }
+      </div>
+      <nav className="flex-1 space-y-1">
+        {/* Dashboard (Centro de Mando) */}
+        <Link to="/inicio" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${path === '/inicio' ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}>
+          <IconDashboard /><span className="text-xs font-bold uppercase tracking-wider">Dashboard</span>
+        </Link>
+
+        {/* Mi Ficha */}
+        <Link to="/mi-ficha" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${path === '/mi-ficha' ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}>
+          <IconStickman /><span className="text-xs font-bold uppercase tracking-wider">Mi Ficha</span>
+        </Link>
+
+        {/* Mis Citas */}
+        <Link to="/mis-citas" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${path === '/mis-citas' ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}>
+          <IconCalendario /><span className="text-xs font-bold uppercase tracking-wider">Mis Citas</span>
+        </Link>
+      </nav>
+      <div className={`mt-4 pt-4 border-t ${bordeColor}`}>
+        <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 text-red-500 hover:text-red-400 transition-colors p-2 text-sm font-bold">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+          Cerrar sesión
+        </button>
+      </div>
+    </aside>
+  );
+}
 
   // ===== SIDEBAR GENERAL =====
   return (
