@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import { registrarCambiosMultiples } from '../utils/auditoria';
 import { generarMensajeHumano, formatearFecha, iconoCampo, traducirValor } from '../utils/auditoriaTraducciones';
 import WizardCentro from '../components/clinica/WizardCentro';
+import ConsumoIA from './ConsumoIA';
 
 export default function PanelDirector({ temaOscuro }) {
   const [usuarios, setUsuarios] = useState([]);
@@ -686,6 +687,9 @@ export default function PanelDirector({ temaOscuro }) {
           <button onClick={() => setPestana('resets')} className={`px-4 py-2 text-sm font-bold uppercase tracking-wider border-b-2 transition-all ${pestana === 'resets' ? 'border-[#22d3ee] text-[#22d3ee]' : `border-transparent ${textoSecundario} hover:text-[#22d3ee]`}`}>🔑 Solicitudes de Reset ({solicitudesReset.length})</button>
         </div>
 
+          {esDirectorGlobal && (
+  <button onClick={() => setPestana('consumo')} className={`px-4 py-2 text-sm font-bold uppercase tracking-wider border-b-2 transition-all ${pestana === 'consumo' ? 'border-[#22d3ee] text-[#22d3ee]' : `border-transparent ${textoSecundario} hover:text-[#22d3ee]`}`}>📊 Consumo IA</button>
+)}
         {esDirectorGlobal && mostrarCentros && (
   <div className={`${bgTarjeta} p-6 rounded-2xl border mb-8`}>
     <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
@@ -1062,6 +1066,10 @@ export default function PanelDirector({ temaOscuro }) {
           </>
         )}
       </div>
+
+      {pestana === 'consumo' && (
+  <ConsumoIA temaOscuro={temaOscuro} />
+)}
 
         {/* ============================================================ */}
 {/* WIZARD: Crear Centro                                          */}

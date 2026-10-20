@@ -1,6 +1,11 @@
 // src/services/iaService.js
 // ✅ Migrado a openai/gpt-oss-120b (Groq) — 24/08/2026
 // ✅ System Prompt científico activado — 03/10/2026
+// ✅ Fallback multi-IA (Groq → Gemini) — 19/10/2026
+// ✅ Registro de consumo en Supabase (Ley 29733) — 19/10/2026
+
+import { consultarConFallback } from "./iaProviders";
+import { supabase } from "../lib/supabaseClient";
 
 // ============================================================
 // SYSTEM PROMPT MAESTRO — Aura IA con base científica
@@ -84,17 +89,51 @@ REGLAS ESTRICTAS — CUMPLIR SIEMPRE:
 Tu objetivo es educar, orientar y acompañar — no diagnosticar ni recetar.`;
 
 // ============================================================
-// FUNCIÓN PRINCIPAL
+// CACHÉ DE CONTEXTO DE USUARIO (evita consultar Supabase en cada msg)
 // ============================================================
-export const consultarAuraIA = async (pregunta, contexto = {}, historial = [], systemPromptOverride = null) => {
-  const API_KEY = (import.meta.env.VITE_GROQ_API_KEY || "").trim();
-  if (!API_KEY) {
-    return "❌ Error: No se encuentra la API Key de Groq. Configúrala en .env.local (VITE_GROQ_API_KEY).";
+let _ctxCache = { user_id: null, centro_id: null, ts: 0 };
+const CTX_TTL_MS = 5 * 60 * 1000; // 5 minutos
+
+async function obtenerContextoUsuario() {
+  const ahora = Date.now();
+  if (_ctxCache.user_id && ahora - _ctxCache.ts < CTX_TTL_MS) {
+    return _ctxCache;
   }
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      return { user_id: null, centro_id: null, ts: ahora };
+    }
+    const { data: perfil } = await supabase
+      .from("profiles")
+      .select("centro_id")
+      .eq("id", user.id)
+      .single();
 
-  const MODELO = "openai/gpt-oss-120b";
-  const URL = "https://api.groq.com/openai/v1/chat/completions";
+    _ctxCache = {
+      user_id: user.id,
+      centro_id: perfil?.centro_id || null,
+      ts: ahora,
+    };
+    return _ctxCache;
+  } catch (err) {
+    console.warn("[IA] No se pudo obtener contexto de usuario:", err);
+    return { user_id: null, centro_id: null, ts: ahora };
+  }
+}
 
+// ============================================================
+// FUNCIÓN PÚBLICA — misma firma que antes (NO rompe nada)
+// ============================================================
+export const consultarAuraIA = async (
+  pregunta,
+  contexto = {},
+  historial = [],
+  systemPromptOverride = null,
+  tipoConsulta = "chat"
+) => {
   // System prompt: override > científico + contexto
   let systemPrompt = systemPromptOverride || SYSTEM_PROMPT_CLINICO;
 
@@ -107,56 +146,15 @@ export const consultarAuraIA = async (pregunta, contexto = {}, historial = [], s
     }
   }
 
-  const messages = [
-    { role: "system", content: systemPrompt },
-    ...historial.slice(-12),
-    { role: "user", content: pregunta },
-  ];
+  const ctx = await obtenerContextoUsuario();
 
-  const maxRetries = 2;
-  let delay = 1000;
-
-  for (let intento = 0; intento <= maxRetries; intento++) {
-    try {
-      const response = await fetch(URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: MODELO,
-          messages: messages,
-          temperature: 0.4,
-          max_tokens: 4000,
-        }),
-      });
-
-      if (response.status === 429) {
-        if (intento === maxRetries) {
-          return "⚠️ El servicio de IA está muy solicitado. Espera unos segundos y vuelve a intentarlo.";
-        }
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        delay *= 2;
-        continue;
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        return `⚠️ Error (Groq ${response.status}): ${errorData.error?.message || "Error desconocido."}`;
-      }
-
-      const data = await response.json();
-      let respuesta = data.choices[0].message.content;
-      respuesta = respuesta.replace(/[\*\-=]{3,}/g, "");
-      return respuesta.trim();
-    } catch (error) {
-      if (intento === maxRetries) {
-        return `⚠️ Error de conexión: ${error.message}. Intenta de nuevo.`;
-      }
-      await new Promise((resolve) => setTimeout(resolve, delay));
-      delay *= 2;
-    }
-  }
-  return "⚠️ Error inesperado. Intenta de nuevo más tarde.";
+  return consultarConFallback({
+    systemPrompt,
+    historial,
+    pregunta,
+    user_id: ctx.user_id,
+    centro_id: ctx.centro_id,
+    tipoConsulta,
+    maxTokens: 4000,
+  });
 };

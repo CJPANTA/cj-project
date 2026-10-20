@@ -41,6 +41,10 @@ const [puedeYouTube, setPuedeYouTube] = useState(false);
   const [rolUsuario, setRolUsuario] = useState(null);
   const [centroId, setCentroId] = useState(null);
   const [kpisClinicos, setKpisClinicos] = useState({ pacientesActivos: 0, evaluacionesPendientes: 0, citasHoy: 0 });
+  // 👇 NUEVOS ESTADOS PARA EL PORTAL DEL PACIENTE 👇
+  const [proximaCita, setProximaCita] = useState(null);
+  const [progresoDolor, setProgresoDolor] = useState({ porcentaje: 0, mensaje: '' });
+  const [ejerciciosCasa, setEjerciciosCasa] = useState([]);
   const recognitionRef = useRef(null);
   const navigate = useNavigate();
   const { contexto } = useAura();
@@ -71,7 +75,7 @@ useEffect(() => {
 }, [historialConversacion]); 
 
   // ========== CARGAR DATOS DE PERFIL Y KPIs ==========
-  const cargarPerfil = async () => {
+    const cargarPerfil = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const { data: perfil } = await supabase
@@ -84,27 +88,92 @@ useEffect(() => {
       setNickname(perfil.nickname || '');
       setRolUsuario(perfil.rol);
       setCentroId(perfil.centro_id || null);
+      
       if (perfil.centro_id) {
         cargarKPIsClinicos(perfil.centro_id);
+      }
+      
+      // 👇 NUEVA LÍNEA: Si es paciente, traemos sus datos dinámicos 👇
+      if (perfil.rol === 5) {
+        cargarDatosPaciente(user.id);
       }
     }
   };
 
-  const cargarKPIsClinicos = async (centro) => {
+    // ========== CARGAR DATOS DEL PORTAL DEL PACIENTE ==========
+  const cargarDatosPaciente = async (userId) => {
     try {
-      const { count: pacientesActivos, error: errPac } = await supabase
+      // 1. Buscar la ficha del paciente
+      const { data: pac } = await supabase
         .from('pacientes')
-        .select('*', { count: 'exact', head: true })
-        .eq('centro_id', centro)
-        .eq('estado', 'Activo');
+        .select('id')
+        .eq('user_id', userId)
+        .maybeSingle();
 
-      if (!errPac) {
-        setKpisClinicos(prev => ({ ...prev, pacientesActivos: pacientesActivos || 0 }));
+      if (!pac) return;
+
+      // 2. Buscar Próxima Cita
+      const { data: cita } = await supabase
+        .from('citas')
+        .select('*, terapeuta_id')
+        .eq('paciente_id', pac.id)
+        .gte('fecha_hora', new Date().toISOString())
+        .order('fecha_hora', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (cita) {
+        let nombreTerapeuta = 'Terapeuta asignado';
+        if (cita.terapeuta_id) {
+          const { data: terapeutas } = await supabase.rpc('obtener_terapeutas', { ids: [cita.terapeuta_id] });
+          if (terapeutas && terapeutas.length > 0) {
+            nombreTerapeuta = terapeutas[0].nombre_completo;
+          }
+        }
+        setProximaCita({ ...cita, nombreTerapeuta });
       }
-      setKpisClinicos(prev => ({ ...prev, evaluacionesPendientes: 0 }));
-      setKpisClinicos(prev => ({ ...prev, citasHoy: 0 }));
+
+      // 3. Buscar Progreso de Dolor
+      const { data: sesiones } = await supabase
+        .from('sesiones')
+        .select('eva_inicial, eva_final, fecha_sesion')
+        .eq('paciente_id', pac.id)
+        .order('fecha_sesion', { ascending: true });
+
+      if (sesiones && sesiones.length > 0) {
+        const primeraSesion = sesiones[0];
+        const ultimaSesion = sesiones[sesiones.length - 1];
+        
+        if (primeraSesion.eva_inicial > 0) {
+          const mejora = Math.round(((primeraSesion.eva_inicial - ultimaSesion.eva_final) / primeraSesion.eva_inicial) * 100);
+          setProgresoDolor({
+            porcentaje: Math.max(0, mejora),
+            mensaje: mejora > 0 ? `Tu dolor ha bajado un ${mejora}% desde que comenzaste. ¡Sigue así!` : 'Estamos trabajando en tu recuperación.'
+          });
+        }
+      }
+
+      // 4. Buscar Ejercicios
+      const { data: evaluacion } = await supabase
+        .from('evaluaciones')
+        .select('datos_regiones')
+        .eq('paciente_id', pac.id)
+        .eq('estado', 'aprobado')
+        .order('fecha', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (evaluacion?.datos_regiones) {
+        let datos = evaluacion.datos_regiones;
+        if (typeof datos === 'string') {
+          try { datos = JSON.parse(datos); } catch(e){}
+        }
+        if (datos._plan_ejercicios && Array.isArray(datos._plan_ejercicios)) {
+          setEjerciciosCasa(datos._plan_ejercicios);
+        }
+      }
     } catch (error) {
-      console.error('Error cargando KPIs:', error);
+      console.error('Error cargando datos del paciente:', error);
     }
   };
 
@@ -423,7 +492,7 @@ const nombreMostrado = rolUsuario === 5
           </div>
         </header>
 
-        {/* TARJETA: PRÓXIMA CITA (Placeholder visual para el manual) */}
+        {/* TARJETA: PRÓXIMA CITA DINÁMICA */}
         <div className={`${bgTarjeta} p-6 rounded-3xl border flex flex-col md:flex-row justify-between items-center gap-4`}>
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-[#22d3ee]/20 text-[#22d3ee] flex items-center justify-center text-2xl">
@@ -431,8 +500,16 @@ const nombreMostrado = rolUsuario === 5
             </div>
             <div>
               <h2 className="text-sm font-black uppercase tracking-wider text-[#22d3ee]">Mi Próxima Cita</h2>
-              <p className={`text-lg font-bold ${textoColor}`}>Hoy, 15:30 hrs</p>
-              <p className="text-xs text-gray-500">Centro: CJ Fisio · Terapeuta: Jorge Luis</p>
+              {proximaCita ? (
+                <>
+                  <p className={`text-lg font-bold capitalize ${textoColor}`}>
+                    {new Date(proximaCita.fecha_hora).toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' })}, {new Date(proximaCita.fecha_hora).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                  <p className="text-xs text-gray-500">Centro: {proximaCita.centro_id} · Terapeuta: {proximaCita.nombreTerapeuta}</p>
+                </>
+              ) : (
+                <p className={`text-sm mt-1 ${textoColor} opacity-70`}>No tienes citas programadas por ahora.</p>
+              )}
             </div>
           </div>
           <Link 
@@ -464,7 +541,7 @@ const nombreMostrado = rolUsuario === 5
             </Link>
           </div>
 
-          {/* TARJETA: MI PROGRESO */}
+          {/* TARJETA: MI PROGRESO DINÁMICO */}
           <div className={`${bgTarjeta} p-6 rounded-3xl border flex flex-col justify-between h-48`}>
             <div>
               <div className="flex items-center gap-3 mb-2">
@@ -472,31 +549,34 @@ const nombreMostrado = rolUsuario === 5
                 <h2 className={`text-sm font-black uppercase tracking-tighter ${textoColor}`}>Mi Progreso</h2>
               </div>
               <p className="text-xs text-gray-500 mt-2">
-                Tu dolor ha bajado un 40% desde que comenzaste el tratamiento. ¡Sigue así!
+                {progresoDolor.mensaje || 'Aún no hay suficientes sesiones para calcular tu progreso.'}
               </p>
             </div>
             <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-2 mt-4">
-              <div className="bg-emerald-500 h-2 rounded-full" style={{ width: '70%' }}></div>
+              <div className="bg-emerald-500 h-2 rounded-full transition-all duration-1000" style={{ width: `${progresoDolor.porcentaje}%` }}></div>
             </div>
           </div>
         </div>
 
-        {/* TARJETA: EJERCICIOS DE CASA */}
+        {/* TARJETA: EJERCICIOS DE CASA DINÁMICO */}
         <div className={`${bgTarjeta} p-6 rounded-3xl border`}>
           <div className="flex items-center gap-3 mb-4">
             <span className="text-2xl">🏋️‍♂️</span>
             <h2 className={`text-sm font-black uppercase tracking-tighter ${textoColor}`}>Ejercicios para Casa</h2>
           </div>
           <p className="text-xs text-gray-500 mb-4">
-            Estos son los ejercicios que tu fisioterapeuta te asignó para esta semana.
+            Estos son los ejercicios que tu fisioterapeuta te asignó.
           </p>
           <div className="flex flex-wrap gap-2">
-            <span className="px-3 py-1 bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded-lg text-xs font-bold">
-              Estiramiento de psoas (2x30s)
-            </span>
-            <span className="px-3 py-1 bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded-lg text-xs font-bold">
-              Bird-dog (3x10 reps)
-            </span>
+            {ejerciciosCasa.length > 0 ? (
+              ejerciciosCasa.map((ej, index) => (
+                <span key={index} className="px-3 py-1 bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded-lg text-xs font-bold">
+                  {ej.nombre} {ej.series ? `(${ej.series}x${ej.repeticiones || ''}${ej.duracion_segundos ? 's' : ' reps'})` : ''}
+                </span>
+              ))
+            ) : (
+              <p className={`text-sm ${textoColor} opacity-70`}>No tienes ejercicios asignados por ahora.</p>
+            )}
           </div>
         </div>
 
