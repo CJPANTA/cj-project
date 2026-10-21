@@ -11,6 +11,7 @@ import Landing from './pages/Landing';
 import { AuraProvider } from './context/AuraContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import LoadingFallback from './components/LoadingFallback';
+import VerificadorAcceso from './components/VerificadorAcceso';
 const SolicitarReset = lazy(() => import('./pages/SolicitarReset'));
 const MiFichaPaciente = lazy(() => import('./pages/MiFichaPaciente'));
 const MisCitasPaciente = lazy(() => import('./pages/MisCitasPaciente'));
@@ -137,7 +138,7 @@ function LayoutConSidebar({ children, temaOscuro, setTemaOscuro }) {
 function App() {
   const [temaOscuro, setTemaOscuro] = useState(true);
   
-    // Aplicar tema al <html> para que el CSS responda
+  // Aplicar tema al <html> para que el CSS responda
   useEffect(() => {
     document.documentElement.setAttribute(
       'data-tema',
@@ -145,47 +146,49 @@ function App() {
     );
   }, [temaOscuro]);
 
-    return (
+  return (
     <ErrorBoundary>
       <AuraProvider>
         <BrowserRouter>
-          <LayoutConSidebar temaOscuro={temaOscuro} setTemaOscuro={setTemaOscuro}>
-            <Suspense fallback={<LoadingFallback />}>
-              <Routes>
-                <Route path="/login" element={<Login />} />
-                <Route path="/" element={<Landing />} />
-                <Route path="/inicio" element={<RutaProtegida><Dashboard temaOscuro={temaOscuro} /></RutaProtegida>} />
-                <Route path="/solicitar-reset" element={<SolicitarReset />} />
-                <Route path="/terminos" element={<Terminos />} />
-                <Route path="/privacidad" element={<Privacidad />} />
-                <Route path="/area-estudio" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
-                <Route path="/biblioteca" element={<RutaProtegida><Biblioteca temaOscuro={temaOscuro} /></RutaProtegida>} />
-                <Route path="/horario" element={<RutaProtegida><Horario temaOscuro={temaOscuro} /></RutaProtegida>} />
-                <Route path="/base-conocimiento" element={<RutaProtegida><BaseConocimiento temaOscuro={temaOscuro} /></RutaProtegida>} />
-                <Route path="/configuracion-ia" element={<RutaProtegida><ConfiguracionAura temaOscuro={temaOscuro} /></RutaProtegida>} />
-                <Route path="/simulador" element={<RutaProtegida><SimuladorExamen temaOscuro={temaOscuro} /></RutaProtegida>} />
-                <Route path="/historial-examenes" element={<RutaProtegida><HistorialExamenes temaOscuro={temaOscuro} /></RutaProtegida>} />
-                <Route path="/panel-director" element={<RutaProtegida><PanelDirector temaOscuro={temaOscuro} /></RutaProtegida>} />
-                <Route path="/patologias" element={<RutaProtegida><Patologias temaOscuro={temaOscuro} /></RutaProtegida>} />
-                <Route path="/masoterapia" element={<RutaProtegida><Masoterapia temaOscuro={temaOscuro} /></RutaProtegida>} />
-                <Route path="/clinica/pacientes" element={<RutaProtegida><PacientesLista temaOscuro={temaOscuro} /></RutaProtegida>} />
-                <Route path="/clinica/pacientes/:id" element={<RutaProtegida><PacienteDetalle temaOscuro={temaOscuro} /></RutaProtegida>} />
-                <Route path="/clinica/agenda" element={<RutaProtegida><Agenda temaOscuro={temaOscuro} /></RutaProtegida>} />
-                <Route path="/clinica/programacion" element={<RutaProtegida><ProgramacionPersonal temaOscuro={temaOscuro} /></RutaProtegida>} />
-                <Route path="/ciclo-01" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
-                <Route path="/ciclo-02" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
-                <Route path="/ciclo-03" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
-                <Route path="/ciclo-04" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
-                <Route path="/ciclo-05" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
-                <Route path="/ciclo-06" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
-                <Route path="/clinica/evaluacion/:pacienteId" element={<RutaProtegida><EvaluacionPostural temaOscuro={temaOscuro} /></RutaProtegida>} />
-                <Route path="/stickman-preview" element={<RutaProtegida><StickmanPreview temaOscuro={temaOscuro} /></RutaProtegida>} />
-                <Route path="/mi-equipamiento" element={<MiEquipamiento temaOscuro={temaOscuro} />} />
-                <Route path="/mi-ficha" element={<RutaProtegida><MiFichaPaciente temaOscuro={temaOscuro} /></RutaProtegida>} />
-                <Route path="/mis-citas" element={<RutaProtegida><MisCitasPaciente temaOscuro={temaOscuro} /></RutaProtegida>} />
-              </Routes>
-            </Suspense>
-          </LayoutConSidebar>
+          <VerificadorAcceso>
+            <LayoutConSidebar temaOscuro={temaOscuro} setTemaOscuro={setTemaOscuro}>
+              <Suspense fallback={<LoadingFallback />}>
+                <Routes>
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/" element={<Landing />} />
+                  <Route path="/inicio" element={<RutaProtegida><Dashboard temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  <Route path="/solicitar-reset" element={<SolicitarReset />} />
+                  <Route path="/terminos" element={<Terminos />} />
+                  <Route path="/privacidad" element={<Privacidad />} />
+                  <Route path="/area-estudio" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  <Route path="/biblioteca" element={<RutaProtegida><Biblioteca temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  <Route path="/horario" element={<RutaProtegida><Horario temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  <Route path="/base-conocimiento" element={<RutaProtegida><BaseConocimiento temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  <Route path="/configuracion-ia" element={<RutaProtegida><ConfiguracionAura temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  <Route path="/simulador" element={<RutaProtegida><SimuladorExamen temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  <Route path="/historial-examenes" element={<RutaProtegida><HistorialExamenes temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  <Route path="/panel-director" element={<RutaProtegida><PanelDirector temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  <Route path="/patologias" element={<RutaProtegida><Patologias temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  <Route path="/masoterapia" element={<RutaProtegida><Masoterapia temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  <Route path="/clinica/pacientes" element={<RutaProtegida><PacientesLista temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  <Route path="/clinica/pacientes/:id" element={<RutaProtegida><PacienteDetalle temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  <Route path="/clinica/agenda" element={<RutaProtegida><Agenda temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  <Route path="/clinica/programacion" element={<RutaProtegida><ProgramacionPersonal temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  <Route path="/ciclo-01" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  <Route path="/ciclo-02" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  <Route path="/ciclo-03" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  <Route path="/ciclo-04" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  <Route path="/ciclo-05" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  <Route path="/ciclo-06" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  <Route path="/clinica/evaluacion/:pacienteId" element={<RutaProtegida><EvaluacionPostural temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  <Route path="/stickman-preview" element={<RutaProtegida><StickmanPreview temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  <Route path="/mi-equipamiento" element={<MiEquipamiento temaOscuro={temaOscuro} />} />
+                  <Route path="/mi-ficha" element={<RutaProtegida><MiFichaPaciente temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  <Route path="/mis-citas" element={<RutaProtegida><MisCitasPaciente temaOscuro={temaOscuro} /></RutaProtegida>} />
+                </Routes>
+              </Suspense>
+            </LayoutConSidebar>
+          </VerificadorAcceso>
         </BrowserRouter>
       </AuraProvider>
     </ErrorBoundary>

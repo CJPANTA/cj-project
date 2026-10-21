@@ -22,13 +22,13 @@ export default function Hero() {
         <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-tight mb-6">
           Tu clínica de fisioterapia,{' '}
           <span className="bg-gradient-to-r from-[#22d3ee] to-emerald-400 bg-clip-text text-transparent">
-            ahora digital y con IA
+            ahora digital y con Aura IA
           </span>
         </h1>
 
         <p className="text-base md:text-lg text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed">
           Simplifica tu trabajo. Acorta tus tratamientos. Gestiona pacientes,
-          sesiones, evaluaciones y equipos — <strong className="text-white">todo en un solo lugar</strong>.
+          sesiones, evaluaciones y equipos — <strong className="text-white">todo potenciado por tu asistente clínico</strong>.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">

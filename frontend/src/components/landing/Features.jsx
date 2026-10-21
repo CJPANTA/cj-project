@@ -18,13 +18,13 @@ const FEATURES = [
       'Herramienta de apoyo que acompaña tus decisiones clínicas. Sugiere opciones según diagnóstico, fase y equipamiento del centro. Tú siempre decides.',
   },
   {
-    icono: '🩺',
+    icono: '🧘‍♂️',
     titulo: 'Sesiones SOAP con evolución EVA',
     descripcion:
       'Registra cada sesión en el estándar SOAP y ve gráficamente cómo evoluciona el dolor de tu paciente.',
   },
   {
-    icono: '🏥',
+    icono: '🏢',
     titulo: 'Múltiples centros en un panel',
     descripcion:
       'Ideal para cadenas de clínicas, gimnasios terapéuticos o consultorios con varias sedes.',
@@ -59,9 +59,9 @@ export default function Features() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {FEATURES.map((f) => (
             <div
-              key={f.titulo}
-              className="group p-6 rounded-3xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 hover:border-[#22d3ee]/40 transition-all"
-            >
+  key={f.titulo}
+  className="group p-6 rounded-3xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 hover:border-[#22d3ee]/50 hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(34,211,238,0.15)] transition-all duration-300"
+>
               <div className="w-14 h-14 rounded-2xl bg-[#22d3ee]/10 border border-[#22d3ee]/20 flex items-center justify-center text-3xl mb-4 group-hover:scale-110 transition-transform">
   {f.esIA ? (
     <IconIA className="w-7 h-7 text-[#22d3ee]" />
@@ -69,7 +69,7 @@ export default function Features() {
     f.icono
   )}
 </div>
-              <h3 className="text-lg font-black mb-2">{f.titulo}</h3>
+              <h3 className="text-lg font-black mb-2 group-hover:text-[#22d3ee] transition-colors">{f.titulo}</h3>
               <p className="text-sm text-gray-400 leading-relaxed">
                 {f.descripcion}
               </p>

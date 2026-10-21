@@ -3,7 +3,7 @@
 // ============================================================
 const PUBLICOS = [
   {
-    icono: '🏥',
+    icono: '🏢',
     titulo: 'Centros y Clínicas',
     descripcion:
       'Gestiona varios terapeutas, pacientes y equipamiento desde un solo panel central.',
@@ -14,7 +14,7 @@ const PUBLICOS = [
     ],
   },
   {
-    icono: '🩺',
+    icono: '🧘‍♂️',
     titulo: 'Fisios Independientes',
     descripcion:
       'Tu consultorio personal, con todas las herramientas de una clínica grande.',

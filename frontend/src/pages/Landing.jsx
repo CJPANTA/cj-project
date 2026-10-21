@@ -9,6 +9,7 @@ import Features from '../components/landing/Features';
 import Publico from '../components/landing/Publico';
 import CTASection from '../components/landing/CTASection';
 import Footer from '../components/landing/Footer';
+import Precios from '../components/landing/Precios'; // 👈 NUEVO IMPORT
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -37,23 +38,31 @@ export default function Landing() {
               </span>
             </div>
           </Link>
-          <Link
-            to="/login"
-            className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider border border-[#22d3ee]/30 text-[#22d3ee] hover:bg-[#22d3ee] hover:text-black transition-all"
-          >
-            Iniciar sesión →
-          </Link>
+          <div className="flex items-center gap-3">
+            {/* Botón extra para saltar directo a precios */}
+            <a
+              href="#precios"
+              className="hidden md:block px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider text-gray-300 hover:text-white transition-all"
+            >
+              Ver Precios
+            </a>
+            <Link
+              to="/login"
+              className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider border border-[#22d3ee]/30 text-[#22d3ee] hover:bg-[#22d3ee] hover:text-black transition-all"
+            >
+              Iniciar sesión →
+            </Link>
+          </div>
         </div>
       </nav>
 
-      {/* Hero */}
+      {/* Secciones */}
       <Hero />
-
-      {/* Features */}
       <Features />
-
-      {/* Público objetivo */}
       <Publico />
+      
+      {/* 👇 NUEVA SECCIÓN DE PRECIOS 👇 */}
+      <Precios />
 
       {/* CTA final */}
       <CTASection />
