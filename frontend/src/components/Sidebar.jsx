@@ -12,7 +12,7 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
   const [nombreUsuario, setNombreUsuario] = useState('');
   const [nickname, setNickname] = useState('');
   const [centroId, setCentroId] = useState(null);
-    const [modoNavegacion, setModoNavegacion] = useState(() => {
+  const [modoNavegacion, setModoNavegacion] = useState(() => {
     return localStorage.getItem('cj_modo_navegacion') || 'academia';
   });
 
@@ -23,6 +23,15 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
     window.dispatchEvent(new CustomEvent('cj-modo-change', { detail: nuevoModo }));
   };
   const [cargando, setCargando] = useState(true);
+
+  // Función para obtener el link del manual según el rol
+  const obtenerLinkManual = (rol) => {
+    const baseURL = 'https://raw.githubusercontent.com/CJPANTA/cj-project/main/BASE_DATOS/04_MANUALES/';
+    if (rol === 2) return baseURL + 'manual_estudiante.pdf';
+    if (rol === 5) return baseURL + 'manual_paciente.pdf';
+    if (rol === 7 || rol === 1 || rol === 8) return baseURL + 'manual_admin.pdf';
+    return baseURL + 'manual_terapeuta.pdf'; // Para roles 3, 4 y 6
+  };
 
   useEffect(() => {
     const cargarPerfil = async () => {
@@ -133,6 +142,18 @@ if (rolUsuario === 5) {
           <span className="text-[#22d3ee] text-[8px] font-black uppercase tracking-[0.4em]">Mi espacio</span>
         </div>
       </div>
+
+        {/* Botón Mi Manual para Paciente */}
+        <a 
+          href={obtenerLinkManual(5)} 
+          target="_blank" 
+          rel="noreferrer"
+          className={`flex items-center gap-3 px-4 py-3 mt-4 rounded-xl transition-all bg-[#22d3ee]/10 text-[#22d3ee] border border-[#22d3ee]/30 hover:bg-[#22d3ee] hover:text-black`}
+        >
+          <span className="text-lg">📘</span>
+          <span className="text-xs font-bold uppercase tracking-wider">Mi Manual</span>
+        </a>
+    
       <nav className="flex-1 space-y-1">
         {/* Dashboard (Centro de Mando) */}
         <Link to="/inicio" onClick={alClickLink} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${path === '/inicio' ? 'bg-[#22d3ee]/10 text-[#22d3ee]' : `${textoSecundario} ${hoverBg}`}`}>
@@ -259,6 +280,19 @@ if (rolUsuario === 5) {
           </Link>
         </div>
       </nav>
+
+      {/* ===== BOTÓN MI MANUAL (Todos los roles) ===== */}
+      <div className={`mt-4 pt-4 border-t ${bordeColor}`}>
+        <a 
+          href={obtenerLinkManual(rolUsuario)} 
+          target="_blank" 
+          rel="noreferrer"
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all w-full bg-[#22d3ee]/10 text-[#22d3ee] border border-[#22d3ee]/30 hover:bg-[#22d3ee] hover:text-black`}
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+          <span className="text-xs font-bold uppercase tracking-wider">Mi Manual</span>
+        </a>
+      </div>
 
       {/* ===== USUARIO + LOGOUT ===== */}
       <div className={`mt-4 pt-4 border-t ${bordeColor} flex flex-col gap-4`}>
