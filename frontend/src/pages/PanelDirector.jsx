@@ -4,6 +4,8 @@ import { registrarCambiosMultiples } from '../utils/auditoria';
 import { generarMensajeHumano, formatearFecha, iconoCampo, traducirValor } from '../utils/auditoriaTraducciones';
 import WizardCentro from '../components/clinica/WizardCentro';
 import ConsumoIA from './ConsumoIA';
+import GestionCentros from '../components/GestionCentros';
+import WizardOnboarding from '../components/WizardOnboarding';
 
 export default function PanelDirector({ temaOscuro }) {
   const [usuarios, setUsuarios] = useState([]);
@@ -16,6 +18,7 @@ export default function PanelDirector({ temaOscuro }) {
   const [nuevoCentro, setNuevoCentro] = useState({ id: '', nombre: '', direccion: '', telefono: '', tipo_centro: 'gimnasio_terapeutico' });
   const [guardandoCentro, setGuardandoCentro] = useState(false);
   const [wizardAbierto, setWizardAbierto] = useState(false);
+  const [wizardOnboardingAbierto, setWizardOnboardingAbierto] = useState(false);
   const [esDirectorGlobal, setEsDirectorGlobal] = useState(false);
   const [centroDirector, setCentroDirector] = useState(null);
   const [pestana, setPestana] = useState('usuarios');
@@ -655,6 +658,65 @@ export default function PanelDirector({ temaOscuro }) {
           {esDirectorGlobal ? 'Panel del Director Global' : 'Panel de Administración del Centro'}
         </h1>
 
+                {/* BANNER DE ALERTAS DE COBRO */}
+        {esDirectorGlobal && (() => {
+          const hoy = new Date();
+          hoy.setHours(0, 0, 0, 0);
+
+          const vencidos = centros.filter(c => {
+            if (c.estado_pago === 'suspendido' || !c.fecha_vencimiento) return false;
+            const vence = new Date(c.fecha_vencimiento + 'T00:00:00');
+            return vence < hoy;
+          });
+
+          const porVencer = centros.filter(c => {
+            if (c.estado_pago === 'suspendido' || !c.fecha_vencimiento) return false;
+            const vence = new Date(c.fecha_vencimiento + 'T00:00:00');
+            const en7Dias = new Date();
+            en7Dias.setDate(en7Dias.getDate() + 7);
+            en7Dias.setHours(0, 0, 0, 0);
+            return vence >= hoy && vence <= en7Dias;
+          });
+
+          if (vencidos.length === 0 && porVencer.length === 0) return null;
+
+          return (
+            <div className="mb-6 space-y-3">
+              {vencidos.length > 0 && (
+                <div className="bg-red-500/10 border-l-4 border-red-500 p-4 rounded-r-xl flex flex-wrap justify-between items-center gap-3">
+                  <div>
+                    <p className="text-red-400 font-black text-sm uppercase tracking-wider">
+                      🚨 Alerta: {vencidos.length} centro{vencidos.length > 1 ? 's' : ''} vencido{vencidos.length > 1 ? 's' : ''}
+                    </p>
+                    <p className={`text-xs ${textoSecundario} mt-1`}>
+                      {vencidos.map(c => c.nombre).join(', ')} — Suspende el acceso o registra su pago.
+                    </p>
+                  </div>
+                  <button onClick={() => setMostrarCentros(true)} className="px-4 py-2 bg-red-500 text-white font-bold rounded-lg text-xs hover:bg-red-600 transition-all">
+                    Ir a Gestión de Centros ↓
+                  </button>
+                </div>
+              )}
+
+              {porVencer.length > 0 && (
+                <div className="bg-yellow-500/10 border-l-4 border-yellow-500 p-4 rounded-r-xl flex flex-wrap justify-between items-center gap-3">
+                  <div>
+                    <p className="text-yellow-500 font-black text-sm uppercase tracking-wider">
+                      ⚠️ Aviso: {porVencer.length} centro{porVencer.length > 1 ? 's' : ''} vence en 7 días
+                    </p>
+                    <p className={`text-xs ${textoSecundario} mt-1`}>
+                      {porVencer.map(c => c.nombre).join(', ')} — Contáctalos para renovar su plan.
+                    </p>
+                  </div>
+                  <button onClick={() => setMostrarCentros(true)} className="px-4 py-2 bg-yellow-500 text-black font-bold rounded-lg text-xs hover:bg-yellow-600 transition-all">
+                    Ver Centros ↓
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           <div className={`${bgTarjeta} p-4 rounded-2xl border text-center`}>
             <p className="text-3xl font-black text-[#22d3ee]">{estadisticas.total}</p>
@@ -690,72 +752,13 @@ export default function PanelDirector({ temaOscuro }) {
           {esDirectorGlobal && (
   <button onClick={() => setPestana('consumo')} className={`px-4 py-2 text-sm font-bold uppercase tracking-wider border-b-2 transition-all ${pestana === 'consumo' ? 'border-[#22d3ee] text-[#22d3ee]' : `border-transparent ${textoSecundario} hover:text-[#22d3ee]`}`}>📊 Consumo IA</button>
 )}
-        {esDirectorGlobal && mostrarCentros && (
-  <div className={`${bgTarjeta} p-6 rounded-2xl border mb-8`}>
-    <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
-      <div>
-        <h2 className={`text-xl font-bold ${textoPrincipal}`}>📋 Gestión de Centros</h2>
-        <p className={`text-xs ${textoSecundario} mt-1`}>
-          {centros.length} {centros.length === 1 ? 'centro registrado' : 'centros registrados'}
-        </p>
-      </div>
-      <button
-        onClick={() => setWizardAbierto(true)}
-        className="px-5 py-3 bg-[#22d3ee] text-black font-black rounded-xl text-sm hover:scale-105 transition-all shadow-lg shadow-[#22d3ee]/20"
-      >
-        ➕ Crear Centro
-      </button>
-    </div>
-
-    {centros.length > 0 ? (
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className={`${bgTablaHead} border-b ${bordeFila}`}>
-            <tr>
-              <th className={`px-4 py-2 text-left font-bold text-xs uppercase ${textoSecundario}`}>Código</th>
-              <th className={`px-4 py-2 text-left font-bold text-xs uppercase ${textoSecundario}`}>Nombre</th>
-              <th className={`px-4 py-2 text-left font-bold text-xs uppercase ${textoSecundario}`}>RUC</th>
-              <th className={`px-4 py-2 text-left font-bold text-xs uppercase ${textoSecundario}`}>Tipo</th>
-              <th className={`px-4 py-2 text-center font-bold text-xs uppercase ${textoSecundario}`}>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {centros.map((c) => (
-              <tr key={c.id} className={`border-b ${bordeFila} ${hoverFila}`}>
-                <td className={`px-4 py-2 font-mono font-bold ${textoPrincipal}`}>{c.id}</td>
-                <td className={`px-4 py-2 ${textoPrincipal}`}>{c.nombre}</td>
-                <td className={`px-4 py-2 text-xs font-mono ${textoSecundario}`}>{c.ruc || '—'}</td>
-                <td className="px-4 py-2">
-                  <select
-                    value={c.tipo_centro || 'gimnasio_terapeutico'}
-                    onChange={(e) => cambiarTipoCentro(c.id, e.target.value)}
-                    className={`px-2 py-1 rounded-lg border ${bgInput} text-xs`}
-                  >
-                    <option value="gimnasio_terapeutico">🏋️ Gimnasio Terapéutico</option>
-                    <option value="centro_fisioterapeutico">🏥 Centro Fisioterapéutico</option>
-                    <option value="independiente">👤 Independiente</option>
-                  </select>
-                </td>
-                <td className="px-4 py-2 text-center">
-                  <button
-                    onClick={() => eliminarCentro(c.id)}
-                    className="px-3 py-1 bg-red-500/20 text-red-500 font-bold rounded-lg text-xs hover:bg-red-500 hover:text-white"
-                  >
-                    Eliminar
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    ) : (
-      <div className={`p-8 rounded-2xl border-2 border-dashed text-center ${temaOscuro ? 'border-gray-700' : 'border-gray-300'}`}>
-        <p className={`text-sm ${textoSecundario}`}>
-          Aún no hay centros creados. Click en <strong className="text-[#22d3ee]">➕ Crear Centro</strong> para empezar.
-        </p>
-      </div>
-    )}
+  {esDirectorGlobal && mostrarCentros && (
+  <div className="mb-8">
+    <GestionCentros
+      temaOscuro={temaOscuro}
+      // Cámbialo a esto:
+        onNuevoCentro={() => setWizardOnboardingAbierto(true)}
+    />
   </div>
 )}
 
@@ -1081,6 +1084,13 @@ export default function PanelDirector({ temaOscuro }) {
     cargarDatos();
     alert('✅ Centro creado correctamente.');
   }}
+  temaOscuro={temaOscuro}
+/>
+
+<WizardOnboarding
+  abierto={wizardOnboardingAbierto}
+  onCerrar={() => setWizardOnboardingAbierto(false)}
+  onCreado={() => cargarDatos()}
   temaOscuro={temaOscuro}
 />
 
