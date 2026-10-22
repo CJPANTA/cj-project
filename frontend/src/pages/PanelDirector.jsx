@@ -22,6 +22,7 @@ export default function PanelDirector({ temaOscuro }) {
   const [esDirectorGlobal, setEsDirectorGlobal] = useState(false);
   const [centroDirector, setCentroDirector] = useState(null);
   const [pestana, setPestana] = useState('usuarios');
+  const [filtroRol, setFiltroRol] = useState(null); // null = todos
   const [historial, setHistorial] = useState([]);
   const [cargandoHistorial, setCargandoHistorial] = useState(false);
   const [filtroHistorial, setFiltroHistorial] = useState('');
@@ -36,7 +37,7 @@ export default function PanelDirector({ temaOscuro }) {
   });
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
 
-  // ===== ESTILOS DINÁMICOS (CORREGIDOS) =====
+  // ===== ESTILOS DINÁMICOS =====
   const bgPrincipal = temaOscuro ? 'bg-[#0a141d]' : 'bg-[#e2e8f0]';
   const textoPrincipal = temaOscuro ? 'text-white' : 'text-[#0f172a]';
   const textoSecundario = temaOscuro ? 'text-gray-400' : 'text-gray-600';
@@ -53,7 +54,7 @@ export default function PanelDirector({ temaOscuro }) {
     cargarDatos();
   }, []);
 
-    useEffect(() => {
+  useEffect(() => {
     if (pestana === 'historial') {
       cargarHistorial();
     }
@@ -70,7 +71,6 @@ export default function PanelDirector({ temaOscuro }) {
         .eq('estado', 'pendiente')
         .order('created_at', { ascending: false });
 
-      // Si es Admin Centro (rol 7), solo las de su centro
       if (!esDirectorGlobal && centroDirector) {
         query = query.eq('centro_id', centroDirector);
       }
@@ -78,7 +78,6 @@ export default function PanelDirector({ temaOscuro }) {
       const { data, error } = await query;
       if (error) throw error;
 
-      // Hidratar con nombre del usuario
       const ids = [...new Set((data || []).map((s) => s.usuario_id).filter(Boolean))];
       let perfilMap = {};
       if (ids.length > 0) {
@@ -103,7 +102,6 @@ export default function PanelDirector({ temaOscuro }) {
       return;
     }
     try {
-      // 1) Llamar a la Edge Function que resetea la contraseña real
       const { data: { session } } = await supabase.auth.getSession();
       const SUPABASE_URL = 'https://xjxsuxtehkdtphvgkvbd.supabase.co';
       const res = await fetch(`${SUPABASE_URL}/functions/v1/reset-password`, {
@@ -123,7 +121,6 @@ export default function PanelDirector({ temaOscuro }) {
         throw new Error(errData.error || 'Error al resetear la contraseña');
       }
 
-      // 2) Marcar la solicitud como resuelta
       await supabase.rpc('marcar_solicitud_resuelta', { solicitud_id: solicitud.id });
 
       alert('✅ Contraseña reseteada a 12345678. Avisa al usuario por WhatsApp.');
@@ -160,23 +157,11 @@ export default function PanelDirector({ temaOscuro }) {
       setEsDirectorGlobal(esGlobal);
       setCentroDirector(perfil.centro_id);
 
-            // Cargar centros según rol
       if (esGlobal) {
-        // Director Global ve TODOS los centros
         const { data: centrosData } = await supabase
           .from('centros').select('*').order('created_at', { ascending: false });
         setCentros(centrosData || []);
       } else if (perfil.centro_id) {
-        // Admin Centro solo ve SU centro
-        const { data: centroData } = await supabase
-          .from('centros')
-          .select('*')
-          .eq('id', perfil.centro_id)
-          .single();
-        setCentros(centroData ? [centroData] : []);
-      } 
-      else if (perfil.centro_id) {
-        // Admin Centro solo ve SU centro
         const { data: centroData } = await supabase
           .from('centros')
           .select('*')
@@ -199,10 +184,10 @@ export default function PanelDirector({ temaOscuro }) {
         total: perfiles.length,
         pendientes: pendientes.length,
         estudiantes: activos.filter(p => p.rol === 2).length,
-        licenciados: activos.filter(p => p.rol === 3 || p.rol === 4 || p.rol === 7).length,
+        licenciados: activos.filter(p => p.rol === 3 || p.rol === 4 || p.rol === 7 || p.rol === 8).length,
       });
 
-        let evalQuery = supabase
+      let evalQuery = supabase
         .from('evaluaciones')
         .select(`
           *,
@@ -221,13 +206,9 @@ export default function PanelDirector({ temaOscuro }) {
     }
   };
 
-  // ============================================================
-  // CARGAR HISTORIAL DE AUDITORÍA
-  // ============================================================
   const cargarHistorial = async () => {
     setCargandoHistorial(true);
     try {
-      // 1. Traer últimos 100 registros
       const { data: auditoriaData, error } = await supabase
         .from('auditoria_perfiles')
         .select('*')
@@ -241,7 +222,6 @@ export default function PanelDirector({ temaOscuro }) {
         return;
       }
 
-      // 2. Hidratar con nombre del perfil afectado
       const ids = [...new Set(auditoriaData.map((a) => a.perfil_id).filter(Boolean))];
       let perfilMap = {};
       if (ids.length > 0) {
@@ -268,199 +248,97 @@ export default function PanelDirector({ temaOscuro }) {
     }
   };
 
-
-  const crearCentro = async () => {
-    if (!nuevoCentro.id || !nuevoCentro.nombre) { alert('Código y nombre son obligatorios.'); return; }
-    setGuardandoCentro(true);
+  const aprobarUsuario = async (userId, nuevoRol, centroId) => {
+    if (!nuevoRol) { alert('Selecciona un rol.'); return; }
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const logoUrl = `https://raw.githubusercontent.com/CJPANTA/cj-project/main/frontend/public/logo_centros/${nuevoCentro.id.toUpperCase()}.png`;
-      const { error } = await supabase.from('centros').insert([{
-        id: nuevoCentro.id.toUpperCase().trim(),
-        nombre: nuevoCentro.nombre.trim(),
-        direccion: nuevoCentro.direccion || null,
-        telefono: nuevoCentro.telefono || null,
-        tipo_centro: nuevoCentro.tipo_centro || 'gimnasio_terapeutico',
-        logo_url: logoUrl,
-        created_by: user?.id || null
-      }]);
-      if (error) throw error;
-      alert('✅ Centro creado correctamente.');
-      setNuevoCentro({ id: '', nombre: '', direccion: '', telefono: '', tipo_centro: 'gimnasio_terapeutico' });
-      cargarDatos();
-    } catch (error) {
-      alert('Error al crear centro: ' + error.message);
-    } finally {
-      setGuardandoCentro(false);
-    }
-  };
-
-  const eliminarCentro = async (centroId) => {
-    if (!confirm('¿Seguro que quieres eliminar este centro?')) return;
-    try {
-      await supabase.from('profiles').update({ centro_id: null }).eq('centro_id', centroId);
-      await supabase.from('pacientes').update({ centro_id: null }).eq('centro_id', centroId);
-      const { error } = await supabase.from('centros').delete().eq('id', centroId);
-      if (error) throw error;
-      alert('✅ Centro eliminado.');
-      cargarDatos();
-    } catch (error) {
-      alert('Error al eliminar centro: ' + error.message);
-    }
-  };
-
-  const cambiarTipoCentro = async (centroId, nuevoTipo) => {
-    try {
-      const { error } = await supabase.from('centros').update({ tipo_centro: nuevoTipo }).eq('id', centroId);
-      if (error) throw error;
-      cargarDatos();
-    } catch (error) {
-      alert('Error: ' + error.message);
-    }
-  };
-
-    const aprobarUsuario = async (userId, nuevoRol, centroId) => {
-  if (!nuevoRol) { alert('Selecciona un rol.'); return; }
-  try {
-    // 1. Obtener datos del perfil completo (necesitamos nombre para el Centro Personal)
-    const { data: perfilPrevio } = await supabase
-      .from('profiles')
-      .select('tipo_profesional, rol, estado, centro_id, nombre_completo')
-      .eq('id', userId)
-      .single();
-
-    const rolNum = parseInt(nuevoRol);
-
-    // 2. Preparar datos nuevos
-    const updateData = { estado: 'aprobado', rol: rolNum };
-    if (centroId) updateData.centro_id = centroId;
-    const tipoMap = {
-      1: 'director', 2: 'estudiante', 3: 'licenciado',
-      4: 'licenciado', 5: 'paciente', 6: 'demo',
-      7: 'licenciado', 8: perfilPrevio?.tipo_profesional || 'licenciado',
-    };
-        updateData.tipo_profesional = tipoMap[rolNum] || null;
-
-    // ============================================================
-    // AUTO-GENERAR REGISTRO INTERNO PARA TÉCNICOS
-    // Solo aplica si:
-    //   - El tipo profesional es 'tecnico'
-    //   - Hay un centro asignado
-    //   - El usuario NO tiene ya un registro interno
-    // ============================================================
-    const esTecnico = updateData.tipo_profesional === 'tecnico'
-                   || perfilPrevio?.tipo_profesional === 'tecnico';
-    const centroParaRegistro = updateData.centro_id || perfilPrevio?.centro_id;
-
-    if (esTecnico && centroParaRegistro) {
-      // Verificar si ya tiene uno
-      const { data: perfilCheck } = await supabase
+      const { data: perfilPrevio } = await supabase
         .from('profiles')
-        .select('registro_interno')
+        .select('tipo_profesional, rol, estado, centro_id, nombre_completo')
         .eq('id', userId)
         .single();
 
-      if (!perfilCheck?.registro_interno) {
-        const nuevoRegistro = await generarRegistroInterno(centroParaRegistro);
-        if (nuevoRegistro) {
-          updateData.registro_interno = nuevoRegistro;
-          console.log('📋 [Registro Interno] Generado:', nuevoRegistro);
+      const rolNum = parseInt(nuevoRol);
+      const updateData = { estado: 'aprobado', rol: rolNum };
+      if (centroId) updateData.centro_id = centroId;
+
+      const tipoMap = {
+        1: 'director', 2: 'estudiante', 3: 'licenciado',
+        4: 'licenciado', 5: 'paciente', 6: 'demo',
+        7: 'licenciado', 8: perfilPrevio?.tipo_profesional || 'licenciado',
+      };
+      updateData.tipo_profesional = tipoMap[rolNum] || null;
+
+      const esTecnico = updateData.tipo_profesional === 'tecnico' || perfilPrevio?.tipo_profesional === 'tecnico';
+      const centroParaRegistro = updateData.centro_id || perfilPrevio?.centro_id;
+
+      if (esTecnico && centroParaRegistro) {
+        const { data: perfilCheck } = await supabase
+          .from('profiles').select('registro_interno').eq('id', userId).single();
+
+        if (!perfilCheck?.registro_interno) {
+          const nuevoRegistro = await generarRegistroInterno(centroParaRegistro);
+          if (nuevoRegistro) updateData.registro_interno = nuevoRegistro;
         }
       }
-    }
 
-        // ============================================================
-    // CASO ESPECIAL: Rol 8 (Independiente) → Crear Centro Personal
-    // ============================================================
-    if (rolNum === 8 && !centroId && !perfilPrevio?.centro_id) {
-      const nombreCompleto = perfilPrevio?.nombre_completo || 'Independiente';
-      const tipo = perfilPrevio?.tipo_profesional || 'licenciado';
+      if (rolNum === 8 && !centroId && !perfilPrevio?.centro_id) {
+        const nombreCompleto = perfilPrevio?.nombre_completo || 'Independiente';
+        const tipo = perfilPrevio?.tipo_profesional || 'licenciado';
 
-      // Traer CTMP y DNI del perfil (para construir el ID)
-      const { data: perfilExtra } = await supabase
-        .from('profiles')
-        .select('dni, numero_colegiatura, registro_interno')
-        .eq('id', userId)
-        .single();
+        const { data: perfilExtra } = await supabase
+          .from('profiles').select('dni, numero_colegiatura, registro_interno').eq('id', userId).single();
 
-      // Calcular iniciales (primeras 3 palabras del nombre)
-      const palabras = nombreCompleto.trim().split(/\s+/).filter((w) => w.length > 0);
-      const iniciales = palabras
-        .slice(0, 3)
-        .map((w) => w[0])
-        .join('')
-        .toUpperCase() || 'XX';
+        const palabras = nombreCompleto.trim().split(/\s+/).filter((w) => w.length > 0);
+        const iniciales = palabras.slice(0, 3).map((w) => w[0]).join('').toUpperCase() || 'XX';
 
-      // Identificador según tipo de profesional
-      let identificador = '';
-      if (tipo === 'licenciado') {
-        identificador = (perfilExtra?.numero_colegiatura || '').replace(/\D/g, '');
-      } else if (tipo === 'tecnico') {
-        identificador = (perfilExtra?.dni || '').replace(/\D/g, '');
+        let identificador = '';
+        if (tipo === 'licenciado') identificador = (perfilExtra?.numero_colegiatura || '').replace(/\D/g, '');
+        else if (tipo === 'tecnico') identificador = (perfilExtra?.dni || '').replace(/\D/g, '');
+
+        if (!identificador || identificador.length < 3) {
+          identificador = String(Date.now()).slice(-6);
+        }
+
+        const centroPersonalId = `IND-${iniciales}${identificador}`;
+
+        const { data: existente } = await supabase.from('centros').select('id').eq('id', centroPersonalId).maybeSingle();
+
+        if (existente) {
+          updateData.centro_id = centroPersonalId;
+        } else {
+          const { data: { user: currentUser } } = await supabase.auth.getUser();
+          const { error: errCentro } = await supabase.from('centros').insert([{
+            id: centroPersonalId,
+            nombre: `Consultorio ${nombreCompleto}`,
+            tipo_centro: 'independiente',
+            created_by: currentUser?.id || null,
+          }]);
+
+          if (errCentro) throw errCentro;
+          updateData.centro_id = centroPersonalId;
+        }
       }
 
-      // Fallback si no hay identificador válido
-      if (!identificador || identificador.length < 3) {
-        identificador = String(Date.now()).slice(-6);
-        console.warn('⚠️ Sin CTMP/DNI válido, usando fallback timestamp:', identificador);
-      }
+      const { error } = await supabase.from('profiles').update(updateData).eq('id', userId);
+      if (error) throw error;
 
-      // ID final: IND-{INICIALES}{IDENTIFICADOR}
-      const centroPersonalId = `IND-${iniciales}${identificador}`;
+      await registrarCambiosMultiples({
+        perfilId: userId,
+        datosAnteriores: perfilPrevio || {},
+        datosNuevos: updateData,
+        motivo: rolNum === 8 ? `Aprobación de Independiente — Centro Personal: ${updateData.centro_id}` : 'Aprobación de usuario por Director',
+      });
 
-      // Verificar si ya existe (por si el usuario reintenta)
-      const { data: existente } = await supabase
-        .from('centros')
-        .select('id')
-        .eq('id', centroPersonalId)
-        .maybeSingle();
-
-      if (existente) {
-        // Ya existe, solo lo asignamos
-        updateData.centro_id = centroPersonalId;
-        console.log('🏥 [Independiente] Centro Personal ya existía:', centroPersonalId);
+      if (rolNum === 8) {
+        alert(`✅ Independiente aprobado.\n\n🏥 Se creó su Centro Personal: ${updateData.centro_id}\n\nPídele que ingrese a "Mi Equipamiento" para configurar su inventario.`);
       } else {
-        // Crear el Centro Personal
-        const { data: { user: currentUser } } = await supabase.auth.getUser();
-        const { error: errCentro } = await supabase.from('centros').insert([{
-          id: centroPersonalId,
-          nombre: `Consultorio ${nombreCompleto}`,
-          tipo_centro: 'independiente',
-          created_by: currentUser?.id || null,
-        }]);
-
-        if (errCentro) throw errCentro;
-
-        updateData.centro_id = centroPersonalId;
-        console.log('🏥 [Independiente] Centro Personal creado:', centroPersonalId);
+        alert('✅ Usuario aprobado.');
       }
+      cargarDatos();
+    } catch (error) {
+      alert('Error al aprobar: ' + error.message);
     }
-
-    // 3. Actualizar el perfil
-    const { error } = await supabase.from('profiles').update(updateData).eq('id', userId);
-    if (error) throw error;
-
-    // 4. Registrar auditoría
-    const audit = await registrarCambiosMultiples({
-      perfilId: userId,
-      datosAnteriores: perfilPrevio || {},
-      datosNuevos: updateData,
-      motivo: rolNum === 8
-        ? `Aprobación de Independiente — Centro Personal: ${updateData.centro_id}`
-        : 'Aprobación de usuario por Director',
-    });
-    console.log('📝 [Auditoría] Aprobación registrada:', audit);
-
-    if (rolNum === 8) {
-      alert(`✅ Independiente aprobado.\n\n🏥 Se creó su Centro Personal: ${updateData.centro_id}\n\nPídele que ingrese a "Mi Equipamiento" para configurar su inventario.`);
-    } else {
-      alert('✅ Usuario aprobado.');
-    }
-    cargarDatos();
-  } catch (error) {
-    alert('Error al aprobar: ' + error.message);
-  }
-};
+  };
 
   const eliminarUsuario = async (userId) => {
     if (!confirm('¿Eliminar usuario?')) return;
@@ -492,11 +370,10 @@ export default function PanelDirector({ temaOscuro }) {
     setModalEditar(true);
   };
 
-    const guardarEdicion = async () => {
+  const guardarEdicion = async () => {
     if (!usuarioEditando) return;
     setGuardandoEdicion(true);
     try {
-      // 1. Datos nuevos (tal como vienen del formulario)
       const datosNuevos = {
         nombre_completo: formEditar.nombre_completo,
         telefono: formEditar.telefono || null,
@@ -511,7 +388,6 @@ export default function PanelDirector({ temaOscuro }) {
         estado: formEditar.estado,
       };
 
-      // 2. Datos anteriores (los tenemos guardados en usuarioEditando)
       const datosAnteriores = {
         tipo_profesional: usuarioEditando.tipo_profesional,
         rol: usuarioEditando.rol,
@@ -523,18 +399,15 @@ export default function PanelDirector({ temaOscuro }) {
         tipo_documento: usuarioEditando.tipo_documento,
       };
 
-      // 3. Actualizar perfil
       const { error } = await supabase.from('profiles').update(datosNuevos).eq('id', usuarioEditando.id);
       if (error) throw error;
 
-      // 4. Registrar auditoría de los cambios
       const audit = await registrarCambiosMultiples({
         perfilId: usuarioEditando.id,
         datosAnteriores,
         datosNuevos,
         motivo: 'Edición manual por Director',
       });
-      console.log('📝 [Auditoría] Edición registrada:', audit);
 
       if (audit.cantidad > 0) {
         alert(`✅ Datos actualizados. Se registraron ${audit.cantidad} cambio(s) en auditoría.`);
@@ -552,16 +425,8 @@ export default function PanelDirector({ temaOscuro }) {
     }
   };
 
-
-    // ============================================================
-  // GENERAR REGISTRO INTERNO PARA TÉCNICOS
-  // Formato: {CENTRO}-TEC-{NÚMERO}
-  // Ejemplo: CJ-TEC-001, CJ-TEC-002, JP-TEC-001
-  // ============================================================
   const generarRegistroInterno = async (centroId) => {
     if (!centroId) return null;
-
-    // Buscar todos los técnicos del centro con registro interno asignado
     const { data: tecnicos } = await supabase
       .from('profiles')
       .select('registro_interno')
@@ -569,7 +434,6 @@ export default function PanelDirector({ temaOscuro }) {
       .eq('tipo_profesional', 'tecnico')
       .not('registro_interno', 'is', null);
 
-    // Extraer números existentes
     const prefijo = `${centroId}-TEC-`;
     let maxNumero = 0;
 
@@ -582,7 +446,6 @@ export default function PanelDirector({ temaOscuro }) {
       }
     });
 
-    // Generar el siguiente
     const siguiente = maxNumero + 1;
     const numeroFormateado = String(siguiente).padStart(3, '0');
     return `${prefijo}${numeroFormateado}`;
@@ -609,6 +472,21 @@ export default function PanelDirector({ temaOscuro }) {
     } catch (error) { alert('Error: ' + error.message); }
   };
 
+  // ============================================================
+  // LÓGICA DE FILTRADO (Paso D)
+  // ============================================================
+  const usuariosFiltrados = usuarios.filter(u => {
+    if (filtroRol === null || filtroRol === 'pendiente') return true;
+    if (filtroRol === 3) return [3, 4, 7, 8].includes(u.rol);
+    return u.rol === filtroRol;
+  });
+
+  const solicitudesFiltradas = solicitudes.filter(s => {
+    if (filtroRol === null || filtroRol === 'pendiente') return true;
+    if (filtroRol === 3) return [3, 4, 7, 8].includes(s.rol);
+    return s.rol === filtroRol;
+  });
+
   const ROLES = [
     { valor: 1, label: 'Director' },
     { valor: 2, label: 'Estudiante' },
@@ -620,12 +498,6 @@ export default function PanelDirector({ temaOscuro }) {
     { valor: 8, label: 'Independiente' },
   ];
 
-  // ============================================================
-  // ROLES QUE PUEDE APROBAR CADA TIPO DE ADMIN
-  // - Director Global (rol 1): TODOS los roles
-  // - Admin Centro (rol 7): SOLO Licenciado (rol 3)
-  //   (el tipo_profesional licenciado/tecnico ya lo trae el usuario)
-  // ============================================================
   const rolesAprobables = esDirectorGlobal
     ? ROLES
     : ROLES.filter((r) => [2, 3, 4].includes(r.valor));
@@ -658,7 +530,7 @@ export default function PanelDirector({ temaOscuro }) {
           {esDirectorGlobal ? 'Panel del Director Global' : 'Panel de Administración del Centro'}
         </h1>
 
-                {/* BANNER DE ALERTAS DE COBRO */}
+        {/* BANNER DE ALERTAS DE COBRO */}
         {esDirectorGlobal && (() => {
           const hoy = new Date();
           hoy.setHours(0, 0, 0, 0);
@@ -717,59 +589,83 @@ export default function PanelDirector({ temaOscuro }) {
           );
         })()}
 
+        {/* TARJETAS KPI (INTERACTIVAS) */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-          <div className={`${bgTarjeta} p-4 rounded-2xl border text-center`}>
+          <button 
+            onClick={() => setFiltroRol(null)} 
+            className={`${bgTarjeta} p-4 rounded-2xl border text-center transition-all ${filtroRol === null ? 'border-[#22d3ee] ring-1 ring-[#22d3ee]' : 'hover:border-[#22d3ee]/50'}`}
+          >
             <p className="text-3xl font-black text-[#22d3ee]">{estadisticas.total}</p>
             <p className={`text-xs font-bold uppercase ${textoSecundario}`}>Total Usuarios</p>
-          </div>
-          <div className={`${bgTarjeta} p-4 rounded-2xl border text-center`}>
+          </button>
+
+          <button 
+            onClick={() => setFiltroRol('pendiente')} 
+            className={`${bgTarjeta} p-4 rounded-2xl border text-center transition-all ${filtroRol === 'pendiente' ? 'border-yellow-500 ring-1 ring-yellow-500' : 'hover:border-yellow-500/50'}`}
+          >
             <p className="text-3xl font-black text-yellow-500">{estadisticas.pendientes}</p>
             <p className={`text-xs font-bold uppercase ${textoSecundario}`}>Pendientes</p>
-          </div>
-          <div className={`${bgTarjeta} p-4 rounded-2xl border text-center`}>
+          </button>
+
+          <button 
+            onClick={() => setFiltroRol(2)} 
+            className={`${bgTarjeta} p-4 rounded-2xl border text-center transition-all ${filtroRol === 2 ? 'border-blue-500 ring-1 ring-blue-500' : 'hover:border-blue-500/50'}`}
+          >
             <p className="text-3xl font-black text-blue-500">{estadisticas.estudiantes}</p>
             <p className={`text-xs font-bold uppercase ${textoSecundario}`}>Estudiantes</p>
-          </div>
-          <div className={`${bgTarjeta} p-4 rounded-2xl border text-center`}>
+          </button>
+
+          <button 
+            onClick={() => setFiltroRol(3)} 
+            className={`${bgTarjeta} p-4 rounded-2xl border text-center transition-all ${filtroRol === 3 ? 'border-emerald-500 ring-1 ring-emerald-500' : 'hover:border-emerald-500/50'}`}
+          >
             <p className="text-3xl font-black text-emerald-500">{estadisticas.licenciados}</p>
             <p className={`text-xs font-bold uppercase ${textoSecundario}`}>Licenciados</p>
-          </div>
+          </button>
+
           {esDirectorGlobal && (
-            <div className={`${bgTarjeta} p-4 rounded-2xl border text-center cursor-pointer hover:border-[#22d3ee] transition-all`} onClick={() => setMostrarCentros(!mostrarCentros)}>
+            <button 
+              onClick={() => { setMostrarCentros(!mostrarCentros); setFiltroRol(null); }} 
+              className={`${bgTarjeta} p-4 rounded-2xl border text-center transition-all ${mostrarCentros ? 'border-purple-500 ring-1 ring-purple-500' : 'hover:border-purple-500/50'}`}
+            >
               <p className="text-3xl font-black text-purple-500">{centros.length}</p>
               <p className={`text-xs font-bold uppercase ${textoSecundario}`}>Centros</p>
-            </div>
+            </button>
           )}
         </div>
 
-        <div className={`flex border-b ${bordeTab} mb-6`}>
+        {/* BARRA DE PESTAÑAS */}
+        <div className={`flex flex-wrap border-b ${bordeTab} mb-6 gap-2`}>
           <button onClick={() => setPestana('usuarios')} className={`px-4 py-2 text-sm font-bold uppercase tracking-wider border-b-2 transition-all ${pestana === 'usuarios' ? 'border-[#22d3ee] text-[#22d3ee]' : `border-transparent ${textoSecundario} hover:text-[#22d3ee]`}`}>👥 Usuarios</button>
-          <button onClick={() => setPestana('evaluaciones')} className={`px-4 py-2 text-sm font-bold uppercase tracking-wider border-b-2 transition-all ${pestana === 'evaluaciones' ? 'border-[#22d3ee] text-[#22d3ee]' : `border-transparent ${textoSecundario} hover:text-[#22d3ee]`}`}>📋 Evaluaciones Pendientes ({evaluacionesPendientes.length})</button>
-          <button onClick={() => setPestana('historial')} className={`px-4 py-2 text-sm font-bold uppercase tracking-wider border-b-2 transition-all ${pestana === 'historial' ? 'border-[#22d3ee] text-[#22d3ee]' : `border-transparent ${textoSecundario} hover:text-[#22d3ee]`}`}>📜 Historial de Cambios</button>
-          <button onClick={() => setPestana('resets')} className={`px-4 py-2 text-sm font-bold uppercase tracking-wider border-b-2 transition-all ${pestana === 'resets' ? 'border-[#22d3ee] text-[#22d3ee]' : `border-transparent ${textoSecundario} hover:text-[#22d3ee]`}`}>🔑 Solicitudes de Reset ({solicitudesReset.length})</button>
+          <button onClick={() => setPestana('evaluaciones')} className={`px-4 py-2 text-sm font-bold uppercase tracking-wider border-b-2 transition-all ${pestana === 'evaluaciones' ? 'border-[#22d3ee] text-[#22d3ee]' : `border-transparent ${textoSecundario} hover:text-[#22d3ee]`}`}>📋 Evaluaciones ({evaluacionesPendientes.length})</button>
+          <button onClick={() => setPestana('historial')} className={`px-4 py-2 text-sm font-bold uppercase tracking-wider border-b-2 transition-all ${pestana === 'historial' ? 'border-[#22d3ee] text-[#22d3ee]' : `border-transparent ${textoSecundario} hover:text-[#22d3ee]`}`}>📜 Historial</button>
+          <button onClick={() => setPestana('resets')} className={`px-4 py-2 text-sm font-bold uppercase tracking-wider border-b-2 transition-all ${pestana === 'resets' ? 'border-[#22d3ee] text-[#22d3ee]' : `border-transparent ${textoSecundario} hover:text-[#22d3ee]`}`}>🔑 Resets ({solicitudesReset.length})</button>
+          
+          {/* ÚNICO BOTÓN DE CONSUMO IA */}
+          {esDirectorGlobal && (
+            <button onClick={() => setPestana('consumo')} className={`px-4 py-2 text-sm font-bold uppercase tracking-wider border-b-2 transition-all ${pestana === 'consumo' ? 'border-[#22d3ee] text-[#22d3ee]' : `border-transparent ${textoSecundario} hover:text-[#22d3ee]`}`}>📊 Consumo IA</button>
+          )}
         </div>
 
-          {esDirectorGlobal && (
-  <button onClick={() => setPestana('consumo')} className={`px-4 py-2 text-sm font-bold uppercase tracking-wider border-b-2 transition-all ${pestana === 'consumo' ? 'border-[#22d3ee] text-[#22d3ee]' : `border-transparent ${textoSecundario} hover:text-[#22d3ee]`}`}>📊 Consumo IA</button>
-)}
-  {esDirectorGlobal && mostrarCentros && (
-  <div className="mb-8">
-    <GestionCentros
-      temaOscuro={temaOscuro}
-      // Cámbialo a esto:
-        onNuevoCentro={() => setWizardOnboardingAbierto(true)}
-    />
-  </div>
-)}
+        {/* GESTIÓN DE CENTROS (SOLO DIRECTOR Y SI ESTÁ ACTIVO) */}
+        {esDirectorGlobal && mostrarCentros && (
+          <div className="mb-8">
+            <GestionCentros
+              temaOscuro={temaOscuro}
+              onNuevoCentro={() => setWizardOnboardingAbierto(true)}
+            />
+          </div>
+        )}
 
+        {/* CONTENIDO DE LAS PESTAÑAS */}
         {loading ? (
           <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-4 border-[#22d3ee] border-t-transparent"></div></div>
         ) : (
           <>
             {pestana === 'usuarios' && (
               <>
-                <h2 className={`text-xl font-bold ${textoPrincipal} mb-4`}>Solicitudes pendientes ({solicitudes.length})</h2>
-                {solicitudes.length === 0 ? (
+                <h2 className={`text-xl font-bold ${textoPrincipal} mb-4`}>Solicitudes pendientes ({solicitudesFiltradas.length})</h2>
+                {solicitudesFiltradas.length === 0 ? (
                   <p className={`${textoSecundario} mb-6`}>No hay solicitudes pendientes.</p>
                 ) : (
                   <div className={`overflow-x-auto rounded-2xl border ${bordeFila} shadow-sm mb-8`}>
@@ -785,7 +681,7 @@ export default function PanelDirector({ temaOscuro }) {
                         </tr>
                       </thead>
                       <tbody>
-                        {solicitudes.map((u) => (
+                        {solicitudesFiltradas.map((u) => (
                           <tr key={u.id} className={`border-b ${bordeFila} ${hoverFila}`}>
                             <td className={`px-4 py-3 font-medium ${textoPrincipal}`}>{u.nombre_completo || 'Sin nombre'}</td>
                             <td className={`px-4 py-3 ${textoPrincipal}`}>{u.email}</td>
@@ -811,8 +707,8 @@ export default function PanelDirector({ temaOscuro }) {
                   </div>
                 )}
 
-                <h2 className={`text-xl font-bold ${textoPrincipal} mb-4`}>Usuarios activos ({usuarios.length})</h2>
-                {usuarios.length === 0 ? (
+                <h2 className={`text-xl font-bold ${textoPrincipal} mb-4`}>Usuarios activos ({usuariosFiltrados.length})</h2>
+                {usuariosFiltrados.length === 0 ? (
                   <p className={textoSecundario}>No hay usuarios activos.</p>
                 ) : (
                   <div className={`overflow-x-auto rounded-2xl border ${bordeFila} shadow-sm`}>
@@ -828,7 +724,7 @@ export default function PanelDirector({ temaOscuro }) {
                         </tr>
                       </thead>
                       <tbody>
-                        {usuarios.map((u) => (
+                        {usuariosFiltrados.map((u) => (
                           <tr key={u.id} className={`border-b ${bordeFila} ${hoverFila}`}>
                             <td className={`px-4 py-3 font-medium ${textoPrincipal}`}>{u.nombre_completo || 'Sin nombre'}</td>
                             <td className={`px-4 py-3 ${textoPrincipal}`}>{u.email}</td>
@@ -847,6 +743,7 @@ export default function PanelDirector({ temaOscuro }) {
                 )}
               </>
             )}
+            
             {pestana === 'historial' && (
               <div className={`${bgTarjeta} p-6 rounded-2xl border`}>
                 <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
@@ -935,14 +832,14 @@ export default function PanelDirector({ temaOscuro }) {
 
                               <div className="flex items-center gap-2 flex-wrap text-xs">
                                 <span className={`px-2 py-1 rounded-lg ${temaOscuro ? 'bg-red-500/10 text-red-400' : 'bg-red-50 text-red-700'} border border-red-500/20`}>
-  <span className="font-bold">Antes:</span>{' '}
-  {traducirValor(h.campo_modificado, h.valor_anterior)}
-</span>
-<span className={textoSecundario}>→</span>
-<span className={`px-2 py-1 rounded-lg ${temaOscuro ? 'bg-green-500/10 text-green-400' : 'bg-green-50 text-green-700'} border border-green-500/20`}>
-  <span className="font-bold">Después:</span>{' '}
-  {traducirValor(h.campo_modificado, h.valor_nuevo)}
-</span>
+                                  <span className="font-bold">Antes:</span>{' '}
+                                  {traducirValor(h.campo_modificado, h.valor_anterior)}
+                                </span>
+                                <span className={textoSecundario}>→</span>
+                                <span className={`px-2 py-1 rounded-lg ${temaOscuro ? 'bg-green-500/10 text-green-400' : 'bg-green-50 text-green-700'} border border-green-500/20`}>
+                                  <span className="font-bold">Después:</span>{' '}
+                                  {traducirValor(h.campo_modificado, h.valor_nuevo)}
+                                </span>
                               </div>
 
                               {h.motivo && (
@@ -1066,34 +963,34 @@ export default function PanelDirector({ temaOscuro }) {
                 )}
               </div>
             )}
+
+            {/* RENDERIZADO LIMPIO DE CONSUMO IA (AHORA SÍ, DENTRO DE LAS PESTAÑAS) */}
+            {pestana === 'consumo' && (
+              <ConsumoIA temaOscuro={temaOscuro} />
+            )}
           </>
         )}
       </div>
 
-      {pestana === 'consumo' && (
-  <ConsumoIA temaOscuro={temaOscuro} />
-)}
+      {/* WIZARDS (FUERA DEL FLUJO DE PESTAÑAS) */}
+      <WizardCentro
+        abierto={wizardAbierto}
+        onCerrar={() => setWizardAbierto(false)}
+        onCreado={() => {
+          cargarDatos();
+          alert('✅ Centro creado correctamente.');
+        }}
+        temaOscuro={temaOscuro}
+      />
 
-        {/* ============================================================ */}
-{/* WIZARD: Crear Centro                                          */}
-{/* ============================================================ */}
-<WizardCentro
-  abierto={wizardAbierto}
-  onCerrar={() => setWizardAbierto(false)}
-  onCreado={() => {
-    cargarDatos();
-    alert('✅ Centro creado correctamente.');
-  }}
-  temaOscuro={temaOscuro}
-/>
+      <WizardOnboarding
+        abierto={wizardOnboardingAbierto}
+        onCerrar={() => setWizardOnboardingAbierto(false)}
+        onCreado={() => cargarDatos()}
+        temaOscuro={temaOscuro}
+      />
 
-<WizardOnboarding
-  abierto={wizardOnboardingAbierto}
-  onCerrar={() => setWizardOnboardingAbierto(false)}
-  onCreado={() => cargarDatos()}
-  temaOscuro={temaOscuro}
-/>
-
+      {/* MODAL EDITAR (FUERA DEL FLUJO) */}
       {modalEditar && usuarioEditando && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
           <div className={`relative w-full max-w-2xl rounded-3xl border ${bgModal} p-6 shadow-2xl my-8`}>
