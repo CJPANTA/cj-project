@@ -101,7 +101,23 @@ export default function ConsumoIA({ temaOscuro }) {
       }
     });
 
-    const graficoArray = Object.values(agrupadoPorDia).sort((a, b) => new Date(a.dia) - new Date(b.dia)).slice(-30);
+        // 3. Rellenar los días faltantes para que el gráfico se vea continuo
+    const hoy = new Date();
+    const diasCompletos = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(hoy);
+      d.setDate(hoy.getDate() - i);
+      // Formatear a YYYY-MM-DD local
+      const diaStr = d.toLocaleDateString('en-CA').split(',')[0]; 
+      
+      if (agrupadoPorDia[diaStr]) {
+        diasCompletos.push(agrupadoPorDia[diaStr]);
+      } else {
+        diasCompletos.push({ dia: diaStr, tokens: 0, consultas: 0 });
+      }
+    }
+    
+    const graficoArray = diasCompletos;
     const topArray = Object.values(agrupadoPorUsuario).sort((a, b) => b.tokens - a.tokens).slice(0, 5);
 
     setStats({ tokensHoy: tHoy, tokensMes: tMes, peticiones: filtrados.length, errores });
