@@ -33,7 +33,7 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
     return baseURL + 'manual_terapeuta.pdf'; // Para roles 3, 4 y 6
   };
 
-  useEffect(() => {
+    useEffect(() => {
     const cargarPerfil = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -43,17 +43,21 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
             .select('rol, nombre_completo, centro_id, nickname')
             .eq('id', user.id)
             .single();
+            
           if (perfil) {
             setRolUsuario(perfil.rol);
             setNombreUsuario(perfil.nombre_completo || 'Usuario');
             setNickname(perfil.nickname || '');
             setCentroId(perfil.centro_id || null);
+            
+            
             if ([3, 5, 6, 7, 8].includes(perfil.rol)) {
               setModoNavegacion('clinica');
             } else {
               setModoNavegacion('academia');
             }
           }
+            
         } else {
           const rolGuardado = localStorage.getItem('cj_user_rol');
           if (rolGuardado) {
@@ -136,7 +140,12 @@ if (rolUsuario === 5) {
   return (
     <aside className={`${bgSidebar} border-r ${bordeColor} rounded-3xl p-5 h-full flex flex-col shadow-2xl overflow-y-auto custom-scrollbar transition-colors duration-500`}>
       <div className="mb-6 flex items-center gap-3 shrink-0">
-        <img src="/logos_cj_circular.png" alt="Logo CJ" className="w-12 h-12 rounded-full border-2 border-[#22d3ee]/30" />
+      <img 
+  src={`https://raw.githubusercontent.com/CJPANTA/cj-project/main/frontend/public/logo_centros/${centroId || 'CJ'}.png`} 
+  onError={(e) => { e.target.src = "/logos_cj_circular.png"; }} 
+  alt="Logo Centro" 
+  className="w-12 h-12 rounded-full border-2 border-[#22d3ee]/30 object-cover" 
+/>
         <div>
           <h2 className={`${textoPrincipal} font-black text-xl tracking-wider leading-none`}>CJ Fisio</h2>
           <span className="text-[#22d3ee] text-[8px] font-black uppercase tracking-[0.4em]">Mi espacio</span>
@@ -184,7 +193,12 @@ if (rolUsuario === 5) {
   return (
     <aside className={`${bgSidebar} border-r ${bordeColor} rounded-3xl p-5 h-full flex flex-col shadow-2xl overflow-y-auto custom-scrollbar transition-colors duration-500`}>
       <div className="mb-6 flex items-center gap-3 shrink-0">
-        <img src="/logos_cj_circular.png" alt="Logo CJ" className="w-12 h-12 rounded-full border-2 border-[#22d3ee]/30" />
+        <img 
+  src={`https://raw.githubusercontent.com/CJPANTA/cj-project/main/frontend/public/logo_centros/${centroId || 'CJ'}.png`} 
+  onError={(e) => { e.target.src = "/logos_cj_circular.png"; }} 
+  alt="Logo Centro" 
+  className="w-12 h-12 rounded-full border-2 border-[#22d3ee]/30 object-cover" 
+/>
         <div>
           <h2 className={`${textoPrincipal} font-black text-xl tracking-wider leading-none`}>CJ Fisio</h2>
           <span className="text-[#22d3ee] text-[8px] font-black uppercase tracking-[0.4em]">Ecosistema de Salud</span>

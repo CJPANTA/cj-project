@@ -23,14 +23,14 @@ export default function Dashboard({ temaOscuro }) {
   const [ultimoPDF, setUltimoPDF] = useState(null);
   const [progresoExamenes, setProgresoExamenes] = useState({ promedio: 0, total: 0 });
   const [historialConversacion, setHistorialConversacion] = useState(() => {
-  try {
-    const saved = sessionStorage.getItem('cj_aura_chat');
-    return saved ? JSON.parse(saved) : [];
-  } catch {
-    return [];
-  }
-});
-const [puedeYouTube, setPuedeYouTube] = useState(false);
+    try {
+      const saved = sessionStorage.getItem('cj_aura_chat');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [puedeYouTube, setPuedeYouTube] = useState(false);
   const [generandoFrase, setGenerandoFrase] = useState(false);
   const [resumiendoPDF, setResumiendoPDF] = useState(false);
   const [escuchandoVoz, setEscuchandoVoz] = useState(false);
@@ -41,7 +41,6 @@ const [puedeYouTube, setPuedeYouTube] = useState(false);
   const [rolUsuario, setRolUsuario] = useState(null);
   const [centroId, setCentroId] = useState(null);
   const [kpisClinicos, setKpisClinicos] = useState({ pacientesActivos: 0, evaluacionesPendientes: 0, citasHoy: 0 });
-  // 👇 NUEVOS ESTADOS PARA EL PORTAL DEL PACIENTE 👇
   const [proximaCita, setProximaCita] = useState(null);
   const [progresoDolor, setProgresoDolor] = useState({ porcentaje: 0, mensaje: '' });
   const [ejerciciosCasa, setEjerciciosCasa] = useState([]);
@@ -52,30 +51,44 @@ const [puedeYouTube, setPuedeYouTube] = useState(false);
   const [panelTutorAbierto, setPanelTutorAbierto] = useState(false);
   const [panelNotasAbierto, setPanelNotasAbierto] = useState(false);
 
-  // ===== MODO NAVEGACIÓN (Academia / Clínica) =====
   const [modoNavegacion, setModoNavegacion] = useState(() => {
     return localStorage.getItem('cj_modo_navegacion') || 'academia';
   });
 
-  // Escuchar cambios de modo (emitidos por el Sidebar)
   useEffect(() => {
     const handleChange = (e) => setModoNavegacion(e.detail);
     window.addEventListener('cj-modo-change', handleChange);
     return () => window.removeEventListener('cj-modo-change', handleChange);
   }, []);
 
- // Persistir conversación en sessionStorage (últimos 6 mensajes)
-useEffect(() => {
-  try {
-    const ultimos6 = historialConversacion.slice(-6);
-    sessionStorage.setItem('cj_aura_chat', JSON.stringify(ultimos6));
-  } catch (e) {
-    console.warn('No se pudo guardar la conversación:', e);
-  }
-}, [historialConversacion]); 
+  useEffect(() => {
+    try {
+      const ultimos6 = historialConversacion.slice(-6);
+      sessionStorage.setItem('cj_aura_chat', JSON.stringify(ultimos6));
+    } catch (e) {
+      console.warn('No se pudo guardar la conversación:', e);
+    }
+  }, [historialConversacion]);
 
-  // ========== CARGAR DATOS DE PERFIL Y KPIs ==========
-    const cargarPerfil = async () => {
+  const cargarKPIsClinicos = async (centro) => {
+    try {
+      const { count: pacientesActivos, error: errPac } = await supabase
+        .from('pacientes')
+        .select('*', { count: 'exact', head: true })
+        .eq('centro_id', centro)
+        .eq('estado', 'Activo');
+
+      if (!errPac) {
+        setKpisClinicos(prev => ({ ...prev, pacientesActivos: pacientesActivos || 0 }));
+      }
+      setKpisClinicos(prev => ({ ...prev, evaluacionesPendientes: 0 }));
+      setKpisClinicos(prev => ({ ...prev, citasHoy: 0 }));
+    } catch (error) {
+      console.error('Error cargando KPIs:', error);
+    }
+  };
+
+  const cargarPerfil = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const { data: perfil } = await supabase
@@ -93,17 +106,14 @@ useEffect(() => {
         cargarKPIsClinicos(perfil.centro_id);
       }
       
-      // 👇 NUEVA LÍNEA: Si es paciente, traemos sus datos dinámicos 👇
       if (perfil.rol === 5) {
         cargarDatosPaciente(user.id);
       }
     }
   };
 
-    // ========== CARGAR DATOS DEL PORTAL DEL PACIENTE ==========
   const cargarDatosPaciente = async (userId) => {
     try {
-      // 1. Buscar la ficha del paciente
       const { data: pac } = await supabase
         .from('pacientes')
         .select('id')
@@ -112,7 +122,6 @@ useEffect(() => {
 
       if (!pac) return;
 
-      // 2. Buscar Próxima Cita
       const { data: cita } = await supabase
         .from('citas')
         .select('*, terapeuta_id')
@@ -133,7 +142,6 @@ useEffect(() => {
         setProximaCita({ ...cita, nombreTerapeuta });
       }
 
-      // 3. Buscar Progreso de Dolor
       const { data: sesiones } = await supabase
         .from('sesiones')
         .select('eva_inicial, eva_final, fecha_sesion')
@@ -153,7 +161,6 @@ useEffect(() => {
         }
       }
 
-      // 4. Buscar Ejercicios
       const { data: evaluacion } = await supabase
         .from('evaluaciones')
         .select('datos_regiones')
@@ -177,135 +184,11 @@ useEffect(() => {
     }
   };
 
-  // ========== HELPER: procesar markdown inline ==========
-  const escaparHtml = (s) =>
-    String(s ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-
-  const procesarInline = (texto) => {
-    if (texto == null) return '';
-    let t = escaparHtml(texto);
-    t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    t = t.replace(/\*(.+?)\*/g, '<em>$1</em>');
-    return t;
-  };
-
-  // ========== CONVERSIÓN DE TABLAS ==========
-  const convertirTablasHTML = (texto) => {
-    if (!texto) return [];
-    const lineas = texto.split('\n');
-    const resultado = [];
-    let i = 0;
-    while (i < lineas.length) {
-      const linea = lineas[i];
-      if (linea.trim().startsWith('|') && linea.trim().endsWith('|')) {
-        const filasTabla = [];
-        while (i < lineas.length && lineas[i].trim().startsWith('|') && lineas[i].trim().endsWith('|')) {
-          filasTabla.push(lineas[i].trim());
-          i++;
-        }
-        const celdasPorFila = filasTabla.map(fila =>
-          fila.split('|').slice(1, -1).map(celda => celda.trim())
-        );
-        if (celdasPorFila.length > 0) {
-          const encabezados = celdasPorFila[0];
-          let datos = celdasPorFila.slice(1);
-          if (datos.length > 0 && datos[0].every(c => /^[-:]+$/.test(c))) {
-            datos = datos.slice(1);
-          }
-          resultado.push(
-            <div key={`table-${i}`} className="overflow-x-auto my-4">
-              <table className="min-w-full border-collapse border border-gray-300 dark:border-gray-700 text-sm">
-                <thead>
-                  <tr>
-                    {encabezados.map((th, idx) => (
-                      <th
-                        key={idx}
-                        className="border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 p-2 font-bold text-left"
-                        dangerouslySetInnerHTML={{ __html: procesarInline(th) }}
-                      />
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {datos.map((fila, idxFila) => (
-                    <tr key={idxFila}>
-                      {fila.map((celda, idxCelda) => (
-                        <td
-                          key={idxCelda}
-                          className="border border-gray-300 dark:border-gray-700 p-2"
-                          dangerouslySetInnerHTML={{ __html: procesarInline(celda) }}
-                        />
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          );
-          continue;
-        }
-      } else {
-        const lineaProcesada = procesarInline(linea);
-        if (!linea.trim()) {
-          resultado.push(<br key={`br-${i}`} />);
-        } else {
-          resultado.push(<p key={`p-${i}`} className="my-2" dangerouslySetInnerHTML={{ __html: lineaProcesada }} />);
-        }
-        i++;
-      }
-    }
-    return resultado;
-  };
-
-  // ========== AUDIO ==========
-  const reproducirTexto = useCallback((texto) => {
-    if (!texto) return;
-    let limpio = texto.replace(/\|/g, ' ').replace(/\s+/g, ' ').trim();
-    if ('speechSynthesis' in window) {
-      if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
-        window.speechSynthesis.pause();
-        setAudioPausado(true);
-        setReproduciendoAudio(true);
-        return;
-      }
-      if (window.speechSynthesis.paused) {
-        window.speechSynthesis.resume();
-        setAudioPausado(false);
-        setReproduciendoAudio(true);
-        return;
-      }
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(limpio);
-      utterance.lang = 'es-ES';
-      utterance.rate = 0.9;
-      if (!window.audioContextKeepAlive) {
-        window.audioContextKeepAlive = new (window.AudioContext || window.webkitAudioContext)();
-        const silent = window.audioContextKeepAlive.createOscillator();
-        const gain = window.audioContextKeepAlive.createGain();
-        gain.gain.value = 0;
-        silent.connect(gain);
-        gain.connect(window.audioContextKeepAlive.destination);
-        silent.start();
-        window.silentOscillator = silent;
-      }
-      utterance.onstart = () => { setReproduciendoAudio(true); setAudioPausado(false); };
-      utterance.onend = () => { setReproduciendoAudio(false); setAudioPausado(false); };
-      utterance.onerror = () => { setReproduciendoAudio(false); setAudioPausado(false); };
-      window.speechSynthesis.speak(utterance);
-    } else {
-      alert("Tu navegador no soporta síntesis de voz.");
-    }
-  }, []);
-
   const limpiarRespuesta = (texto) => {
     let limpio = texto.replace(/[\*\-=]{3,}/g, '');
     return limpio.trim();
   };
 
-  // ========== CARGA DE DATOS ==========
   const cargarFraseInicial = async () => {
     const prompt = "Actúa como un motivador experto en fisioterapia. Genera una frase corta, original y poderosa para inspirar a un estudiante de fisioterapia a seguir estudiando. Responde solo con la frase, sin comillas ni texto adicional.";
     const respuesta = await consultarAuraIA(prompt, {});
@@ -337,7 +220,6 @@ useEffect(() => {
     }
   };
 
-  // ========== INTERACCIONES ==========
   const generarFraseIA = async () => {
     setGenerandoFrase(true);
     const prompt = "Actúa como un motivador experto en fisioterapia. Genera una frase corta, original y poderosa para inspirar a un estudiante de fisioterapia a seguir estudiando. Responde solo con la frase, sin comillas ni texto adicional.";
@@ -388,55 +270,41 @@ useEffect(() => {
     recognition.start();
   };
 
-  const leerRespuesta = () => {
-    if (!respuestaIA) {
-      alert("No hay respuesta del Oráculo para leer.");
-      return;
-    }
-    reproducirTexto(respuestaIA);
+  const ejecutarConsultaIA = async (texto = null) => {
+    const consulta = texto !== null ? texto : busqueda;
+    if (!consulta.trim()) return;
+    setCargandoIA(true);
+    setRespuestaIA('');
+
+    const ultimoPDFAlmacenado = localStorage.getItem('ultimo_pdf_visto');
+    let contextoCompleto = { ...contexto };
+    if (ultimoPDFAlmacenado) contextoCompleto.ultimoPDF = JSON.parse(ultimoPDFAlmacenado);
+
+    const historialLimitado = historialConversacion.slice(-6);
+
+    let respuestaRaw = await consultarAuraIA(consulta, contextoCompleto, historialLimitado);
+    respuestaRaw = limpiarRespuesta(respuestaRaw);
+
+    setHistorialConversacion(prev =>
+      [...prev, { role: 'user', content: consulta }, { role: 'assistant', content: respuestaRaw }].slice(-6)
+    );
+
+    const mencionaVideo = consultaMencionaVideo(consulta) || consultaMencionaVideo(respuestaRaw);
+    setPuedeYouTube(mencionaVideo);
+
+    setRespuestaIA(respuestaRaw);
+    setBusqueda('');
+    setCargandoIA(false);
   };
 
-  const ejecutarConsultaIA = async (texto = null) => {
-  const consulta = texto !== null ? texto : busqueda;
-  if (!consulta.trim()) return;
-  setCargandoIA(true);
-  setRespuestaIA('');
-
-  const ultimoPDFAlmacenado = localStorage.getItem('ultimo_pdf_visto');
-  let contextoCompleto = { ...contexto };
-  if (ultimoPDFAlmacenado) contextoCompleto.ultimoPDF = JSON.parse(ultimoPDFAlmacenado);
-
-  // Memoria de 6 mensajes (3 user + 3 assistant)
-  const historialLimitado = historialConversacion.slice(-6);
-
-  let respuestaRaw = await consultarAuraIA(consulta, contextoCompleto, historialLimitado);
-  respuestaRaw = limpiarRespuesta(respuestaRaw);
-
-  // Guardar solo los últimos 6
-  setHistorialConversacion(prev =>
-    [...prev, { role: 'user', content: consulta }, { role: 'assistant', content: respuestaRaw }].slice(-6)
-  );
-
-  // ¿Mostrar botón YouTube contextual?
-  const mencionaVideo =
-    consultaMencionaVideo(consulta) || consultaMencionaVideo(respuestaRaw);
-  setPuedeYouTube(mencionaVideo);
-
-  setRespuestaIA(respuestaRaw);
-  setBusqueda('');
-  setCargandoIA(false);
-};
-
-// Nueva conversación
-const nuevaConversacion = () => {
-  setHistorialConversacion([]);
-  setRespuestaIA('');
-  setPuedeYouTube(false);
-  try {
-    sessionStorage.removeItem('cj_aura_chat');
-  } catch (_) { /* noop */ }
-  console.log('🔄 Conversación reiniciada');
-};
+  const nuevaConversacion = () => {
+    setHistorialConversacion([]);
+    setRespuestaIA('');
+    setPuedeYouTube(false);
+    try {
+      sessionStorage.removeItem('cj_aura_chat');
+    } catch (_) { /* noop */ }
+  };
 
   const buscarReferencias = () => {
     if (!busqueda && !respuestaIA) return;
@@ -444,7 +312,6 @@ const nuevaConversacion = () => {
     window.open(`https://www.youtube.com/results?search_query=${query}+fisioterapia`, '_blank');
   };
 
-  // ========== AUTO-RESIZE ==========
   const handleTextareaChange = (e) => {
     const textarea = e.target;
     setBusqueda(textarea.value);
@@ -459,24 +326,22 @@ const nuevaConversacion = () => {
     }
   };
 
-  // ========== ESTILOS ==========
   const bgTarjeta = temaOscuro ? 'bg-black/20 border-gray-800' : 'bg-white border-gray-200 shadow-sm';
   const textoColor = temaOscuro ? 'text-white' : 'text-[#0f172a]';
   const bgInput = temaOscuro ? 'bg-black/20 border-white/10' : 'bg-gray-100 border-gray-300';
   const bgContexto = temaOscuro ? 'bg-[#22d3ee]/10 border-[#22d3ee]/30 text-[#22d3ee]' : 'bg-blue-50 border-blue-200 text-blue-700';
   const porcentaje = progresoExamenes.promedio;
 
-    // Si es paciente (rol 5), mostramos el nombre completo. Si no, solo el nickname o primer nombre.
-const nombreMostrado = rolUsuario === 5 
-  ? (nombreUsuario || 'Paciente') 
-  : (nickname?.trim() || (nombreUsuario || '').split(/\s+/)[0] || 'Usuario');
+  const nombreMostrado = rolUsuario === 5 
+    ? (nombreUsuario || 'Paciente') 
+    : (nickname?.trim() || (nombreUsuario || '').split(/\s+/)[0] || 'Usuario');
 
   const IconRefresh = () => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>);
   const IconSummarize = () => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-5.25 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0z" /></svg>);
   const IconChat = () => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.136-.848-2.1-1.98-2.193a48.572 48.572 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286m0 0c.078.057.158.112.24.166" /></svg>);
 
-    // ==========================================
-  // CASO 1: PACIENTE (rol 5) - PORTAL DEL PACIENTE
+  // ==========================================
+  // CASO 1: PACIENTE (rol 5)
   // ==========================================
   if (rolUsuario === 5) {
     return (
@@ -492,12 +357,9 @@ const nombreMostrado = rolUsuario === 5
           </div>
         </header>
 
-        {/* TARJETA: PRÓXIMA CITA DINÁMICA */}
         <div className={`${bgTarjeta} p-6 rounded-3xl border flex flex-col md:flex-row justify-between items-center gap-4`}>
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-[#22d3ee]/20 text-[#22d3ee] flex items-center justify-center text-2xl">
-              📅
-            </div>
+            <div className="w-14 h-14 rounded-2xl bg-[#22d3ee]/20 text-[#22d3ee] flex items-center justify-center text-2xl">📅</div>
             <div>
               <h2 className="text-sm font-black uppercase tracking-wider text-[#22d3ee]">Mi Próxima Cita</h2>
               {proximaCita ? (
@@ -512,45 +374,30 @@ const nombreMostrado = rolUsuario === 5
               )}
             </div>
           </div>
-          <Link 
-            to="/mis-citas" 
-            className="px-6 py-3 bg-[#22d3ee] text-black font-black rounded-xl text-xs uppercase hover:scale-105 transition-all"
-          >
+          <Link to="/mis-citas" className="px-6 py-3 bg-[#22d3ee] text-black font-black rounded-xl text-xs uppercase hover:scale-105 transition-all">
             Ver todas mis citas →
           </Link>
         </div>
 
-        {/* GRID: FICHA Y PROGRESO */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* TARJETA: MI FICHA */}
           <div className={`${bgTarjeta} p-6 rounded-3xl border flex flex-col justify-between h-48`}>
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <span className="text-2xl">📋</span>
                 <h2 className={`text-sm font-black uppercase tracking-tighter ${textoColor}`}>Mi Ficha</h2>
               </div>
-              <p className="text-xs text-gray-500 mt-2">
-                Revisa tus datos personales, tu diagnóstico actual y el historial de tus sesiones.
-              </p>
+              <p className="text-xs text-gray-500 mt-2">Revisa tus datos personales, tu diagnóstico actual y el historial de tus sesiones.</p>
             </div>
-            <Link 
-              to="/mi-ficha"
-              className="mt-4 text-[#22d3ee] text-xs font-bold hover:underline"
-            >
-              Abrir mi ficha →
-            </Link>
+            <Link to="/mi-ficha" className="mt-4 text-[#22d3ee] text-xs font-bold hover:underline">Abrir mi ficha →</Link>
           </div>
 
-          {/* TARJETA: MI PROGRESO DINÁMICO */}
           <div className={`${bgTarjeta} p-6 rounded-3xl border flex flex-col justify-between h-48`}>
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <span className="text-2xl">📈</span>
                 <h2 className={`text-sm font-black uppercase tracking-tighter ${textoColor}`}>Mi Progreso</h2>
               </div>
-              <p className="text-xs text-gray-500 mt-2">
-                {progresoDolor.mensaje || 'Aún no hay suficientes sesiones para calcular tu progreso.'}
-              </p>
+              <p className="text-xs text-gray-500 mt-2">{progresoDolor.mensaje || 'Aún no hay suficientes sesiones para calcular tu progreso.'}</p>
             </div>
             <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-2 mt-4">
               <div className="bg-emerald-500 h-2 rounded-full transition-all duration-1000" style={{ width: `${progresoDolor.porcentaje}%` }}></div>
@@ -558,15 +405,12 @@ const nombreMostrado = rolUsuario === 5
           </div>
         </div>
 
-        {/* TARJETA: EJERCICIOS DE CASA DINÁMICO */}
         <div className={`${bgTarjeta} p-6 rounded-3xl border`}>
           <div className="flex items-center gap-3 mb-4">
             <span className="text-2xl">🏋️‍♂️</span>
             <h2 className={`text-sm font-black uppercase tracking-tighter ${textoColor}`}>Ejercicios para Casa</h2>
           </div>
-          <p className="text-xs text-gray-500 mb-4">
-            Estos son los ejercicios que tu fisioterapeuta te asignó.
-          </p>
+          <p className="text-xs text-gray-500 mb-4">Estos son los ejercicios que tu fisioterapeuta te asignó.</p>
           <div className="flex flex-wrap gap-2">
             {ejerciciosCasa.length > 0 ? (
               ejerciciosCasa.map((ej, index) => (
@@ -581,9 +425,7 @@ const nombreMostrado = rolUsuario === 5
         </div>
 
         <div className="flex justify-center mt-4">
-          <button onClick={() => navigate('/login')} className="text-red-500 hover:text-red-400 text-sm font-bold">
-            Cerrar sesión
-          </button>
+          <button onClick={() => navigate('/login')} className="text-red-500 hover:text-red-400 text-sm font-bold">Cerrar sesión</button>
         </div>
       </main>
     );
@@ -600,42 +442,39 @@ const nombreMostrado = rolUsuario === 5
             <div>
               <h1 className={`text-4xl font-black tracking-tighter ${textoColor}`}>{saludo}, <span className="text-[#22d3ee]">{nombreMostrado}</span></h1>
               <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Dashboard Clínico</p>
-              {centroId && (
-                <p className="text-[10px] text-emerald-400 font-mono font-bold">Centro: {centroId}</p>
-              )}
+              {centroId && <p className="text-[10px] text-emerald-400 font-mono font-bold">Centro: {centroId}</p>}
             </div>
-            <div className="flex items-center gap-2 max-w-xs text-right bg-black/10 rounded-full px-3 py-1">
-              <p className="text-[11px] italic text-[#22d3ee]/80 truncate">{fraseMotivacional}</p>
-              <button onClick={generarFraseIA} disabled={generandoFrase} className="p-1 rounded-full hover:bg-white/10 transition-colors"><IconRefresh /></button>
-            </div>
+            
+                      {/* LOGO DINÁMICO AQUÍ */}
+          <div className="flex items-center gap-3 bg-white dark:bg-black/20 px-4 py-2 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm min-h-[48px]">
+            <img 
+              src={`https://raw.githubusercontent.com/CJPANTA/cj-project/main/frontend/public/logo_centros/${centroId?.toUpperCase() || 'CJ'}.png`} 
+              alt="Logo Centro" 
+              className="h-8 w-auto max-w-[120px] object-contain" 
+              onError={(e) => { 
+                e.target.onerror = null; // Evita un bucle infinito si el fallback también falla
+                e.target.src = "/logos_cj_circular.png"; // Mismo fallback que usaste en el Sidebar
+              }}
+            />
+          </div>
           </div>
         </header>
 
-        <DashboardGerencial
-          centroId={centroId}
-          temaOscuro={temaOscuro}
-          esDirectorGlobal={false}
-        />
+        <DashboardGerencial centroId={centroId} temaOscuro={temaOscuro} esDirectorGlobal={false} />
 
         <section className={`${bgTarjeta} p-6 rounded-3xl border transition-all`}>
           <div className="flex items-center gap-4 mb-6">
-  <div className="w-10 h-10 rounded-full bg-[#22d3ee] flex items-center justify-center animate-pulse">
-    <span className="text-white text-xl">✨</span>
-  </div>
-  <div className="flex-1">
-    <h2 className={`text-sm font-black uppercase tracking-tighter ${textoColor}`}>Oráculo Aura IA</h2>
-    <p className="text-[10px] text-gray-500 font-bold">CONSULTA CLÍNICA INSTANTÁNEA</p>
-  </div>
-  {historialConversacion.length > 0 && (
-    <button
-      onClick={nuevaConversacion}
-      className="px-3 py-1.5 rounded-full bg-purple-600/20 border border-purple-500/40 text-purple-400 text-[10px] font-black uppercase tracking-wider hover:bg-purple-600/30 transition-all"
-      title="Borrar memoria del chat (últimos 6 mensajes)"
-    >
-      🔄 Nueva conversación
-    </button>
-  )}
-</div>
+            <div className="w-10 h-10 rounded-full bg-[#22d3ee] flex items-center justify-center animate-pulse"><span className="text-white text-xl">✨</span></div>
+            <div className="flex-1">
+              <h2 className={`text-sm font-black uppercase tracking-tighter ${textoColor}`}>Oráculo Aura IA</h2>
+              <p className="text-[10px] text-gray-500 font-bold">CONSULTA CLÍNICA INSTANTÁNEA</p>
+            </div>
+            {historialConversacion.length > 0 && (
+              <button onClick={nuevaConversacion} className="px-3 py-1.5 rounded-full bg-purple-600/20 border border-purple-500/40 text-purple-400 text-[10px] font-black uppercase tracking-wider hover:bg-purple-600/30 transition-all" title="Borrar memoria del chat">
+                🔄 Nueva conversación
+              </button>
+            )}
+          </div>
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <textarea value={busqueda} onChange={handleTextareaChange} onKeyDown={handleKeyDown} placeholder="¿Qué patología o protocolo revisamos hoy?" className={`w-full ${bgInput} border p-4 rounded-2xl outline-none focus:border-[#22d3ee] transition-all text-sm ${textoColor} resize-none overflow-hidden min-h-[60px]`} rows={1} style={{ height: 'auto' }} />
@@ -646,52 +485,30 @@ const nombreMostrado = rolUsuario === 5
           {respuestaIA && (
             <div className="mt-6 p-5 rounded-2xl bg-[#22d3ee]/5 border border-[#22d3ee]/20 backdrop-blur-sm relative">
               <div className="flex gap-2 absolute top-2 right-2">
-  {/* Voz */}
-  <button
-    onClick={() =>
-      hablar(respuestaIA, {
-        onStart: () => { setReproduciendoAudio(true); setAudioPausado(false); },
-        onEnd: () => { setReproduciendoAudio(false); setAudioPausado(false); },
-        onError: () => { setReproduciendoAudio(false); setAudioPausado(false); },
-        onPause: () => { setAudioPausado(true); setReproduciendoAudio(true); },
-        onResume: () => { setAudioPausado(false); setReproduciendoAudio(true); },
-      })
-    }
-    className={`p-2 rounded-full ${reproduciendoAudio ? (audioPausado ? 'bg-yellow-600' : 'bg-green-800') : 'bg-green-600'} text-white hover:bg-opacity-80 transition-all`}
-    title={reproduciendoAudio ? (audioPausado ? 'Reanudar' : 'Pausar') : 'Leer respuesta'}
-  >
-    {reproduciendoAudio ? (audioPausado ? '▶️' : '⏸️') : '🔊'}
-  </button>
-
-  {/* YouTube contextual (solo si aplica) */}
-  {puedeYouTube && (
-    <button
-      onClick={buscarReferencias}
-      className="p-2 rounded-full bg-yellow-600 text-white hover:bg-yellow-700 transition-all"
-      title="Buscar en YouTube"
-    >
-      📺
-    </button>
-  )}
-
-  {/* Imprimir */}
-  <PrintButton
-    titulo="Aura, tu asistente clínico"
-    subtitulo={busqueda ? `Consulta: ${busqueda.slice(0, 80)}` : ''}
-    contenido={mdAHtml(respuestaIA)}
-    metadata={{
-      fecha: new Date().toLocaleDateString('es-PE'),
-      autor: 'Aura IA',
-      centro: 'CJ Fisioterapia',
-    }}
-    className="p-2 rounded-full bg-red-600 text-white hover:bg-red-700 transition-all"
-    title="Imprimir / Guardar como PDF"
-  />
-</div>
-              <div
-  className={`prose prose-sm max-w-none ${temaOscuro ? 'prose-invert' : ''} mt-6`}
-  dangerouslySetInnerHTML={{ __html: mdAHtml(respuestaIA) }}
-/>
+                <button
+                  onClick={() => hablar(respuestaIA, {
+                    onStart: () => { setReproduciendoAudio(true); setAudioPausado(false); },
+                    onEnd: () => { setReproduciendoAudio(false); setAudioPausado(false); },
+                    onError: () => { setReproduciendoAudio(false); setAudioPausado(false); },
+                    onPause: () => { setAudioPausado(true); setReproduciendoAudio(true); },
+                    onResume: () => { setAudioPausado(false); setReproduciendoAudio(true); },
+                  })}
+                  className={`p-2 rounded-full ${reproduciendoAudio ? (audioPausado ? 'bg-yellow-600' : 'bg-green-800') : 'bg-green-600'} text-white hover:bg-opacity-80 transition-all`}
+                >
+                  {reproduciendoAudio ? (audioPausado ? '▶️' : '⏸️') : '🔊'}
+                </button>
+                {puedeYouTube && (
+                  <button onClick={buscarReferencias} className="p-2 rounded-full bg-yellow-600 text-white hover:bg-yellow-700 transition-all">📺</button>
+                )}
+                <PrintButton
+                  titulo="Aura, tu asistente clínico"
+                  subtitulo={busqueda ? `Consulta: ${busqueda.slice(0, 80)}` : ''}
+                  contenido={mdAHtml(respuestaIA)}
+                  metadata={{ fecha: new Date().toLocaleDateString('es-PE'), autor: 'Aura IA', centro: 'CJ Fisioterapia' }}
+                  className="p-2 rounded-full bg-red-600 text-white hover:bg-red-700 transition-all"
+                />
+              </div>
+              <div className={`prose prose-sm max-w-none ${temaOscuro ? 'prose-invert' : ''} mt-6`} dangerouslySetInnerHTML={{ __html: mdAHtml(respuestaIA) }} />
             </div>
           )}
         </section>
@@ -740,46 +557,42 @@ const nombreMostrado = rolUsuario === 5
 
   return (
     <main className="flex flex-col gap-8 p-4 md:p-8 max-w-7xl mx-auto w-full">
-
-      {/* ===== HEADER ===== */}
       <header className="flex flex-col gap-2">
         <div className="flex justify-between items-start flex-wrap gap-2">
           <div>
             <h1 className={`text-4xl font-black tracking-tighter ${textoColor}`}>{saludo}, <span className="text-[#22d3ee]">{nombreMostrado}</span></h1>
-            <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">
-              {modoNavegacion === 'clinica' ? 'Modo Clínica' : 'Modo Academia'}
-            </p>
-            {centroId && (
-              <p className="text-[10px] text-emerald-400 font-mono font-bold">Centro: {centroId}</p>
-            )}
+            <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">{modoNavegacion === 'clinica' ? 'Modo Clínica' : 'Modo Academia'}</p>
+            {centroId && <p className="text-[10px] text-emerald-400 font-mono font-bold">Centro: {centroId}</p>}
           </div>
-          <div className="flex items-center gap-2 max-w-xs text-right bg-black/10 rounded-full px-3 py-1">
-            <p className="text-[11px] italic text-[#22d3ee]/80 truncate">{fraseMotivacional}</p>
-            <button onClick={generarFraseIA} disabled={generandoFrase} className="p-1 rounded-full hover:bg-white/10 transition-colors" title="Nueva frase"><IconRefresh /></button>
+          
+                    {/* LOGO DINÁMICO AQUÍ */}
+          <div className="flex items-center gap-3 bg-white dark:bg-black/20 px-4 py-2 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm min-h-[48px]">
+            <img 
+              src={`https://raw.githubusercontent.com/CJPANTA/cj-project/main/frontend/public/logo_centros/${centroId?.toUpperCase() || 'CJ'}.png`} 
+              alt="Logo Centro" 
+              className="h-8 w-auto max-w-[120px] object-contain" 
+              onError={(e) => { 
+                e.target.onerror = null; // Evita un bucle infinito si el fallback también falla
+                e.target.src = "/logos_cj_circular.png"; // Mismo fallback que usaste en el Sidebar
+              }}
+            />
           </div>
         </div>
       </header>
       
-{/* ==================== ORÁCULO IA (visible siempre) ==================== */}
       <section className={`${bgTarjeta} p-6 rounded-3xl border transition-all`}>
         <div className="flex items-center gap-4 mb-6">
-  <div className="w-10 h-10 rounded-full bg-[#22d3ee] flex items-center justify-center animate-pulse">
-    <span className="text-white text-xl">✨</span>
-  </div>
-  <div className="flex-1">
-    <h2 className={`text-sm font-black uppercase tracking-tighter ${textoColor}`}>Oráculo Aura IA</h2>
-    <p className="text-[10px] text-gray-500 font-bold">CONSULTA CLÍNICA INSTANTÁNEA</p>
-  </div>
-  {historialConversacion.length > 0 && (
-    <button
-      onClick={nuevaConversacion}
-      className="px-3 py-1.5 rounded-full bg-purple-600/20 border border-purple-500/40 text-purple-400 text-[10px] font-black uppercase tracking-wider hover:bg-purple-600/30 transition-all"
-      title="Borrar memoria del chat (últimos 6 mensajes)"
-    >
-      🔄 Nueva conversación
-    </button>
-  )}
-</div>
+          <div className="w-10 h-10 rounded-full bg-[#22d3ee] flex items-center justify-center animate-pulse"><span className="text-white text-xl">✨</span></div>
+          <div className="flex-1">
+            <h2 className={`text-sm font-black uppercase tracking-tighter ${textoColor}`}>Oráculo Aura IA</h2>
+            <p className="text-[10px] text-gray-500 font-bold">CONSULTA CLÍNICA INSTANTÁNEA</p>
+          </div>
+          {historialConversacion.length > 0 && (
+            <button onClick={nuevaConversacion} className="px-3 py-1.5 rounded-full bg-purple-600/20 border border-purple-500/40 text-purple-400 text-[10px] font-black uppercase tracking-wider hover:bg-purple-600/30 transition-all" title="Borrar memoria del chat">
+              🔄 Nueva conversación
+            </button>
+          )}
+        </div>
 
         {(contexto.ciclo || contexto.materia || contexto.archivo) && (
           <div className={`mb-4 p-3 rounded-xl border ${bgContexto} text-xs font-mono flex flex-wrap gap-2 items-center`}>
@@ -802,79 +615,42 @@ const nombreMostrado = rolUsuario === 5
               rows={1}
               style={{ height: 'auto' }}
             />
-            <button
-              onClick={iniciarDictado}
-              className={`absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full ${escuchandoVoz ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all`}
-              title="Dictar por voz"
-            >
-              🎙️
-            </button>
+            <button onClick={iniciarDictado} className={`absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full ${escuchandoVoz ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all`}>🎙️</button>
           </div>
-          <button
-            onClick={() => ejecutarConsultaIA()}
-            disabled={cargandoIA}
-            className="px-6 py-4 bg-[#22d3ee] text-black font-black rounded-xl text-[10px] uppercase hover:scale-105 active:scale-95 transition-all disabled:opacity-50 w-full sm:w-auto"
-          >
-            {cargandoIA ? '...' : 'Consultar'}
-          </button>
+          <button onClick={() => ejecutarConsultaIA()} disabled={cargandoIA} className="px-6 py-4 bg-[#22d3ee] text-black font-black rounded-xl text-[10px] uppercase hover:scale-105 active:scale-95 transition-all disabled:opacity-50 w-full sm:w-auto">{cargandoIA ? '...' : 'Consultar'}</button>
         </div>
 
         {respuestaIA && (
           <div className="mt-6 p-5 rounded-2xl bg-[#22d3ee]/5 border border-[#22d3ee]/20 backdrop-blur-sm relative">
             <div className="flex gap-2 absolute top-2 right-2">
-  {/* Voz */}
-  <button
-    onClick={() =>
-      hablar(respuestaIA, {
-        onStart: () => { setReproduciendoAudio(true); setAudioPausado(false); },
-        onEnd: () => { setReproduciendoAudio(false); setAudioPausado(false); },
-        onError: () => { setReproduciendoAudio(false); setAudioPausado(false); },
-        onPause: () => { setAudioPausado(true); setReproduciendoAudio(true); },
-        onResume: () => { setAudioPausado(false); setReproduciendoAudio(true); },
-      })
-    }
-    className={`p-2 rounded-full ${reproduciendoAudio ? (audioPausado ? 'bg-yellow-600' : 'bg-green-800') : 'bg-green-600'} text-white hover:bg-opacity-80 transition-all`}
-    title={reproduciendoAudio ? (audioPausado ? 'Reanudar' : 'Pausar') : 'Leer respuesta'}
-  >
-    {reproduciendoAudio ? (audioPausado ? '▶️' : '⏸️') : '🔊'}
-  </button>
-
-  {/* YouTube contextual (solo si aplica) */}
-  {puedeYouTube && (
-    <button
-      onClick={buscarReferencias}
-      className="p-2 rounded-full bg-yellow-600 text-white hover:bg-yellow-700 transition-all"
-      title="Buscar en YouTube"
-    >
-      📺
-    </button>
-  )}
-
-  {/* Imprimir */}
-  <PrintButton
-    titulo="Aura, tu asistente clínico"
-    subtitulo={busqueda ? `Consulta: ${busqueda.slice(0, 80)}` : ''}
-    contenido={mdAHtml(respuestaIA)}
-    metadata={{
-      fecha: new Date().toLocaleDateString('es-PE'),
-      autor: 'Aura IA',
-      centro: 'CJ Fisioterapia',
-    }}
-    className="p-2 rounded-full bg-red-600 text-white hover:bg-red-700 transition-all"
-    title="Imprimir / Guardar como PDF"
-  />
-</div>
-            <div className={`prose prose-sm max-w-none ${temaOscuro ? 'prose-invert' : ''} mt-6`}>
-              <div
-  className={`prose prose-sm max-w-none ${temaOscuro ? 'prose-invert' : ''} mt-6`}
-  dangerouslySetInnerHTML={{ __html: mdAHtml(respuestaIA) }}
-/>
+              <button
+                onClick={() => hablar(respuestaIA, {
+                  onStart: () => { setReproduciendoAudio(true); setAudioPausado(false); },
+                  onEnd: () => { setReproduciendoAudio(false); setAudioPausado(false); },
+                  onError: () => { setReproduciendoAudio(false); setAudioPausado(false); },
+                  onPause: () => { setAudioPausado(true); setReproduciendoAudio(true); },
+                  onResume: () => { setAudioPausado(false); setReproduciendoAudio(true); },
+                })}
+                className={`p-2 rounded-full ${reproduciendoAudio ? (audioPausado ? 'bg-yellow-600' : 'bg-green-800') : 'bg-green-600'} text-white hover:bg-opacity-80 transition-all`}
+              >
+                {reproduciendoAudio ? (audioPausado ? '▶️' : '⏸️') : '🔊'}
+              </button>
+              {puedeYouTube && (
+                <button onClick={buscarReferencias} className="p-2 rounded-full bg-yellow-600 text-white hover:bg-yellow-700 transition-all">📺</button>
+              )}
+              <PrintButton
+                titulo="Aura, tu asistente clínico"
+                subtitulo={busqueda ? `Consulta: ${busqueda.slice(0, 80)}` : ''}
+                contenido={mdAHtml(respuestaIA)}
+                metadata={{ fecha: new Date().toLocaleDateString('es-PE'), autor: 'Aura IA', centro: 'CJ Fisioterapia' }}
+                className="p-2 rounded-full bg-red-600 text-white hover:bg-red-700 transition-all"
+              />
             </div>
+            <div className={`prose prose-sm max-w-none ${temaOscuro ? 'prose-invert' : ''} mt-6`} dangerouslySetInnerHTML={{ __html: mdAHtml(respuestaIA) }} />
           </div>
         )}
       </section>
 
-      {/* ==================== SECCIÓN ACADEMIA ==================== */}
       {modoNavegacion === 'academia' && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -927,15 +703,10 @@ const nombreMostrado = rolUsuario === 5
         </>
       )}
 
-      {/* ==================== SECCIÓN CLÍNICA ==================== */}
       {modoNavegacion === 'clinica' && (
         <>
           {(rolUsuario === 1 || rolUsuario === 4) && (
-            <DashboardGerencial
-              centroId={centroId}
-              temaOscuro={temaOscuro}
-              esDirectorGlobal={esAdmin}
-            />
+            <DashboardGerencial centroId={centroId} temaOscuro={temaOscuro} esDirectorGlobal={esAdmin} />
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -961,33 +732,23 @@ const nombreMostrado = rolUsuario === 5
         </>
       )}
 
-      
-      {/* ==================== BOTONES FLOTANTES ==================== */}
       <div className="fixed bottom-6 right-6 flex gap-3 z-40">
         <button onClick={() => setPanelNotasAbierto(true)} className="p-3 rounded-full bg-[#22d3ee] text-black shadow-lg hover:scale-105 transition-all" title="Notas y grabaciones">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-          </svg>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>
         </button>
-        <button onClick={() => setPanelTutorAbierto(true)} className="p-3 rounded-full bg-purple-600 text-white shadow-lg hover:scale-105 transition-all" title="Tutor personal Aura">
-          <IconChat />
-        </button>
+        <button onClick={() => setPanelTutorAbierto(true)} className="p-3 rounded-full bg-purple-600 text-white shadow-lg hover:scale-105 transition-all" title="Tutor personal Aura"><IconChat /></button>
       </div>
 
       {panelNotasAbierto && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setPanelNotasAbierto(false)} />
-          <div className="relative w-full max-w-md h-full bg-white dark:bg-[#0a141d] shadow-2xl animate-slide-in-right">
-            <NotebookCJ temaOscuro={temaOscuro} cerrarPanel={() => setPanelNotasAbierto(false)} />
-          </div>
+          <div className="relative w-full max-w-md h-full bg-white dark:bg-[#0a141d] shadow-2xl animate-slide-in-right"><NotebookCJ temaOscuro={temaOscuro} cerrarPanel={() => setPanelNotasAbierto(false)} /></div>
         </div>
       )}
       {panelTutorAbierto && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setPanelTutorAbierto(false)} />
-          <div className="relative w-full max-w-[90%] sm:max-w-md h-full bg-white dark:bg-[#0a141d] shadow-2xl animate-slide-in-right overflow-y-auto">
-            <TutorChat temaOscuro={temaOscuro} onCerrar={() => setPanelTutorAbierto(false)} />
-          </div>
+          <div className="relative w-full max-w-[90%] sm:max-w-md h-full bg-white dark:bg-[#0a141d] shadow-2xl animate-slide-in-right overflow-y-auto"><TutorChat temaOscuro={temaOscuro} onCerrar={() => setPanelTutorAbierto(false)} /></div>
         </div>
       )}
     </main>
