@@ -2,6 +2,33 @@
 import { supabase } from '../lib/supabaseClient';
 import { TIPOS_FORMULARIO } from '../components/clinica/Formularios/plantillas';
 
+// === FUNCIÓN PARA CONVERTIR LOGO A BASE64 (EVITA PROBLEMAS DE CARGA) ===
+const urlToBase64 = async (url) => {
+  if (!url) return '';
+  
+  // Convertir a URL absoluta si es relativa (ej. /logo_centros/CJ000.png)
+  let absoluteUrl = url;
+  if (!url.startsWith('http')) {
+    absoluteUrl = new URL(url, window.location.origin).href;
+  }
+
+  try {
+    console.log('🖼️ Intentando cargar logo desde:', absoluteUrl);
+    const response = await fetch(absoluteUrl);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+    } catch (error) {
+    console.warn('⚠️ No se pudo cargar el logo como Base64:', error);
+    return ''; // Devolver vacío para que no salga el icono roto
+  }
+};
+
 export async function generarInformeDesdeEvaluacion(evaluacionId) {
   const { data: evaluacion, error: evalError } = await supabase
     .from('evaluaciones')
@@ -58,6 +85,9 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
       } catch (e) {}
     }
   }
+
+  // Convertir el logo a Base64 para que se imprima sin problemas
+  const logoBase64 = await urlToBase64(logoUrl);
 
   const esGimnasioTerapeutico = tipoCentro === 'gimnasio_terapeutico';
 
@@ -918,8 +948,7 @@ const stickmanPosterior = generarStickman(regionesPosteriores, 'Vista Posterior'
         .pagina:last-child { page-break-after: avoid; }
         .contenido { flex: 1; padding-bottom: 15px; }
         .encabezado { text-align: center; border-bottom: 2px solid #22d3ee; padding-bottom: 8px; margin-bottom: 15px; position: relative; min-height: 70px; }
-        .encabezado .logo { max-width: 60px; max-height: 60px; float: left; margin-right: 12px; }
-        .encabezado .logo-derecho { max-width: 50px; max-height: 50px; float: right; margin-left: 12px; }
+        .encabezado .logo { max-width: 60px; max-height: 60px; float: left; margin-right: 12px; border-radius: 50%; object-fit: cover; border: 2px solid #22d3ee; padding: 2px; background: #fff; }
         .encabezado .titulo { font-size: 16pt; font-weight: 700; color: #0f172a; text-transform: uppercase; letter-spacing: 1px; }
         .encabezado .subtitulo { font-size: 9pt; color: #64748b; }
         .encabezado .datos { font-size: 8pt; color: #475569; margin-top: 3px; }
@@ -949,8 +978,7 @@ const stickmanPosterior = generarStickman(regionesPosteriores, 'Vista Posterior'
         <div class="contenido">
           ${alertaBanderasHTML}
           <div class="encabezado clearfix">
-            ${logoUrl ? `<img src="${logoUrl}" class="logo" alt="Logo Centro" onerror="this.style.display='none'" />` : ''}
-            <img src="/logos_cj_circular.png" class="logo-derecho" alt="CJ Fisioterapia" onerror="this.style.display='none'" />
+            ${logoBase64 ? `<img src="${logoBase64}" class="logo" alt="Logo Centro" />` : ''}
             <div>
               <div class="titulo">${tituloDocumento}</div>
               <div class="subtitulo">${centroNombre}</div>
@@ -1091,7 +1119,7 @@ const stickmanPosterior = generarStickman(regionesPosteriores, 'Vista Posterior'
     ventana.document.title = `${tituloDocumento} - ${nombrePaciente}`;
     ventana.document.write(contenidoHTML);
     ventana.document.close();
-    setTimeout(() => ventana.print(), 1000);
+setTimeout(() => { const imgs = Array.from(ventana.document.querySelectorAll('img')); const pend = imgs.filter(i => !i.complete); if (pend.length === 0) { ventana.print(); return; } let n = 0; const fin = () => { n++; if (n >= pend.length) ventana.print(); }; pend.forEach(i => { i.addEventListener('load', fin, { once: true }); i.addEventListener('error', fin, { once: true }); }); setTimeout(() => { try { ventana.print(); } catch (e) {} }, 5000); }, 300);
   } else {
     alert('Por favor, permite las ventanas emergentes para generar el informe.');
   }
