@@ -22,7 +22,7 @@ export default function PanelDirector({ temaOscuro }) {
   const [esDirectorGlobal, setEsDirectorGlobal] = useState(false);
   const [centroDirector, setCentroDirector] = useState(null);
   const [pestana, setPestana] = useState('usuarios');
-  const [filtroRol, setFiltroRol] = useState(null); // null = todos
+  const [filtroRol, setFiltroRol] = useState(null);
   const [historial, setHistorial] = useState([]);
   const [cargandoHistorial, setCargandoHistorial] = useState(false);
   const [filtroHistorial, setFiltroHistorial] = useState('');
@@ -1129,29 +1129,42 @@ export default function PanelDirector({ temaOscuro }) {
                 <input type="text" value={formEditar.registro_interno} onChange={(e) => setFormEditar({...formEditar, registro_interno: e.target.value})} className={`w-full px-4 py-2 rounded-xl border ${bgInput} text-sm outline-none focus:border-[#22d3ee]`} placeholder="Solo técnicos" />
               </div>
 
-                            <div>
+              <div>
                 <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoSecundario} mb-1`}>Centro asignado</label>
                 <select value={formEditar.centro_id} onChange={(e) => setFormEditar({...formEditar, centro_id: e.target.value})} className={`w-full px-4 py-2 rounded-xl border ${bgInput} text-sm cursor-pointer`}>
                   <option value="">Sin centro</option>
                   {centros.map(c => <option key={c.id} value={c.id}>{c.id} - {c.nombre}</option>)}
                 </select>
 
-                {/* NUEVO BOTÓN PARA SUBIR LOGO */}
+                {/* VISTA PREVIA Y BOTÓN DE SUBIDA */}
                 {formEditar.centro_id && (
-                  <div className="mt-2">
-                    <label className={`flex items-center justify-center gap-2 w-full px-4 py-2 rounded-xl border border-[#22d3ee]/30 ${temaOscuro ? 'bg-[#22d3ee]/10 hover:bg-[#22d3ee]/20 text-[#22d3ee]' : 'bg-cyan-50 hover:bg-cyan-100 text-cyan-600'} text-sm font-bold cursor-pointer transition-all`}>
-                      {subiendoLogo ? '⏳ Subiendo imagen...' : '🖼️ Subir logo para este Centro'}
-                      <input
-                        type="file"
-                        accept="image/png"
-                        className="hidden"
-                        disabled={subiendoLogo}
-                        onChange={subirLogoCentro}
-                      />
-                    </label>
-                    <p className={`text-[9px] mt-1 text-center ${textoSecundario}`}>
-                      Solo formato .png. Se guardará automáticamente como <strong>{formEditar.centro_id}.png</strong>.
-                    </p>
+                  <div className={`mt-3 p-3 border rounded-xl flex items-center gap-4 ${temaOscuro ? 'border-gray-700 bg-black/20' : 'border-gray-300 bg-gray-50'}`}>
+                    
+                    {/* La imagen actual del centro */}
+                    <img 
+                      src={centros.find(c => c.id === formEditar.centro_id)?.logo_url || '/logos_cj_circular.png'} 
+                      alt="Logo actual" 
+                      className="h-14 w-14 object-contain rounded-lg border border-gray-300 dark:border-gray-600 bg-white p-1 shadow-sm"
+                      onError={(e) => { e.target.onerror = null; e.target.src = '/logos_cj_circular.png'; }}
+                    />
+                    
+                    {/* El botón para subir la nueva imagen */}
+                    <div className="flex-1">
+                      <label className={`flex items-center justify-center gap-2 w-full px-4 py-2 rounded-xl border border-[#22d3ee]/30 ${temaOscuro ? 'bg-[#22d3ee]/10 hover:bg-[#22d3ee]/20 text-[#22d3ee]' : 'bg-cyan-100 hover:bg-cyan-200 text-cyan-700'} text-sm font-bold cursor-pointer transition-all`}>
+                        {subiendoLogo ? '⏳ Subiendo...' : '🖼️ Subir nuevo logo'}
+                        <input
+                          type="file"
+                          accept="image/png"
+                          className="hidden"
+                          disabled={subiendoLogo}
+                          onChange={subirLogoCentro}
+                        />
+                      </label>
+                      <p className={`text-[9px] mt-1 text-center ${textoSecundario}`}>
+                        Solo .png. Se guardará como <strong>{formEditar.centro_id}.png</strong>.
+                      </p>
+                    </div>
+
                   </div>
                 )}
               </div>

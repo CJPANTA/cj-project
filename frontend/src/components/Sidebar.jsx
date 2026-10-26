@@ -12,6 +12,7 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
   const [nombreUsuario, setNombreUsuario] = useState('');
   const [nickname, setNickname] = useState('');
   const [centroId, setCentroId] = useState(null);
+  const [logoUrl, setLogoUrl] = useState('');
   const [modoNavegacion, setModoNavegacion] = useState(() => {
     return localStorage.getItem('cj_modo_navegacion') || 'academia';
   });
@@ -49,6 +50,15 @@ export default function Sidebar({ temaOscuro, alClickLink }) {
             setNombreUsuario(perfil.nombre_completo || 'Usuario');
             setNickname(perfil.nickname || '');
             setCentroId(perfil.centro_id || null);
+            
+            if (perfil.centro_id) {
+              const { data: centro } = await supabase
+                .from('centros')
+                .select('logo_url')
+                .eq('id', perfil.centro_id)
+                .single();
+              if (centro?.logo_url) setLogoUrl(centro.logo_url);
+            }
             
             
             if ([3, 5, 6, 7, 8].includes(perfil.rol)) {
@@ -140,12 +150,12 @@ if (rolUsuario === 5) {
   return (
     <aside className={`${bgSidebar} border-r ${bordeColor} rounded-3xl p-5 h-full flex flex-col shadow-2xl overflow-y-auto custom-scrollbar transition-colors duration-500`}>
       <div className="mb-6 flex items-center gap-3 shrink-0">
-      <img 
-  src={`https://raw.githubusercontent.com/CJPANTA/cj-project/main/frontend/public/logo_centros/${centroId || 'CJ'}.png`} 
-  onError={(e) => { e.target.src = "/logos_cj_circular.png"; }} 
-  alt="Logo Centro" 
-  className="w-12 h-12 rounded-full border-2 border-[#22d3ee]/30 object-cover" 
-/>
+        <img 
+          src={logoUrl || `https://raw.githubusercontent.com/CJPANTA/cj-project/main/frontend/public/logo_centros/${centroId || 'CJ'}.png`} 
+          onError={(e) => { e.target.src = "/logos_cj_circular.png"; }} 
+          alt="Logo Centro" 
+          className="w-12 h-12 rounded-full border-2 border-[#22d3ee]/30 object-cover" 
+        />
         <div>
           <h2 className={`${textoPrincipal} font-black text-xl tracking-wider leading-none`}>CJ Fisio</h2>
           <span className="text-[#22d3ee] text-[8px] font-black uppercase tracking-[0.4em]">Mi espacio</span>
@@ -194,11 +204,11 @@ if (rolUsuario === 5) {
     <aside className={`${bgSidebar} border-r ${bordeColor} rounded-3xl p-5 h-full flex flex-col shadow-2xl overflow-y-auto custom-scrollbar transition-colors duration-500`}>
       <div className="mb-6 flex items-center gap-3 shrink-0">
         <img 
-  src={`https://raw.githubusercontent.com/CJPANTA/cj-project/main/frontend/public/logo_centros/${centroId || 'CJ'}.png`} 
-  onError={(e) => { e.target.src = "/logos_cj_circular.png"; }} 
-  alt="Logo Centro" 
-  className="w-12 h-12 rounded-full border-2 border-[#22d3ee]/30 object-cover" 
-/>
+          src={logoUrl || `https://raw.githubusercontent.com/CJPANTA/cj-project/main/frontend/public/logo_centros/${centroId || 'CJ'}.png`} 
+          onError={(e) => { e.target.src = "/logos_cj_circular.png"; }} 
+          alt="Logo Centro" 
+          className="w-12 h-12 rounded-full border-2 border-[#22d3ee]/30 object-cover" 
+        />
         <div>
           <h2 className={`${textoPrincipal} font-black text-xl tracking-wider leading-none`}>CJ Fisio</h2>
           <span className="text-[#22d3ee] text-[8px] font-black uppercase tracking-[0.4em]">Ecosistema de Salud</span>

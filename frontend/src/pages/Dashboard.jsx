@@ -40,6 +40,7 @@ export default function Dashboard({ temaOscuro }) {
   const [nickname, setNickname] = useState('');
   const [rolUsuario, setRolUsuario] = useState(null);
   const [centroId, setCentroId] = useState(null);
+  const [logoUrl, setLogoUrl] = useState('');
   const [kpisClinicos, setKpisClinicos] = useState({ pacientesActivos: 0, evaluacionesPendientes: 0, citasHoy: 0 });
   const [proximaCita, setProximaCita] = useState(null);
   const [progresoDolor, setProgresoDolor] = useState({ porcentaje: 0, mensaje: '' });
@@ -101,6 +102,15 @@ export default function Dashboard({ temaOscuro }) {
       setNickname(perfil.nickname || '');
       setRolUsuario(perfil.rol);
       setCentroId(perfil.centro_id || null);
+
+      if (perfil.centro_id) {
+        const { data: centro } = await supabase
+          .from('centros')
+          .select('logo_url')
+          .eq('id', perfil.centro_id)
+          .single();
+        if (centro?.logo_url) setLogoUrl(centro.logo_url);
+      }
       
       if (perfil.centro_id) {
         cargarKPIsClinicos(perfil.centro_id);
@@ -448,12 +458,12 @@ export default function Dashboard({ temaOscuro }) {
                       {/* LOGO DINÁMICO AQUÍ */}
           <div className="flex items-center gap-3 bg-white dark:bg-black/20 px-4 py-2 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm min-h-[48px]">
             <img 
-              src={`https://raw.githubusercontent.com/CJPANTA/cj-project/main/frontend/public/logo_centros/${centroId?.toUpperCase() || 'CJ'}.png`} 
+              src={logoUrl || `https://raw.githubusercontent.com/CJPANTA/cj-project/main/frontend/public/logo_centros/${centroId?.toUpperCase() || 'CJ'}.png`} 
               alt="Logo Centro" 
               className="h-8 w-auto max-w-[120px] object-contain" 
               onError={(e) => { 
-                e.target.onerror = null; // Evita un bucle infinito si el fallback también falla
-                e.target.src = "/logos_cj_circular.png"; // Mismo fallback que usaste en el Sidebar
+                e.target.onerror = null;
+                e.target.src = "/logos_cj_circular.png";
               }}
             />
           </div>
@@ -568,12 +578,12 @@ export default function Dashboard({ temaOscuro }) {
                     {/* LOGO DINÁMICO AQUÍ */}
           <div className="flex items-center gap-3 bg-white dark:bg-black/20 px-4 py-2 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm min-h-[48px]">
             <img 
-              src={`https://raw.githubusercontent.com/CJPANTA/cj-project/main/frontend/public/logo_centros/${centroId?.toUpperCase() || 'CJ'}.png`} 
+              src={logoUrl || `https://raw.githubusercontent.com/CJPANTA/cj-project/main/frontend/public/logo_centros/${centroId?.toUpperCase() || 'CJ'}.png`} 
               alt="Logo Centro" 
               className="h-8 w-auto max-w-[120px] object-contain" 
               onError={(e) => { 
-                e.target.onerror = null; // Evita un bucle infinito si el fallback también falla
-                e.target.src = "/logos_cj_circular.png"; // Mismo fallback que usaste en el Sidebar
+                e.target.onerror = null;
+                e.target.src = "/logos_cj_circular.png";
               }}
             />
           </div>
