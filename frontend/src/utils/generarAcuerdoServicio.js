@@ -24,7 +24,7 @@ const urlToBase64 = async (url) => {
     });
     } catch (error) {
     console.warn('⚠️ No se pudo cargar el logo como Base64:', error);
-    return ''; // Devolver vacío para que no salga el icono roto
+    return absoluteUrl; // Si falla Base64, usamos la URL directa para que el navegador la cargue
   }
 };
 

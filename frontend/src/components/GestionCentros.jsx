@@ -28,6 +28,7 @@ export default function GestionCentros({ temaOscuro, onNuevoCentro }) {
   const [modalPago, setModalPago] = useState(null);
   const [formPago, setFormPago] = useState({ metodo: 'billetera_digital', monto: '', meses: 1, notas: '' });
   const [guardando, setGuardando] = useState(false);
+  const [subiendoLogoId, setSubiendoLogoId] = useState(null);
 
   const bgTarjeta     = temaOscuro ? 'bg-[#0a141d] border-gray-800' : 'bg-white border-gray-300';
   const bgInput       = temaOscuro ? 'bg-black/20 border-gray-700 text-white' : 'bg-white border-gray-300 text-[#0f172a]';
@@ -87,6 +88,59 @@ export default function GestionCentros({ temaOscuro, onNuevoCentro }) {
       cargar();
     } catch (e) { alert('Error: ' + e.message); }
   };
+
+const subirLogoCentro = async (e, centro) => {
+  const file = e.target.files?.[0];
+  e.target.value = ''; // Limpiar el input para permitir subir otra vez
+  if (!file) return;
+
+  // Solo aceptar .png como pediste
+  if (file.type !== 'image/png') {
+    alert('Solo se permite subir imágenes en formato .png');
+    return;
+  }
+
+  setSubiendoLogoId(centro.id);
+
+  try {
+    // El archivo se guardará con el mismo ID del centro (ej: "FA.png")
+    const nombreArchivo = `${centro.id}.png`;
+
+    // Subir a Supabase Storage
+    const { error: upError } = await supabase.storage
+      .from('logos-centros')
+      .upload(nombreArchivo, file, {
+        upsert: true,
+        contentType: 'image/png',
+        cacheControl: '3600',
+      });
+
+    if (upError) throw upError;
+
+    // Obtener la URL pública del archivo subido
+    const { data } = supabase.storage
+      .from('logos-centros')
+      .getPublicUrl(nombreArchivo);
+
+    // Añadimos un ?v=timestamp para forzar la actualización en caché
+    const publicUrl = `${data.publicUrl}?v=${Date.now()}`;
+
+    // Actualizar el campo logo_url en la tabla centros
+    const { error: dbError } = await supabase
+      .from('centros')
+      .update({ logo_url: publicUrl })
+      .eq('id', centro.id);
+
+    if (dbError) throw dbError;
+
+    alert('✅ Logo subido y asignado al centro correctamente.');
+    cargar(); // Recargar la lista de centros
+  } catch (err) {
+    alert('Error al subir el logo: ' + err.message);
+  } finally {
+    setSubiendoLogoId(null);
+  }
+};
 
   const activos    = centros.filter(c => c.estado_visual === 'activo').length;
   const porVencer  = centros.filter(c => c.estado_visual === 'por_vencer').length;
@@ -209,6 +263,20 @@ export default function GestionCentros({ temaOscuro, onNuevoCentro }) {
                             onClick={() => cambiarEstado(c, 'activo')}
                             className="px-2 py-1 bg-blue-500/20 text-blue-400 font-bold rounded-lg text-[10px] hover:bg-blue-500 hover:text-white"
                           >
+
+                          <label
+  className="px-2 py-1 bg-cyan-500/20 text-cyan-400 font-bold rounded-lg text-[10px] hover:bg-cyan-500 hover:text-white transition-all cursor-pointer"
+>
+  {subiendoLogoId === c.id ? 'Subiendo...' : '🖼️ Subir logo'}
+  <input
+    type="file"
+    accept="image/png"
+    className="hidden"
+    disabled={subiendoLogoId === c.id}
+    onChange={(e) => subirLogoCentro(e, c)}
+  />
+</label>
+
                             ▶️ Reactivar
                           </button>
                         ) : (

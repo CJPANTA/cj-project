@@ -36,6 +36,7 @@ export default function PanelDirector({ temaOscuro }) {
     direccion_centro: '', centro_id: '', estado: 'aprobado',
   });
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
+  const [subiendoLogo, setSubiendoLogo] = useState(false);
 
   // ===== ESTILOS DINÁMICOS =====
   const bgPrincipal = temaOscuro ? 'bg-[#0a141d]' : 'bg-[#e2e8f0]';
@@ -368,6 +369,62 @@ export default function PanelDirector({ temaOscuro }) {
       estado: usuario.estado || 'aprobado',
     });
     setModalEditar(true);
+  };
+
+  const subirLogoCentro = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // Limpiar input
+    if (!file) return;
+
+    if (file.type !== 'image/png') {
+      alert('Solo se permite subir imágenes en formato .png');
+      return;
+    }
+
+    if (!formEditar.centro_id) {
+      alert('Primero selecciona un centro.');
+      return;
+    }
+
+    setSubiendoLogo(true);
+
+    try {
+      const nombreArchivo = `${formEditar.centro_id}.png`;
+
+      // Subir a Supabase Storage
+      const { error: upError } = await supabase.storage
+        .from('logos-centros')
+        .upload(nombreArchivo, file, {
+          upsert: true,
+          contentType: 'image/png',
+          cacheControl: '3600',
+        });
+
+      if (upError) throw upError;
+
+      // Obtener URL pública
+      const { data } = supabase.storage
+        .from('logos-centros')
+        .getPublicUrl(nombreArchivo);
+
+      // Añadir un "v=" para que el navegador no guarde en caché la imagen antigua
+      const publicUrl = `${data.publicUrl}?v=${Date.now()}`;
+
+      // Actualizar la tabla centros en la base de datos
+      const { error: dbError } = await supabase
+        .from('centros')
+        .update({ logo_url: publicUrl })
+        .eq('id', formEditar.centro_id);
+
+      if (dbError) throw dbError;
+
+      alert('✅ Logo del centro actualizado correctamente.');
+      cargarDatos(); // Recargar la lista de centros
+    } catch (err) {
+      alert('Error al subir el logo: ' + err.message);
+    } finally {
+      setSubiendoLogo(false);
+    }
   };
 
   const guardarEdicion = async () => {
@@ -1072,12 +1129,31 @@ export default function PanelDirector({ temaOscuro }) {
                 <input type="text" value={formEditar.registro_interno} onChange={(e) => setFormEditar({...formEditar, registro_interno: e.target.value})} className={`w-full px-4 py-2 rounded-xl border ${bgInput} text-sm outline-none focus:border-[#22d3ee]`} placeholder="Solo técnicos" />
               </div>
 
-              <div>
+                            <div>
                 <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoSecundario} mb-1`}>Centro asignado</label>
                 <select value={formEditar.centro_id} onChange={(e) => setFormEditar({...formEditar, centro_id: e.target.value})} className={`w-full px-4 py-2 rounded-xl border ${bgInput} text-sm cursor-pointer`}>
                   <option value="">Sin centro</option>
                   {centros.map(c => <option key={c.id} value={c.id}>{c.id} - {c.nombre}</option>)}
                 </select>
+
+                {/* NUEVO BOTÓN PARA SUBIR LOGO */}
+                {formEditar.centro_id && (
+                  <div className="mt-2">
+                    <label className={`flex items-center justify-center gap-2 w-full px-4 py-2 rounded-xl border border-[#22d3ee]/30 ${temaOscuro ? 'bg-[#22d3ee]/10 hover:bg-[#22d3ee]/20 text-[#22d3ee]' : 'bg-cyan-50 hover:bg-cyan-100 text-cyan-600'} text-sm font-bold cursor-pointer transition-all`}>
+                      {subiendoLogo ? '⏳ Subiendo imagen...' : '🖼️ Subir logo para este Centro'}
+                      <input
+                        type="file"
+                        accept="image/png"
+                        className="hidden"
+                        disabled={subiendoLogo}
+                        onChange={subirLogoCentro}
+                      />
+                    </label>
+                    <p className={`text-[9px] mt-1 text-center ${textoSecundario}`}>
+                      Solo formato .png. Se guardará automáticamente como <strong>{formEditar.centro_id}.png</strong>.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="md:col-span-2">
