@@ -34,7 +34,7 @@ export default function Landing() {
             <div className="leading-none">
               <h1 className="font-black text-lg tracking-wider">CJ Fisioterapia</h1>
               <span className="text-[#22d3ee] text-[8px] font-black uppercase tracking-[0.3em]">
-                Ecosistema de Salud
+                Ecosistema CJ
               </span>
             </div>
           </Link>
