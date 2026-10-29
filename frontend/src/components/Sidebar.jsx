@@ -210,8 +210,8 @@ if (rolUsuario === 5) {
           className="w-12 h-12 rounded-full border-2 border-[#22d3ee]/30 object-cover" 
         />
         <div>
-          <h2 className={`${textoPrincipal} font-black text-xl tracking-wider leading-none`}>CJ Fisio</h2>
-          <span className="text-[#22d3ee] text-[8px] font-black uppercase tracking-[0.4em]">Ecosistema de Salud</span>
+          <h2 className={`${textoPrincipal} font-black text-xl tracking-wider leading-none`}>CJ Fisioterapia</h2>
+          <span className="text-[#22d3ee] text-[8px] font-black uppercase tracking-[0.4em]">Ecosistema CJ</span>
         </div>
       </div>
 

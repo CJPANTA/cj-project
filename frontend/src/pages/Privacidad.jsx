@@ -16,7 +16,7 @@ export default function Privacidad() {
               alt="CJ"
               className="w-9 h-9 rounded-full border-2 border-[#22d3ee]/30"
             />
-            <span className="font-black text-sm tracking-wider">CJ Fisioterapia</span>
+            <span className="font-black text-sm tracking-wider">Ecosistema CJ</span>
           </Link>
           <Link
             to="/"
@@ -30,7 +30,7 @@ export default function Privacidad() {
       {/* Contenido */}
       <main className="max-w-3xl mx-auto px-4 py-12">
         <h1 className="text-3xl md:text-4xl font-black mb-2">
-          Política de Privacidad
+          Política de Privacidad — Ecosistema CJ
         </h1>
         <p className="text-xs text-gray-500 mb-10">
           Conforme a la Ley N° 29733 — Ley de Protección de Datos Personales
@@ -43,15 +43,14 @@ export default function Privacidad() {
               1. Responsable del tratamiento
             </h2>
             <p>
-              CJ Fisioterapia, con contacto en{' '}
+              El Ecosistema CJ, con contacto en{' '}
               <a
                 href="mailto:cjpanta1@gmail.com"
                 className="text-[#22d3ee] hover:underline"
               >
                 cjpanta1@gmail.com
               </a>
-              , es el responsable del tratamiento de los datos personales
-              recopilados a través de la plataforma.
+              , es el responsable del tratamiento de los datos personales recopilados a través de la plataforma.
             </p>
           </section>
 
@@ -97,11 +96,7 @@ export default function Privacidad() {
               4. Confidencialidad clínica
             </h2>
             <p>
-              Los datos clínicos de los pacientes están protegidos por el
-              secreto profesional establecido en la Ley del Trabajo del
-              Tecnólogo Médico y el Código de Ética del Colegio Tecnólogo Médico
-              del Perú. Solo el personal autorizado del centro tratante puede
-              acceder a ellos.
+              Los datos clínicos de los pacientes están protegidos por el secreto profesional establecido en la Ley del Trabajo del Tecnólogo Médico y el Código de Ética del Colegio Tecnólogo Médico del Perú. Solo el personal autorizado del centro tratante puede acceder a ellos.
             </p>
           </section>
 
@@ -110,10 +105,7 @@ export default function Privacidad() {
               5. Almacenamiento y seguridad
             </h2>
             <p>
-              Los datos se almacenan en servidores seguros con cifrado en
-              tránsito (HTTPS) y en reposo. Aplicamos políticas de seguridad a
-              nivel de fila (Row Level Security) que garantizan el aislamiento
-              de la información entre distintos centros y profesionales.
+              Los datos se almacenan en servidores seguros con cifrado en tránsito (HTTPS) y en reposo. Aplicamos políticas de seguridad a nivel de fila (Row Level Security) que garantizan el aislamiento de la información entre distintos centros y profesionales.
             </p>
           </section>
 
@@ -122,9 +114,7 @@ export default function Privacidad() {
               6. Compartición con terceros
             </h2>
             <p>
-              No compartimos datos personales con terceros sin consentimiento
-              expreso, salvo obligación legal o requerimiento de autoridad
-              competente.
+              No compartimos datos personales con terceros sin consentimiento expreso, salvo obligación legal o requerimiento de autoridad competente.
             </p>
           </section>
 
@@ -153,9 +143,7 @@ export default function Privacidad() {
               8. Cookies
             </h2>
             <p>
-              Utilizamos cookies técnicas estrictamente necesarias para mantener
-              la sesión activa y garantizar el funcionamiento de la plataforma.
-              No usamos cookies publicitarias ni de seguimiento de terceros.
+              Utilizamos cookies técnicas estrictamente necesarias para mantener la sesión activa y garantizar el funcionamiento de la plataforma. No usamos cookies publicitarias ni de seguimiento de terceros.
             </p>
           </section>
 
@@ -164,10 +152,7 @@ export default function Privacidad() {
               9. Conservación de datos
             </h2>
             <p>
-              Los datos clínicos se conservan mientras exista la relación
-              profesional-paciente y por el plazo mínimo requerido por la
-              normativa peruana aplicable. Posteriormente pueden ser anonimizados
-              o eliminados.
+              Los datos clínicos se conservan mientras exista la relación profesional-paciente y por el plazo mínimo requerido por la normativa peruana aplicable. Posteriormente pueden ser anonimizados o eliminados.
             </p>
           </section>
 
@@ -176,9 +161,7 @@ export default function Privacidad() {
               10. Cambios en esta política
             </h2>
             <p>
-              Nos reservamos el derecho de actualizar esta Política de
-              Privacidad. Notificaremos los cambios importantes por correo
-              electrónico o mediante un aviso en la plataforma.
+              Nos reservamos el derecho de actualizar esta Política de Privacidad. Notificaremos los cambios importantes por correo electrónico o mediante un aviso en la plataforma.
             </p>
           </section>
         </div>
@@ -188,8 +171,7 @@ export default function Privacidad() {
       <footer className="border-t border-white/5 py-8 px-4 mt-10">
         <div className="max-w-4xl mx-auto text-center">
           <p className="text-[10px] text-gray-500">
-            © {new Date().getFullYear()} CJ Fisioterapia · Todos los derechos
-            reservados
+            © {new Date().getFullYear()} Ecosistema CJ · Todos los derechos reservados
           </p>
         </div>
       </footer>

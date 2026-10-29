@@ -322,7 +322,7 @@ export default function Login() {
           <h1 className="text-3xl font-black text-white tracking-tighter">
             CJ <span className="text-[#22d3ee]">Fisioterapia</span>
           </h1>
-          <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mt-1">Ecosistema de Salud</p>
+          <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mt-1">Ecosistema CJ</p>
         </div>
 
         <div className={bgCard}>

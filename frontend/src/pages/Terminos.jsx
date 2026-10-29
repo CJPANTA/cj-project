@@ -16,7 +16,7 @@ export default function Terminos() {
               alt="CJ"
               className="w-9 h-9 rounded-full border-2 border-[#22d3ee]/30"
             />
-            <span className="font-black text-sm tracking-wider">CJ Fisioterapia</span>
+            <span className="font-black text-sm tracking-wider">Ecosistema CJ</span>
           </Link>
           <Link
             to="/"
@@ -42,9 +42,7 @@ export default function Terminos() {
               1. Aceptación de los términos
             </h2>
             <p>
-              Al acceder o utilizar CJ Fisioterapia (en adelante, "el Servicio"),
-              aceptas estos Términos y Condiciones en su totalidad. Si no estás
-              de acuerdo con alguna parte, no debes usar el Servicio.
+              Al acceder o utilizar el Ecosistema CJ (en adelante, "el Servicio"), aceptas estos Términos y Condiciones en su totalidad. Si no estás de acuerdo con alguna parte, no debes usar el Servicio.
             </p>
           </section>
 
@@ -53,11 +51,7 @@ export default function Terminos() {
               2. Descripción del servicio
             </h2>
             <p>
-              CJ Fisioterapia es un ecosistema digital diseñado para la gestión
-              clínica, académica y administrativa de profesionales de la
-              fisioterapia en Perú. Incluye herramientas como historia clínica
-              digital, evaluaciones posturales, sesiones SOAP, gestión de
-              equipamiento, generación de informes y módulos académicos.
+              El Ecosistema CJ es un ecosistema digital diseñado para la gestión clínica, académica y administrativa de profesionales de la fisioterapia en Perú. Incluye herramientas como historia clínica digital, evaluaciones posturales, sesiones SOAP, gestión de equipamiento, generación de informes y módulos académicos. El módulo actual se denomina "CJ Fisioterapia".
             </p>
           </section>
 
@@ -66,14 +60,10 @@ export default function Terminos() {
               3. Cuentas de usuario
             </h2>
             <p>
-              El usuario es el único responsable de mantener la confidencialidad
-              de sus credenciales de acceso (usuario y contraseña). Cualquier
-              actividad realizada desde su cuenta será atribuida a su titular.
+              El usuario es el único responsable de mantener la confidencialidad de sus credenciales de acceso (usuario y contraseña). Cualquier actividad realizada desde su cuenta será atribuida a su titular.
             </p>
             <p className="mt-2">
-              Está prohibido compartir cuentas o permitir el acceso a terceros
-              no autorizados. Las cuentas pueden ser suspendidas por uso
-              indebido.
+              Está prohibido compartir cuentas o permitir el acceso a terceros no autorizados. Las cuentas pueden ser suspendidas por uso indebido.
             </p>
           </section>
 
@@ -99,11 +89,7 @@ export default function Terminos() {
               5. Responsabilidad profesional
             </h2>
             <p>
-              Los diagnósticos, planes de tratamiento y decisiones clínicas
-              emitidas a través de la plataforma son responsabilidad exclusiva
-              del profesional de la salud que los registra. CJ Fisioterapia es
-              una herramienta de apoyo y no sustituye el criterio clínico ni la
-              relación profesional-paciente.
+              Los diagnósticos, planes de tratamiento y decisiones clínicas emitidas a través de la plataforma son responsabilidad exclusiva del profesional de la salud que los registra. El Ecosistema CJ es una herramienta de apoyo y no sustituye el criterio clínico ni la relación profesional-paciente.
             </p>
           </section>
 
@@ -112,10 +98,7 @@ export default function Terminos() {
               6. Propiedad intelectual
             </h2>
             <p>
-              Todo el contenido, diseño, código fuente, marcas y demás
-              elementos del Servicio son propiedad de CJ Fisioterapia o sus
-              licenciantes. No se permite su reproducción, distribución o uso
-              comercial sin autorización expresa.
+              Todo el contenido, diseño, código fuente, marcas y demás elementos del Servicio son propiedad del Ecosistema CJ o sus licenciantes. No se permite su reproducción, distribución o uso comercial sin autorización expresa.
             </p>
           </section>
 
@@ -124,15 +107,31 @@ export default function Terminos() {
               7. Modificaciones
             </h2>
             <p>
-              Nos reservamos el derecho de modificar estos Términos y
-              Condiciones en cualquier momento. Los cambios serán notificados
-              mediante el correo registrado o avisos dentro de la plataforma.
+              Nos reservamos el derecho de modificar estos Términos y Condiciones en cualquier momento. Los cambios serán notificados mediante el correo registrado o avisos dentro de la plataforma.
             </p>
           </section>
 
           <section>
             <h2 className="text-lg font-black text-white mb-2">
-              8. Contacto
+              8. Política de reembolsos
+            </h2>
+            <p>
+              Las suscripciones no tienen reembolso una vez iniciado el mes. El usuario puede cancelar la renovación automática en cualquier momento desde su panel de configuración, sin penalización.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-black text-white mb-2">
+              9. Ley aplicable y jurisdicción
+            </h2>
+            <p>
+              Estos términos se rigen por las leyes de la República del Perú. Cualquier controversia se someterá a los tribunales de Lima.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-black text-white mb-2">
+              10. Contacto
             </h2>
             <p>
               Para consultas sobre estos términos:{' '}
@@ -151,8 +150,7 @@ export default function Terminos() {
       <footer className="border-t border-white/5 py-8 px-4 mt-10">
         <div className="max-w-4xl mx-auto text-center">
           <p className="text-[10px] text-gray-500">
-            © {new Date().getFullYear()} CJ Fisioterapia · Todos los derechos
-            reservados
+            © {new Date().getFullYear()} Ecosistema CJ · Todos los derechos reservados
           </p>
         </div>
       </footer>
