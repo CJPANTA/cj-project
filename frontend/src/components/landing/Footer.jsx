@@ -55,7 +55,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-8 pt-6 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-3 text-[10px] text-gray-500">
-          <p>© {new Date().getFullYear()} CJ Fisioterapia. Todos los derechos reservados.</p>
+          <p>© {new Date().getFullYear()} Ecosistema CJ · Todos los derechos reservados.</p>
           <p>Hecho con 💙 en Perú</p>
         </div>
       </div>
