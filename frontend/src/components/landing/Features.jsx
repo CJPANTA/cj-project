@@ -60,8 +60,11 @@ export default function Features() {
           {FEATURES.map((f) => (
             <div
   key={f.titulo}
-  className="group p-6 rounded-3xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 hover:border-[#22d3ee]/50 hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(34,211,238,0.15)] transition-all duration-300"
+  className="group p-6 rounded-3xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 hover:border-[#22d3ee]/50 hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(34,211,238,0.15)] transition-all duration-300 relative overflow-hidden"
 >
+
+<div className="absolute inset-0 bg-gradient-to-t from-[#22d3ee]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+
               <div className="w-14 h-14 rounded-2xl bg-[#22d3ee]/10 border border-[#22d3ee]/20 flex items-center justify-center text-3xl mb-4 group-hover:scale-110 transition-transform">
   {f.esIA ? (
     <IconIA className="w-7 h-7 text-[#22d3ee]" />

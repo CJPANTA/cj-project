@@ -314,11 +314,16 @@ export default function Login() {
     </svg>
   );
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-[#020813] to-[#0a141d] flex items-center justify-center p-4 font-sans">
-      <div className="w-full max-w-md">
+    return (
+    <div className="min-h-screen bg-gradient-to-br from-[#020813] to-[#0a141d] flex items-center justify-center p-4 font-sans relative overflow-hidden">
+      
+      {/* AURA GLOW - Resplandor animado de fondo */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-tr from-[#22d3ee] to-[#10b981] rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-pulse-slow pointer-events-none"></div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#22d3ee] rounded-full mix-blend-screen filter blur-[80px] opacity-10 animate-pulse-fast pointer-events-none"></div>
+
+      <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-8">
-          <img src="/logos_cj_circular.png" alt="CJ Fisioterapia" className="w-24 h-24 mx-auto mb-4 rounded-full border-2 border-[#22d3ee]/30 shadow-lg" />
+          <img src="/logos_cj_circular.png" alt="CJ Fisioterapia" className="w-24 h-24 mx-auto mb-4 rounded-full border-2 border-[#22d3ee]/50 shadow-[0_0_20px_rgba(34,211,238,0.3)] animate-breathe" />
           <h1 className="text-3xl font-black text-white tracking-tighter">
             CJ <span className="text-[#22d3ee]">Fisioterapia</span>
           </h1>

@@ -533,3 +533,70 @@ html[data-tema="claro"] .border-orange-500\/30 { border-color: #fdba74 !importan
 html[data-tema="claro"] .border-indigo-500\/30 { border-color: #a5b4fc !important; }
 html[data-tema="claro"] .border-emerald-500\/30 { border-color: #6ee7b7 !important; }
 html[data-tema="claro"] .border-cyan-500\/30 { border-color: #67e8f9 !important; }
+
+/* =========================================
+   ANIMACIONES DEL ECOSISTEMA CJ (AURA GLOW)
+   ========================================= */
+
+@keyframes pulseSlow {
+  0%, 100% { opacity: 0.15; transform: scale(1) translate(-50%, -50%); }
+  50% { opacity: 0.3; transform: scale(1.1) translate(-50%, -50%); }
+}
+
+@keyframes pulseFast {
+  0%, 100% { opacity: 0.05; transform: scale(1) translate(-50%, -50%); }
+  50% { opacity: 0.15; transform: scale(1.2) translate(-50%, -50%); }
+}
+
+@keyframes breathe {
+  0%, 100% { box-shadow: 0 0 15px rgba(34, 211, 238, 0.3); transform: scale(1); }
+  50% { box-shadow: 0 0 30px rgba(34, 211, 238, 0.6); transform: scale(1.02); }
+}
+
+.animate-pulse-slow {
+  animation: pulseSlow 12s ease-in-out infinite;
+}
+
+.animate-pulse-fast {
+  animation: pulseFast 8s ease-in-out infinite;
+}
+
+.animate-breathe {
+  animation: breathe 6s ease-in-out infinite;
+}
+
+/* =========================================
+   MAGIA EXTRA: LANDING PAGE
+   ========================================= */
+
+/* 1. Gradiente Líquido para el Hero */
+@keyframes gradientMove {
+  0% { background-position: 0% center; }
+  100% { background-position: -200% center; }
+}
+.animate-gradient {
+  background-size: 200% auto;
+  animation: gradientMove 4s linear infinite;
+}
+
+/* 2. Efecto Shimmer (Reflejo) para los Botones */
+.shimmer-btn {
+  position: relative;
+  overflow: hidden;
+}
+.shimmer-btn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  transform: skewX(-20deg);
+}
+.shimmer-btn:hover::after {
+  animation: shimmer 1s ease-in-out forwards;
+}
+@keyframes shimmer {
+  100% { left: 200%; }
+}
