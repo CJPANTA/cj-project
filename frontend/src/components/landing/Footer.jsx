@@ -18,7 +18,7 @@ export default function Footer() {
             <div>
               <p className="text-sm font-black">CJ Fisioterapia</p>
               <p className="text-[9px] font-bold uppercase tracking-wider text-gray-500">
-                Ecosistema de Salud
+                Ecosistema CJ
               </p>
             </div>
           </div>
