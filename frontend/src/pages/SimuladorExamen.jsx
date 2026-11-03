@@ -38,11 +38,13 @@ export default function SimuladorExamen({ temaOscuro }) {
   const [tarjetaActiva, setTarjetaActiva] = useState(null);
 
   useEffect(() => {
+    // Verificamos si estructura tiene el ciclo seleccionado
     if (cicloSeleccionado && estructura && estructura[cicloSeleccionado]) {
       const materiasList = Object.keys(estructura[cicloSeleccionado]);
       setMaterias(materiasList);
       setMateriaSeleccionada(materiasList[0] || '');
     } else {
+      // Fallback: Si el escáner no ha cargado o falla, forzamos un array vacío
       setMaterias([]);
       setMateriaSeleccionada('');
     }
@@ -251,14 +253,22 @@ export default function SimuladorExamen({ temaOscuro }) {
               {ciclos.map(c => <option key={c}>{c}</option>)}
             </select>
           </div>
-          {materias.length > 0 && (
-            <div>
-              <label className={`block text-sm font-bold mb-2 ${textoColor}`}>Materia</label>
-              <select value={materiaSeleccionada} onChange={(e) => setMateriaSeleccionada(e.target.value)} className={`w-full p-3 rounded-xl border ${inputBg} ${textoColor}`}>
-                {materias.map(m => <option key={m}>{m.replace(/_/g, ' ')}</option>)}
-              </select>
-            </div>
-          )}
+          
+          {/* Ahora el selector de materia siempre está visible */}
+          <div>
+            <label className={`block text-sm font-bold mb-2 ${textoColor}`}>Materia</label>
+            <select value={materiaSeleccionada} onChange={(e) => setMateriaSeleccionada(e.target.value)} className={`w-full p-3 rounded-xl border ${inputBg} ${textoColor}`} disabled={materias.length === 0}>
+              {materias.length === 0 ? (
+                <option value="">Cargando materias...</option>
+              ) : (
+                materias.map(m => <option key={m} value={m}>{m.replace(/_/g, ' ')}</option>)
+              )}
+            </select>
+            {materias.length === 0 && (
+              <p className="text-xs text-yellow-500 mt-1">Si no aparecen materias, selecciona otro ciclo o verifica la conexión con GitHub.</p>
+            )}
+          </div>
+
           <div className="flex gap-4 flex-wrap">
             <div className="flex-1">
               <label className={`block text-sm font-bold mb-2 ${textoColor}`}>Nivel</label>
@@ -278,13 +288,13 @@ export default function SimuladorExamen({ temaOscuro }) {
             </div>
           </div>
           <div className="flex gap-3 mt-2 flex-wrap">
-            <button onClick={generarExamen} disabled={cargando} className="flex-1 bg-[#22d3ee] text-black font-bold py-3 rounded-xl hover:bg-[#1bc1da] transition-all">
+            <button onClick={generarExamen} disabled={cargando || !materiaSeleccionada} className="flex-1 bg-[#22d3ee] text-black font-bold py-3 rounded-xl hover:bg-[#1bc1da] transition-all disabled:opacity-50">
               {cargando ? 'Generando...' : 'Generar Examen'}
             </button>
-            <button onClick={generarRepasoRapido} disabled={generandoRepaso} className="flex-1 bg-green-600 text-white font-bold py-3 rounded-xl hover:bg-green-700 transition-all">
+            <button onClick={generarRepasoRapido} disabled={generandoRepaso || !materiaSeleccionada} className="flex-1 bg-green-600 text-white font-bold py-3 rounded-xl hover:bg-green-700 transition-all disabled:opacity-50">
               {generandoRepaso ? 'Generando...' : '📝 Repaso rápido'}
             </button>
-            <button onClick={generarFlashcards} disabled={generandoFlashcards} className="flex-1 bg-purple-600 text-white font-bold py-3 rounded-xl hover:bg-purple-700 transition-all">
+            <button onClick={generarFlashcards} disabled={generandoFlashcards || !materiaSeleccionada} className="flex-1 bg-purple-600 text-white font-bold py-3 rounded-xl hover:bg-purple-700 transition-all disabled:opacity-50">
               {generandoFlashcards ? 'Generando...' : '🃏 Flashcards'}
             </button>
           </div>
@@ -301,36 +311,36 @@ export default function SimuladorExamen({ temaOscuro }) {
           </div>
           <div className="space-y-4">
             <div className="p-4 bg-black/5 rounded-lg">
-  <p className={`font-bold mb-2 ${textoColor}`}>{repasoActual+1}. {repasoPreguntas[repasoActual].texto}</p>
-  <div className="space-y-2">
-    {repasoPreguntas[repasoActual].opciones.map((opt, idx) => (
-      <label key={idx} className="flex items-center gap-3 cursor-pointer">
-        <input
-          type="radio"
-          name={`repaso_${repasoActual}`}  // nombre único por pregunta
-          value={opt}
-          checked={repasoRespuestas[repasoActual] === opt}
-          onChange={() => responderRepaso(repasoActual, opt)}
-          disabled={repasoFeedback[repasoActual] !== undefined}
-          className="w-4 h-4"
-        />
-        <span className={`text-sm ${textoColor}`}>{opt}</span>
-      </label>
-    ))}
-  </div>
-  {repasoFeedback[repasoActual] && (
-    <div className={`mt-3 p-2 rounded ${repasoFeedback[repasoActual].correcta ? 'bg-green-500/20 text-green-600' : 'bg-red-500/20 text-red-600'}`}>
-      <p className="text-sm font-bold">{repasoFeedback[repasoActual].correcta ? '✔ Correcto' : '✗ Incorrecto'}</p>
-      <p className="text-xs">{repasoFeedback[repasoActual].feedback}</p>
-      {!repasoFeedback[repasoActual].correcta && <p className="text-xs mt-1">Respuesta correcta: {repasoFeedback[repasoActual].respuestaCorrecta}</p>}
-    </div>
-  )}
-  {repasoFeedback[repasoActual] && (
-    <button onClick={siguienteRepaso} className="mt-3 px-4 py-1 bg-[#22d3ee] text-black rounded-lg text-xs font-black uppercase">
-      {repasoActual + 1 === repasoPreguntas.length ? 'Finalizar repaso' : 'Siguiente pregunta →'}
-    </button>
-  )}
-</div>
+              <p className={`font-bold mb-2 ${textoColor}`}>{repasoActual+1}. {repasoPreguntas[repasoActual].texto}</p>
+              <div className="space-y-2">
+                {repasoPreguntas[repasoActual].opciones.map((opt, idx) => (
+                  <label key={idx} className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="radio"
+                      name={`repaso_${repasoActual}`}
+                      value={opt}
+                      checked={repasoRespuestas[repasoActual] === opt}
+                      onChange={() => responderRepaso(repasoActual, opt)}
+                      disabled={repasoFeedback[repasoActual] !== undefined}
+                      className="w-4 h-4"
+                    />
+                    <span className={`text-sm ${textoColor}`}>{opt}</span>
+                  </label>
+                ))}
+              </div>
+              {repasoFeedback[repasoActual] && (
+                <div className={`mt-3 p-2 rounded ${repasoFeedback[repasoActual].correcta ? 'bg-green-500/20 text-green-600' : 'bg-red-500/20 text-red-600'}`}>
+                  <p className="text-sm font-bold">{repasoFeedback[repasoActual].correcta ? '✔ Correcto' : '✗ Incorrecto'}</p>
+                  <p className="text-xs">{repasoFeedback[repasoActual].feedback}</p>
+                  {!repasoFeedback[repasoActual].correcta && <p className="text-xs mt-1">Respuesta correcta: {repasoFeedback[repasoActual].respuestaCorrecta}</p>}
+                </div>
+              )}
+              {repasoFeedback[repasoActual] && (
+                <button onClick={siguienteRepaso} className="mt-3 px-4 py-1 bg-[#22d3ee] text-black rounded-lg text-xs font-black uppercase">
+                  {repasoActual + 1 === repasoPreguntas.length ? 'Finalizar repaso' : 'Siguiente pregunta →'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
