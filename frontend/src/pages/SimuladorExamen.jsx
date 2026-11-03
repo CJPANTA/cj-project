@@ -6,7 +6,10 @@ import { consultarAuraIA } from '../services/iaService';
 
 export default function SimuladorExamen({ temaOscuro }) {
   const { contexto } = useAura();
-  const { estructura } = useGitHubScanner();
+  
+  // 1. Le pasamos 'carrion' al hook para que haga el fetch a GitHub
+  const { estructura, cargando: cargandoEstructura } = useGitHubScanner('carrion');
+  
   const [ciclos] = useState(['01', '02', '03', '04', '05', '06']);
   const [cicloSeleccionado, setCicloSeleccionado] = useState(contexto.ciclo?.replace('Ciclo ', '') || '');
   const [materias, setMaterias] = useState([]);
@@ -38,13 +41,12 @@ export default function SimuladorExamen({ temaOscuro }) {
   const [tarjetaActiva, setTarjetaActiva] = useState(null);
 
   useEffect(() => {
-    // Verificamos si estructura tiene el ciclo seleccionado
-    if (cicloSeleccionado && estructura && estructura[cicloSeleccionado]) {
-      const materiasList = Object.keys(estructura[cicloSeleccionado]);
+    // 2. Corregimos la ruta: ahora buscamos dentro de estructura.ciclos
+    if (cicloSeleccionado && estructura && estructura.ciclos && estructura.ciclos[cicloSeleccionado]) {
+      const materiasList = Object.keys(estructura.ciclos[cicloSeleccionado]);
       setMaterias(materiasList);
       setMateriaSeleccionada(materiasList[0] || '');
     } else {
-      // Fallback: Si el escáner no ha cargado o falla, forzamos un array vacío
       setMaterias([]);
       setMateriaSeleccionada('');
     }
@@ -254,18 +256,20 @@ export default function SimuladorExamen({ temaOscuro }) {
             </select>
           </div>
           
-          {/* Ahora el selector de materia siempre está visible */}
+          {/* Selector de materia corregido */}
           <div>
             <label className={`block text-sm font-bold mb-2 ${textoColor}`}>Materia</label>
             <select value={materiaSeleccionada} onChange={(e) => setMateriaSeleccionada(e.target.value)} className={`w-full p-3 rounded-xl border ${inputBg} ${textoColor}`} disabled={materias.length === 0}>
-              {materias.length === 0 ? (
-                <option value="">Cargando materias...</option>
+              {cargandoEstructura ? (
+                <option value="">Cargando desde GitHub...</option>
+              ) : materias.length === 0 ? (
+                <option value="">No hay materias para este ciclo</option>
               ) : (
                 materias.map(m => <option key={m} value={m}>{m.replace(/_/g, ' ')}</option>)
               )}
             </select>
-            {materias.length === 0 && (
-              <p className="text-xs text-yellow-500 mt-1">Si no aparecen materias, selecciona otro ciclo o verifica la conexión con GitHub.</p>
+            {materias.length === 0 && !cargandoEstructura && (
+              <p className="text-xs text-yellow-500 mt-1">Verifica que el ciclo seleccionado tenga carpetas en GitHub.</p>
             )}
           </div>
 
