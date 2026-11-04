@@ -24,6 +24,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const AreaDeEstudio = lazy(() => import('./pages/AreaDeEstudio'));
 const BaseConocimiento = lazy(() => import('./pages/BaseConocimiento'));
 const Biblioteca = lazy(() => import('./pages/Biblioteca'));
+const Multimedia = lazy(() => import('./pages/Multimedia'));
 const Horario = lazy(() => import('./pages/Horario'));
 const PanelDirector = lazy(() => import('./pages/PanelDirector'));
 const SimuladorExamen = lazy(() => import('./pages/SimuladorExamen'));
@@ -161,6 +162,8 @@ function App() {
                   <Route path="/terminos" element={<Terminos />} />
                   <Route path="/privacidad" element={<Privacidad />} />
                   <Route path="/area-estudio" element={<RutaProtegida><AreaDeEstudio temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  {/* 👇 AÑADE ESTA LÍNEA 👇 */}
+                  <Route path="/multimedia" element={<RutaProtegida><Multimedia temaOscuro={temaOscuro} /></RutaProtegida>} />
                   <Route path="/biblioteca" element={<RutaProtegida><Biblioteca temaOscuro={temaOscuro} /></RutaProtegida>} />
                   <Route path="/horario" element={<RutaProtegida><Horario temaOscuro={temaOscuro} /></RutaProtegida>} />
                   <Route path="/base-conocimiento" element={<RutaProtegida><BaseConocimiento temaOscuro={temaOscuro} /></RutaProtegida>} />

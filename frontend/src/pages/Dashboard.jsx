@@ -696,7 +696,7 @@ export default function Dashboard({ temaOscuro }) {
           <NotificacionesActivador temaOscuro={temaOscuro} />
           <FavoritosWidget temaOscuro={temaOscuro} />
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Link to="/area-estudio" className={`p-8 rounded-3xl border ${bgTarjeta} flex flex-col items-center group hover:border-[#22d3ee] transition-all`}>
               <span className="text-5xl mb-4 group-hover:scale-110 transition-transform">🎓</span>
               <span className="text-[#22d3ee] text-[11px] font-black uppercase">Repositorio</span>
@@ -708,6 +708,11 @@ export default function Dashboard({ temaOscuro }) {
             <Link to="/simulador" className={`p-8 rounded-3xl border ${bgTarjeta} flex flex-col items-center group hover:border-[#22d3ee] transition-all`}>
               <span className="text-5xl mb-4 group-hover:scale-110 transition-transform">🎯</span>
               <span className="text-[#22d3ee] text-[11px] font-black uppercase">Simulador</span>
+            </Link>
+            {/* 👇 TARJETA NUEVA DE MULTIMEDIA 👇 */}
+            <Link to="/multimedia" className={`p-8 rounded-3xl border ${bgTarjeta} flex flex-col items-center group hover:border-emerald-400 transition-all`}>
+              <span className="text-5xl mb-4 group-hover:scale-110 transition-transform">🖼️</span>
+              <span className="text-emerald-400 text-[11px] font-black uppercase">Multimedia</span>
             </Link>
           </div>
         </>
