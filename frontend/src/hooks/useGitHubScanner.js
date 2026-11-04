@@ -14,7 +14,6 @@ export function useGitHubScanner(institucion = null) {
   const [error, setError] = useState(null);
 
   const cargar = useCallback(async (forzar = false) => {
-    // Si no hay institución seleccionada, no cargar nada
     if (!institucion) {
       setEstructura(null);
       setCargando(false);
@@ -30,7 +29,6 @@ export function useGitHubScanner(institucion = null) {
     const ahora = Date.now();
     const unaHora = 5 * 60 * 1000; // 5 min de caché
 
-    // Verificar caché
     if (!forzar) {
       const cache = localStorage.getItem(cacheKey);
       const cacheTime = localStorage.getItem(cacheTimeKey);
@@ -39,9 +37,7 @@ export function useGitHubScanner(institucion = null) {
           setEstructura(JSON.parse(cache));
           setCargando(false);
           return;
-        } catch (e) {
-          // Caché corrupto, continuar con fetch
-        }
+        } catch (e) {}
       }
     }
 
@@ -53,9 +49,9 @@ export function useGitHubScanner(institucion = null) {
 
       let resultado;
 
-      if (institucion === 'esan') {
-        // ===== ESAN: cursos + material general en raíz =====
-        const BASE_PATH = 'BASE_DATOS/07_ESAN';
+      if (institucion === 'esan' || institucion === 'ingles') {
+        // ===== ESAN e INGLES: cursos + archivos en raíz =====
+        const BASE_PATH = institucion === 'esan' ? 'BASE_DATOS/07_ESAN' : 'BASE_DATOS/08_INGLES';
         const cursos = {};
         const archivosRaiz = [];
 
@@ -69,32 +65,25 @@ export function useGitHubScanner(institucion = null) {
           const partes = archivo.path.split('/');
           const nombreArchivo = partes[partes.length - 1];
 
-          // Caso 1: archivo DENTRO de una subcarpeta de curso
-          // partes: ['BASE_DATOS', '07_ESAN', 'NOMBRE_CURSO', 'archivo.pdf']
           if (partes.length >= 4) {
             const curso = partes[2];
             if (!cursos[curso]) cursos[curso] = [];
             cursos[curso].push(nombreArchivo);
-          }
-          // Caso 2: archivo en la RAÍZ de 07_ESAN
-          // partes: ['BASE_DATOS', '07_ESAN', 'archivo.pdf']
-          else if (partes.length === 3) {
+          } else if (partes.length === 3) {
             archivosRaiz.push(nombreArchivo);
           }
         });
 
-        // Si hay archivos en raíz, agruparlos como "Material General"
         if (archivosRaiz.length > 0) {
           cursos['00-MATERIAL_GENERAL'] = archivosRaiz.sort();
         }
 
-        // Ordenar cursos alfabéticamente (00, 01, 02, etc.)
         const cursosOrdenados = {};
         Object.keys(cursos).sort().forEach(k => {
           cursosOrdenados[k] = cursos[k].sort();
         });
 
-        resultado = { tipo: 'esan', cursos: cursosOrdenados };
+        resultado = { tipo: institucion, cursos: cursosOrdenados };
       } else {
         // ===== CARRION: ciclos =====
         const BASE_PATH = 'BASE_DATOS/01_CARRION';
@@ -108,7 +97,6 @@ export function useGitHubScanner(institucion = null) {
 
         archivos.forEach(archivo => {
           const partes = archivo.path.split('/');
-          // partes: ['BASE_DATOS', '01_CARRION', 'CICLO_01', 'MATERIA', 'archivo.pdf']
           if (partes.length >= 5) {
             const cicloStr = partes[2];
             const materia = partes[3];
@@ -121,7 +109,6 @@ export function useGitHubScanner(institucion = null) {
           }
         });
 
-        // Ordenar archivos
         Object.keys(mapa).forEach(ciclo => {
           Object.keys(mapa[ciclo]).forEach(materia => {
             mapa[ciclo][materia].sort();
