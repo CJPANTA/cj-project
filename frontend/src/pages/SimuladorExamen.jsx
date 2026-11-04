@@ -78,27 +78,35 @@ export default function SimuladorExamen({ temaOscuro }) {
     setCargando(false);
   };
 
-  const corregirExamen = async () => {
+    const corregirExamen = async () => {
     const todasRespondidas = preguntas.every((_, idx) => respuestasUsuario[idx] !== undefined);
     if (!todasRespondidas) { setError('Responde todas las preguntas.'); return; }
     setCargando(true);
+    
     const examenData = preguntas.map((p, idx) => ({
       pregunta: p.texto,
       respuesta_usuario: respuestasUsuario[idx],
       respuesta_correcta: p.respuesta_correcta,
       opciones: p.opciones
     }));
+    
     const promptCorrecion = `Corrige el siguiente examen. Calcula el porcentaje de respuestas correctas. Devuelve JSON: {"puntuacion": número (0-100), "feedback": "comentario", "detalle": [{"pregunta": "texto", "correcta": true/false, "explicacion": "texto"}]}. Examen: ${JSON.stringify(examenData)}`;
+    
     let correccion = await consultarAuraIA(promptCorrecion);
     correccion = correccion.replace(/```json/g, '').replace(/```/g, '').trim();
+    
     try {
       const jsonCorr = JSON.parse(correccion);
       let puntuacion = Number(jsonCorr.puntuacion);
       if (isNaN(puntuacion)) puntuacion = 0;
+      
       setResultado({ ...jsonCorr, puntuacion });
+
+      // --- INICIO DE LA CORRECCIÓN DE GUARDADO ---
       const { data: { user } } = await supabase.auth.getUser();
+      
       if (user) {
-        await supabase.from('examenes').insert({
+        const { error: insertError } = await supabase.from('examenes').insert({
           user_id: user.id,
           ciclo: `Ciclo ${cicloSeleccionado}`,
           materia: materiaSeleccionada.replace(/_/g, ' '),
@@ -108,7 +116,20 @@ export default function SimuladorExamen({ temaOscuro }) {
           respuestas: { preguntas, respuestas_usuario: respuestasUsuario, correccion: jsonCorr },
           feedback: jsonCorr.feedback
         });
+
+        if (insertError) {
+          console.error("Error de Supabase al guardar:", insertError);
+          setError(`⚠️ Examen corregido, pero NO se guardó en el historial. Error: ${insertError.message}`);
+        } else {
+          // Mensaje de éxito temporal
+          setError('✅ Examen guardado en tu historial correctamente.');
+          setTimeout(() => setError(''), 4000);
+        }
+      } else {
+        setError('⚠️ No hay usuario logueado. El examen no se guardó.');
       }
+      // --- FIN DE LA CORRECCIÓN ---
+
     } catch (e) {
       console.error(e);
       setError('Error al corregir. Reintenta.');

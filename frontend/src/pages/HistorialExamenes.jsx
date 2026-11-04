@@ -14,21 +14,30 @@ export default function HistorialExamenes({ temaOscuro }) {
   const cargarHistorial = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+    
     const { data, error } = await supabase
       .from('examenes')
       .select('*')
       .eq('user_id', user.id)
-      .order('fecha_generado', { ascending: false });
-    if (!error) {
+      .order('created_at', { ascending: false }); // CORREGIDO: Ahora ordena por created_at
+
+    if (error) {
+      console.error("Error al cargar historial:", error);
+      setCargando(false);
+      return;
+    }
+
+    if (data) {
       setExamenes(data || []);
       const total = data.length;
-      const promedio = total > 0 ? (data.reduce((acc, e) => acc + e.puntuacion_total, 0) / total).toFixed(1) : 0;
-      const mejor = total > 0 ? Math.max(...data.map(e => e.puntuacion_total)) : 0;
+      const promedio = total > 0 ? (data.reduce((acc, e) => acc + Number(e.puntuacion_total || 0), 0) / total).toFixed(1) : 0;
+      const mejor = total > 0 ? Math.max(...data.map(e => Number(e.puntuacion_total || 0))) : 0;
+      
       const porMateria = {};
       data.forEach(e => {
         const materia = e.materia || 'General';
         porMateria[materia] = porMateria[materia] || { suma: 0, count: 0 };
-        porMateria[materia].suma += e.puntuacion_total;
+        porMateria[materia].suma += Number(e.puntuacion_total || 0);
         porMateria[materia].count += 1;
       });
       setEstadisticas({ total, promedio, mejor, porMateria });
@@ -41,7 +50,7 @@ export default function HistorialExamenes({ temaOscuro }) {
   const subTexto = temaOscuro ? 'text-gray-400' : 'text-gray-600';
   const bordeColor = temaOscuro ? 'border-gray-800' : 'border-gray-200';
 
-  if (cargando) return <div className="p-8 text-center">Cargando historial...</div>;
+  if (cargando) return <div className={`p-8 text-center ${textoColor}`}>Cargando historial...</div>;
 
   return (
     <main className="p-4 md:p-8 max-w-7xl mx-auto w-full">
@@ -90,17 +99,24 @@ export default function HistorialExamenes({ temaOscuro }) {
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead className={`border-b ${bordeColor}`}>
-                <tr><th>Fecha</th><th>Ciclo</th><th>Materia</th><th>Nivel</th><th>Puntuación</th><th>Nº preguntas</th></tr>
+                <tr>
+                  <th className="text-left py-2">Fecha</th>
+                  <th className="text-left py-2">Ciclo</th>
+                  <th className="text-left py-2">Materia</th>
+                  <th className="text-left py-2">Nivel</th>
+                  <th className="text-left py-2">Puntuación</th>
+                  <th className="text-left py-2">Nº preguntas</th>
+                </tr>
               </thead>
               <tbody>
                 {examenes.map(ex => (
                   <tr key={ex.id} className={`border-b ${bordeColor}`}>
-                    <td className="py-2">{new Date(ex.fecha_generado).toLocaleDateString()}</td>
+                    <td className="py-2">{new Date(ex.created_at).toLocaleDateString()}</td> {/* CORREGIDO: created_at */}
                     <td className="py-2">{ex.ciclo}</td>
                     <td className="py-2">{ex.materia?.substring(0, 30)}</td>
                     <td className="py-2 capitalize">{ex.nivel}</td>
                     <td className={`py-2 font-bold ${ex.puntuacion_total >= 70 ? 'text-green-500' : ex.puntuacion_total >= 40 ? 'text-yellow-500' : 'text-red-500'}`}>{ex.puntuacion_total}%</td>
-                    <td className="py-2">{ex.num_preguntas}</td>
+                    <td className="py-2">{ex.num_preguntas}</td> {/* CORREGIDO: num_preguntas */}
                   </tr>
                 ))}
               </tbody>
