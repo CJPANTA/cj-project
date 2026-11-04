@@ -5,8 +5,10 @@ const GITHUB_USER = "CJPANTA";
 const GITHUB_REPO = "cj-project";
 
 const EXTENSIONES_VALIDAS = ['.pdf', '.pptx', '.ppt', '.docx', '.doc', '.xlsx', '.xls'];
-const esArchivoValido = (path) =>
-  EXTENSIONES_VALIDAS.some(ext => path.toLowerCase().endsWith(ext));
+const EXTENSIONES_IMAGENES = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
+
+const esArchivoValido = (path) => EXTENSIONES_VALIDAS.some(ext => path.toLowerCase().endsWith(ext));
+const esImagenValida = (path) => EXTENSIONES_IMAGENES.some(ext => path.toLowerCase().endsWith(ext));
 
 export function useGitHubScanner(institucion = null) {
   const [estructura, setEstructura] = useState(null);
@@ -27,7 +29,7 @@ export function useGitHubScanner(institucion = null) {
     const cacheKey = `github_scanner_${institucion}_${GITHUB_USER}_${GITHUB_REPO}`;
     const cacheTimeKey = `${cacheKey}_time`;
     const ahora = Date.now();
-    const unaHora = 5 * 60 * 1000; // 5 min de caché
+    const unaHora = 5 * 60 * 1000;
 
     if (!forzar) {
       const cache = localStorage.getItem(cacheKey);
@@ -49,16 +51,35 @@ export function useGitHubScanner(institucion = null) {
 
       let resultado;
 
-      if (institucion === 'esan' || institucion === 'ingles') {
-        // ===== ESAN e INGLES: cursos + archivos en raíz =====
+      if (institucion === 'multimedia') {
+        // ===== MULTIMEDIA: Buscar imágenes en 05_MULTIMEDIA =====
+        const BASE_PATH = 'BASE_DATOS/05_MULTIMEDIA';
+        
+        const imagenes = data.tree
+          .filter(item => item.type === 'blob' && item.path.startsWith(BASE_PATH) && esImagenValida(item.path))
+          .map(item => {
+            // Extraemos solo el nombre del archivo
+            const partes = item.path.split('/');
+            const nombre = partes[partes.length - 1];
+            const nombreMostrar = nombre.replace(/\.(jpg|jpeg|png|webp|gif)$/i, '').replace(/[_-]/g, ' ');
+            
+            return {
+              nombre,
+              nombreMostrar,
+              url: `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/main/${item.path}`
+            };
+          });
+
+        resultado = { tipo: 'multimedia', imagenes };
+
+      } else if (institucion === 'esan' || institucion === 'ingles') {
+        // ===== ESAN e INGLES =====
         const BASE_PATH = institucion === 'esan' ? 'BASE_DATOS/07_ESAN' : 'BASE_DATOS/08_INGLES';
         const cursos = {};
         const archivosRaiz = [];
 
         const archivos = data.tree.filter(item =>
-          item.type === 'blob' &&
-          item.path.startsWith(BASE_PATH) &&
-          esArchivoValido(item.path)
+          item.type === 'blob' && item.path.startsWith(BASE_PATH) && esArchivoValido(item.path)
         );
 
         archivos.forEach(archivo => {
@@ -74,25 +95,19 @@ export function useGitHubScanner(institucion = null) {
           }
         });
 
-        if (archivosRaiz.length > 0) {
-          cursos['00-MATERIAL_GENERAL'] = archivosRaiz.sort();
-        }
+        if (archivosRaiz.length > 0) cursos['00-MATERIAL_GENERAL'] = archivosRaiz.sort();
 
         const cursosOrdenados = {};
-        Object.keys(cursos).sort().forEach(k => {
-          cursosOrdenados[k] = cursos[k].sort();
-        });
+        Object.keys(cursos).sort().forEach(k => { cursosOrdenados[k] = cursos[k].sort(); });
 
         resultado = { tipo: institucion, cursos: cursosOrdenados };
       } else {
-        // ===== CARRION: ciclos =====
+        // ===== CARRION =====
         const BASE_PATH = 'BASE_DATOS/01_CARRION';
         const mapa = { "01": {}, "02": {}, "03": {}, "04": {}, "05": {}, "06": {} };
 
         const archivos = data.tree.filter(item =>
-          item.type === 'blob' &&
-          item.path.startsWith(BASE_PATH) &&
-          esArchivoValido(item.path)
+          item.type === 'blob' && item.path.startsWith(BASE_PATH) && esArchivoValido(item.path)
         );
 
         archivos.forEach(archivo => {
@@ -110,9 +125,7 @@ export function useGitHubScanner(institucion = null) {
         });
 
         Object.keys(mapa).forEach(ciclo => {
-          Object.keys(mapa[ciclo]).forEach(materia => {
-            mapa[ciclo][materia].sort();
-          });
+          Object.keys(mapa[ciclo]).forEach(materia => { mapa[ciclo][materia].sort(); });
         });
 
         resultado = { tipo: 'carrion', ciclos: mapa };
@@ -129,13 +142,9 @@ export function useGitHubScanner(institucion = null) {
     }
   }, [institucion]);
 
-  useEffect(() => {
-    cargar();
-  }, [cargar]);
+  useEffect(() => { cargar(); }, [cargar]);
 
-  const recargar = () => {
-    cargar(true);
-  };
+  const recargar = () => { cargar(true); };
 
   return { estructura, cargando, error, recargar };
 }
