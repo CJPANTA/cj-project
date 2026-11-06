@@ -15,6 +15,8 @@ import VerificadorAcceso from './components/VerificadorAcceso';
 const SolicitarReset = lazy(() => import('./pages/SolicitarReset'));
 const MiFichaPaciente = lazy(() => import('./pages/MiFichaPaciente'));
 const MisCitasPaciente = lazy(() => import('./pages/MisCitasPaciente'));
+const Arcade = lazy(() => import('./pages/Arcade'));
+const AnatomiaMatch = lazy(() => import('./pages/arcade/AnatomiaMatch'));
 
 // ============================================================
 // LAZY IMPORTS — el resto se carga bajo demanda
@@ -165,6 +167,8 @@ function App() {
                   {/* 👇 AÑADE ESTA LÍNEA 👇 */}
                   <Route path="/multimedia" element={<RutaProtegida><Multimedia temaOscuro={temaOscuro} /></RutaProtegida>} />
                   <Route path="/biblioteca" element={<RutaProtegida><Biblioteca temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  <Route path="/arcade" element={<RutaProtegida><Arcade temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  <Route path="/arcade/anatomia-match" element={<RutaProtegida><AnatomiaMatch temaOscuro={temaOscuro} /></RutaProtegida>} />
                   <Route path="/horario" element={<RutaProtegida><Horario temaOscuro={temaOscuro} /></RutaProtegida>} />
                   <Route path="/base-conocimiento" element={<RutaProtegida><BaseConocimiento temaOscuro={temaOscuro} /></RutaProtegida>} />
                   <Route path="/configuracion-ia" element={<RutaProtegida><ConfiguracionAura temaOscuro={temaOscuro} /></RutaProtegida>} />
