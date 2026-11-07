@@ -5,10 +5,10 @@ import { supabase } from '../lib/supabaseClient';
 import { IconNovato, IconInterno, IconTerapeuta, IconEspecialista } from '../components/icons/IconosRango';
 
 const RANGOS = [
-  { minXP: 0, maxXP: 500, nombre: 'Estudiante Novato', Icono: IconNovato, color: '#94a3b8' },
-  { minXP: 501, maxXP: 1500, nombre: 'Interno de Clínica', Icono: IconInterno, color: '#22d3ee' },
-  { minXP: 1501, maxXP: 3000, nombre: 'Terapeuta en Práctica', Icono: IconTerapeuta, color: '#10b981' },
-  { minXP: 3001, maxXP: Infinity, nombre: 'Especialista CJ', Icono: IconEspecialista, color: '#facc15' },
+  { minXP: 0, maxXP: 1000, nombre: 'Estudiante Novato', Icono: IconNovato, color: '#94a3b8' },
+  { minXP: 1001, maxXP: 5000, nombre: 'Interno de Clínica', Icono: IconInterno, color: '#22d3ee' },
+  { minXP: 5001, maxXP: 15000, nombre: 'Terapeuta en Práctica', Icono: IconTerapeuta, color: '#10b981' },
+  { minXP: 15001, maxXP: Infinity, nombre: 'Especialista CJ', Icono: IconEspecialista, color: '#facc15' },
 ];
 
 export default function Arcade({ temaOscuro }) {

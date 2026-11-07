@@ -144,8 +144,12 @@ export default function AnatomiaMatch({ temaOscuro }) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // PUNTOS REDUCIDOS
       let xpFinal = puntosBase;
-      if (dificultad === 'leyenda') xpFinal = 600; // Recompensa legendaria
+      if (dificultad === 'basico') xpFinal = 25;
+      if (dificultad === 'intermedio') xpFinal = 50;
+      if (dificultad === 'avanzado') xpFinal = 100;
+      if (dificultad === 'leyenda') xpFinal = 200;
       
       setXpGanada(xpFinal);
 
