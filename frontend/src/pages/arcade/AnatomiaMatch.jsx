@@ -144,20 +144,32 @@ export default function AnatomiaMatch({ temaOscuro }) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // PUNTOS REDUCIDOS
-      let xpFinal = puntosBase;
-      if (dificultad === 'basico') xpFinal = 25;
-      if (dificultad === 'intermedio') xpFinal = 50;
-      if (dificultad === 'avanzado') xpFinal = 100;
-      if (dificultad === 'leyenda') xpFinal = 200;
-      
-      setXpGanada(xpFinal);
-
+      // 1. Traer datos actuales
       const { data: progreso } = await supabase
         .from('progreso_arcade')
-        .select('xp_total, mejor_tiempo_match')
+        .select('xp_total, mejor_tiempo_match, plays_por_dificultad')
         .eq('user_id', user.id)
         .single();
+
+      const plays = progreso?.plays_por_dificultad || {};
+      const vecesJugado = plays[dificultad] || 0;
+
+      // 2. Lógica Anti-Farmeo
+      let xpFinal = 0;
+      if (dificultad === 'basico') {
+        if (vecesJugado < 10) xpFinal = 10; // Solo da XP las primeras 10 veces
+      } else if (dificultad === 'intermedio') {
+        if (vecesJugado < 15) xpFinal = 25; // Solo da XP las primeras 15 veces
+      } else if (dificultad === 'avanzado') {
+        xpFinal = 50; // Sin límite
+      } else if (dificultad === 'leyenda') {
+        xpFinal = 100; // Sin límite
+      }
+
+      setXpGanada(xpFinal);
+
+      // 3. Actualizar contadores
+      plays[dificultad] = vecesJugado + 1;
 
       const nuevoXp = (progreso?.xp_total || 0) + xpFinal;
       const nuevoMejorTiempo = Math.min(progreso?.mejor_tiempo_match || 999, tiempo);
@@ -167,6 +179,7 @@ export default function AnatomiaMatch({ temaOscuro }) {
         .update({ 
           xp_total: nuevoXp, 
           mejor_tiempo_match: nuevoMejorTiempo,
+          plays_por_dificultad: plays,
           actualizado_en: new Date().toISOString()
         })
         .eq('user_id', user.id);

@@ -44,6 +44,7 @@ const StickmanPreview = lazy(() => import('./pages/StickmanPreview'));
 const MiEquipamiento = lazy(() => import('./pages/MiEquipamiento'));
 const Terminos = lazy(() => import('./pages/Terminos'));
 const Privacidad = lazy(() => import('./pages/Privacidad'));
+const ConstructorMusculos = lazy(() => import('./pages/arcade/ConstructorMusculos'));
 
 const RutaProtegida = ({ children }) => {
   const estaLogueado = localStorage.getItem('usuario_cj');
@@ -171,6 +172,7 @@ function App() {
                   <Route path="/arcade" element={<RutaProtegida><Arcade temaOscuro={temaOscuro} /></RutaProtegida>} />
                   <Route path="/arcade/anatomia-match" element={<RutaProtegida><AnatomiaMatch temaOscuro={temaOscuro} /></RutaProtegida>} />
                   <Route path="/arcade/stickman" element={<RutaProtegida><StickmanReto temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  <Route path="/arcade/constructor" element={<RutaProtegida><ConstructorMusculos temaOscuro={temaOscuro} /></RutaProtegida>} />
                   <Route path="/horario" element={<RutaProtegida><Horario temaOscuro={temaOscuro} /></RutaProtegida>} />
                   <Route path="/base-conocimiento" element={<RutaProtegida><BaseConocimiento temaOscuro={temaOscuro} /></RutaProtegida>} />
                   <Route path="/configuracion-ia" element={<RutaProtegida><ConfiguracionAura temaOscuro={temaOscuro} /></RutaProtegida>} />

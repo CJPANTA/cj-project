@@ -5,10 +5,10 @@ import { supabase } from '../lib/supabaseClient';
 import { IconNovato, IconInterno, IconTerapeuta, IconEspecialista } from '../components/icons/IconosRango';
 
 const RANGOS = [
-  { minXP: 0, maxXP: 1000, nombre: 'Estudiante Novato', Icono: IconNovato, color: '#94a3b8' },
-  { minXP: 1001, maxXP: 5000, nombre: 'Interno de Clínica', Icono: IconInterno, color: '#22d3ee' },
-  { minXP: 5001, maxXP: 15000, nombre: 'Terapeuta en Práctica', Icono: IconTerapeuta, color: '#10b981' },
-  { minXP: 15001, maxXP: Infinity, nombre: 'Especialista CJ', Icono: IconEspecialista, color: '#facc15' },
+  { minXP: 0, maxXP: 2000, nombre: 'Estudiante Novato', Icono: IconNovato, color: '#94a3b8' },
+  { minXP: 2001, maxXP: 8000, nombre: 'Interno de Clínica', Icono: IconInterno, color: '#22d3ee' },
+  { minXP: 8001, maxXP: 20000, nombre: 'Terapeuta en Práctica', Icono: IconTerapeuta, color: '#10b981' },
+  { minXP: 20001, maxXP: Infinity, nombre: 'Especialista CJ', Icono: IconEspecialista, color: '#facc15' },
 ];
 
 export default function Arcade({ temaOscuro }) {
@@ -171,6 +171,29 @@ export default function Arcade({ temaOscuro }) {
           <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-700/50">
             <span className="text-[10px] font-bold text-gray-500 uppercase">Aciertos Totales: {progreso?.aciertos_stickman || 0}</span>
             <span className="text-[#10b981] font-black text-sm group-hover:translate-x-1 transition-transform">Jugar →</span>
+          </div>
+        </Link>
+
+                {/* JUEGO 3: CONSTRUCTOR DE MÚSCULOS */}
+        <Link 
+          to="/arcade/constructor"
+          className={`${bgTarjeta} border rounded-3xl p-6 group hover:-translate-y-2 transition-all duration-300 relative overflow-hidden flex flex-col justify-between min-h-[250px]`}
+        >
+          <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
+             <span className="text-8xl">🧩</span>
+          </div>
+          <div>
+            <div className="w-12 h-12 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center mb-4">
+               <span className="text-2xl">💪</span>
+            </div>
+            <h4 className={`text-lg font-black mb-2 ${textoColor}`}>Constructor de Músculos</h4>
+            <p className="text-xs text-gray-400 font-medium leading-relaxed mb-4">
+              Ensambla el cuerpo humano. Toca una etiqueta y luego toca la zona anatómica correcta para completar el rompecabezas clínico.
+            </p>
+          </div>
+          <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-700/50">
+            <span className="text-[10px] font-bold text-gray-500 uppercase">Rompecabezas Clínico</span>
+            <span className="text-orange-400 font-black text-sm group-hover:translate-x-1 transition-transform">Jugar →</span>
           </div>
         </Link>
 

@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { consultarAuraIA } from '../../services/iaService';
 
-// Importamos TODOS los SVGs detallados
 import VistaPierna from '../../components/clinica/BodyChart/vistas/VistaPierna';
 import VistaBrazo from '../../components/clinica/BodyChart/vistas/VistaBrazo';
 import VistaTorax from '../../components/clinica/BodyChart/vistas/VistaTorax';
@@ -44,9 +43,9 @@ const PREGUNTAS_NIVELES = {
     { id: 4, zona: 'pulgar', instruccion: 'Toca el Pulgar', dato: 'El pulgar tiene 2 falanges.', vista: 'mano', cara: 'anterior', lado: 'derecho' }
   ],
   pie: [
-    { id: 1, zona: 'retropie_calcaneo', instruccion: 'Toca el Retropié / Calcáneo', dato: 'El calcáneo es el hueso más grande del pie.', vista: 'pie', cara: 'lateral', lado: 'derecho' },
-    { id: 2, zona: 'mediopie_tarso', instruccion: 'Toca el Mediopié', dato: 'El mediopié incluye los huesos navicular, cuboides y cuneiformes.', vista: 'pie', cara: 'lateral', lado: 'derecho' },
-    { id: 3, zona: 'antepie_metatarso', instruccion: 'Toca el Antepié', dato: 'El antepié está formado por metatarsianos y falanges.', vista: 'pie', cara: 'lateral', lado: 'derecho' },
+    { id: 1, zona: 'retropie_completo', instruccion: 'Toca el Retropié (Calcáneo/Astrágalo)', dato: 'El retropié incluye el astrágalo y el calcáneo.', vista: 'pie', cara: 'lateral', lado: 'derecho' },
+    { id: 2, zona: 'mediopie_tarsos', instruccion: 'Toca el Mediopié (Tarso)', dato: 'El mediopié incluye los huesos navicular, cuboides y cuneiformes.', vista: 'pie', cara: 'lateral', lado: 'derecho' },
+    { id: 3, zona: 'antepie_metatarsos', instruccion: 'Toca los Metatarsianos', dato: 'El antepié está formado por los 5 metatarsianos.', vista: 'pie', cara: 'lateral', lado: 'derecho' },
     { id: 4, zona: 'talon_plantar', instruccion: 'Toca el Talón (Vista Plantar)', dato: 'El talón soporta grandes cargas de impacto.', vista: 'pie', cara: 'plantar', lado: 'derecho' }
   ],
   leyenda: []
@@ -93,7 +92,7 @@ export default function StickmanReto({ temaOscuro }) {
       - cabeza, anterior: frente, nariz, boca, atm_izq
       - cabeza, posterior: occipital, nuca
       - mano, anterior: carpo, metacarpo, falanges_prox, pulgar
-      - pie, lateral: retropie_calcaneo, mediopie_tarso, antepie_metatarso
+      - pie, lateral: retropie_completo, mediopie_tarsos, antepie_metatarsos
       
       Formato exacto: [{"id": 1, "zona": "biceps", "instruccion": "Toca el Bíceps", "dato": "Dato clínico...", "vista": "brazo", "cara": "anterior", "lado": "derecho"}, ...]
       NO INVENTES ZONAS Y ASEGÚRATE DE QUE LA VISTA COINCIDA CON LA ZONA.`;
@@ -125,32 +124,50 @@ export default function StickmanReto({ temaOscuro }) {
     setXpGanada(0);
   };
 
-  const guardarProgreso = async (puntajeFinal) => {
+  const guardarProgreso = async (puntosBase) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // PUNTOS REDUCIDOS POR ACIERTO
-      const xpPorAcierto = dificultad === 'leyenda' ? 50 : 25; // Antes era 150 y 75
-      const xpFinal = puntajeFinal * xpPorAcierto;
-      setXpGanada(xpFinal);
-
       const { data: progreso } = await supabase
         .from('progreso_arcade')
-        .select('xp_total, aciertos_stickman')
+        .select('xp_total, mejor_tiempo_match, plays_por_dificultad')
         .eq('user_id', user.id)
         .single();
+
+      const plays = progreso?.plays_por_dificultad || {};
+      const vecesJugado = plays[dificultad] || 0;
+
+      let xpFinal = 0;
+      if (dificultad === 'basico') {
+        if (vecesJugado < 10) xpFinal = 10; 
+      } else if (dificultad === 'intermedio') {
+        if (vecesJugado < 15) xpFinal = 20;
+      } else if (dificultad === 'avanzado') {
+        xpFinal = 50; 
+      } else if (dificultad === 'leyenda') {
+        xpFinal = 100; 
+      } else {
+        if (vecesJugado < 10) xpFinal = 50;
+      }
+
+      setXpGanada(xpFinal);
+      plays[dificultad] = vecesJugado + 1;
+
+      const nuevoXp = (progreso?.xp_total || 0) + xpFinal;
+      const nuevoMejorTiempo = Math.min(progreso?.mejor_tiempo_match || 999, tiempo);
 
       await supabase
         .from('progreso_arcade')
         .update({ 
-          xp_total: (progreso?.xp_total || 0) + xpFinal,
-          aciertos_stickman: (progreso?.aciertos_stickman || 0) + puntajeFinal,
+          xp_total: nuevoXp, 
+          mejor_tiempo_match: nuevoMejorTiempo,
+          plays_por_dificultad: plays,
           actualizado_en: new Date().toISOString()
         })
         .eq('user_id', user.id);
     } catch (error) {
-      console.error("Error guardando:", error);
+      console.error("Error guardando progreso:", error);
     }
   };
 
@@ -232,7 +249,12 @@ export default function StickmanReto({ temaOscuro }) {
   }
 
   const renderSVG = () => {
-    const vista = preguntaActual.vista || 'pierna';
+    // Forzamos la vista usando la dificultad para evitar cruces de datos
+    let vista = dificultad; 
+    if (dificultad === 'leyenda') {
+      vista = preguntaActual.vista || 'pierna';
+    }
+
     const cara = preguntaActual.cara || 'anterior';
     
     const propsSVG = {
@@ -261,13 +283,9 @@ export default function StickmanReto({ temaOscuro }) {
         @keyframes slide-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .anim-pastilla { animation: slide-up 0.4s ease-out forwards; }
         
-        /* OCULTAR EL TÍTULO INTERNO DEL SVG (Brazo Derecho, etc) */
-        .svg-juego-container h4 { display: none !important; }
+        .svg-juego-container h4, .svg-juego-container text { display: none !important; }
         
-        /* OCULTAR LOS TEXTOS DE LAS ETIQUETAS (Bíceps, etc) */
-        .svg-juego-container text { display: none !important; }
-        
-        /* FORZAR AL SVG A ENCOGERSE Y CABER DENTRO DEL CONTENEDOR */
+        /* ESTA ES LA MAGIA QUE HACE QUE FUNCIONE EN EL STICKMAN */
         .svg-juego-container > div {
           width: 100%;
           height: 100%;
@@ -303,11 +321,6 @@ export default function StickmanReto({ temaOscuro }) {
             <h2 className="text-lg md:text-xl font-black text-[#22d3ee]">{preguntaActual.instruccion}</h2>
           </div>
 
-          {/* 
-            CONTENEDOR DEL SVG: 
-            overflow-hidden encierra el SVG. 
-            h-[45vh] limita el alto. 
-          */}
           <div className={`svg-juego-container relative w-full h-[45vh] md:h-[55vh] border rounded-3xl flex items-center justify-center p-2 mb-4 ${bgSVG} overflow-hidden`}>
             {renderSVG()}
           </div>
