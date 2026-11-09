@@ -18,6 +18,7 @@ const MisCitasPaciente = lazy(() => import('./pages/MisCitasPaciente'));
 const Arcade = lazy(() => import('./pages/Arcade'));
 const AnatomiaMatch = lazy(() => import('./pages/arcade/AnatomiaMatch'));
 const StickmanReto = lazy(() => import('./pages/arcade/StickmanReto'));
+const DiagnosticoRelampago = lazy(() => import('./pages/arcade/DiagnosticoRelampago'));
 
 // ============================================================
 // LAZY IMPORTS — el resto se carga bajo demanda
@@ -45,6 +46,8 @@ const MiEquipamiento = lazy(() => import('./pages/MiEquipamiento'));
 const Terminos = lazy(() => import('./pages/Terminos'));
 const Privacidad = lazy(() => import('./pages/Privacidad'));
 const ConstructorMusculos = lazy(() => import('./pages/arcade/ConstructorMusculos'));
+const TestManoPro = lazy(() => import('./pages/TestManoPro'));
+const LaboratorioPro = lazy(() => import('./pages/LaboratorioPro'));
 
 const RutaProtegida = ({ children }) => {
   const estaLogueado = localStorage.getItem('usuario_cj');
@@ -171,6 +174,7 @@ function App() {
                   <Route path="/biblioteca" element={<RutaProtegida><Biblioteca temaOscuro={temaOscuro} /></RutaProtegida>} />
                   <Route path="/arcade" element={<RutaProtegida><Arcade temaOscuro={temaOscuro} /></RutaProtegida>} />
                   <Route path="/arcade/anatomia-match" element={<RutaProtegida><AnatomiaMatch temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  <Route path="/arcade/diagnostico-relampago" element={<Suspense fallback={<LoadingFallback />}> <DiagnosticoRelampago /> </Suspense> } />
                   <Route path="/arcade/stickman" element={<RutaProtegida><StickmanReto temaOscuro={temaOscuro} /></RutaProtegida>} />
                   <Route path="/arcade/constructor" element={<RutaProtegida><ConstructorMusculos temaOscuro={temaOscuro} /></RutaProtegida>} />
                   <Route path="/horario" element={<RutaProtegida><Horario temaOscuro={temaOscuro} /></RutaProtegida>} />
@@ -196,6 +200,8 @@ function App() {
                   <Route path="/mi-equipamiento" element={<MiEquipamiento temaOscuro={temaOscuro} />} />
                   <Route path="/mi-ficha" element={<RutaProtegida><MiFichaPaciente temaOscuro={temaOscuro} /></RutaProtegida>} />
                   <Route path="/mis-citas" element={<RutaProtegida><MisCitasPaciente temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  <Route path="/test-mano" element={<RutaProtegida><TestManoPro temaOscuro={temaOscuro} /></RutaProtegida>} />
+                  <Route path="/laboratorio-pro" element={<RutaProtegida><LaboratorioPro temaOscuro={temaOscuro} /></RutaProtegida>} />
                 </Routes>
               </Suspense>
             </LayoutConSidebar>

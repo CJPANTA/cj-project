@@ -12,6 +12,7 @@ const RANGOS = [
 ];
 
 export default function Arcade({ temaOscuro }) {
+  // ⚠️ TODOS los hooks van ARRIBA, antes de cualquier if/return
   const [progreso, setProgreso] = useState(null);
   const [cargando, setCargando] = useState(true);
 
@@ -35,7 +36,7 @@ export default function Arcade({ temaOscuro }) {
             .insert([{ user_id: user.id, xp_total: 0 }])
             .select()
             .single();
-          
+
           if (errorInsert) throw errorInsert;
           data = nuevo;
         } else if (error) {
@@ -52,6 +53,7 @@ export default function Arcade({ temaOscuro }) {
     cargarProgreso();
   }, []);
 
+  // ✅ Early return DESPUÉS de todos los hooks
   if (cargando) {
     return (
       <div className="flex justify-center items-center h-[60vh]">
@@ -68,7 +70,7 @@ export default function Arcade({ temaOscuro }) {
   const siguienteRango = RANGOS.find(r => r.minXP > xp);
   const xpSiguiente = siguienteRango ? siguienteRango.minXP : xp;
   const xpBaseRango = rangoActual.minXP;
-  const porcentajeProgreso = siguienteRango 
+  const porcentajeProgreso = siguienteRango
     ? Math.min(100, Math.max(0, ((xp - xpBaseRango) / (xpSiguiente - xpBaseRango)) * 100))
     : 100;
 
@@ -90,12 +92,12 @@ export default function Arcade({ temaOscuro }) {
 
       {/* TARJETA DE RANGO (PERFIL GAMER) */}
       <div className={`${bgTarjeta} border rounded-3xl p-6 md:p-8 mb-10 flex flex-col md:flex-row items-center gap-8 shadow-lg relative overflow-hidden`}>
-        <div 
+        <div
           className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl opacity-20 pointer-events-none"
           style={{ background: rangoActual.color, transform: 'translate(30%, -30%)' }}
         />
-        
-        <div 
+
+        <div
           className="w-24 h-24 rounded-2xl flex items-center justify-center border-2 bg-black/20 shadow-inner shrink-0"
           style={{ borderColor: rangoActual.color, color: rangoActual.color }}
         >
@@ -107,15 +109,15 @@ export default function Arcade({ temaOscuro }) {
           <h2 className={`text-2xl md:text-3xl font-black mb-4 ${textoColor}`} style={{ color: rangoActual.color }}>
             {rangoActual.nombre}
           </h2>
-          
+
           <div className="w-full">
             <div className="flex justify-between text-xs font-bold text-gray-500 mb-2">
               <span>{xp} XP</span>
               {siguienteRango && <span>Siguiente: {siguienteRango.nombre} ({siguienteRango.minXP} XP)</span>}
             </div>
             <div className="w-full bg-gray-700/50 rounded-full h-3">
-              <div 
-                className="h-3 rounded-full transition-all duration-1000" 
+              <div
+                className="h-3 rounded-full transition-all duration-1000"
                 style={{ width: `${porcentajeProgreso}%`, background: rangoActual.color }}
               ></div>
             </div>
@@ -125,20 +127,20 @@ export default function Arcade({ temaOscuro }) {
 
       {/* TARJETAS DE JUEGOS */}
       <h3 className={`text-xl font-black mb-6 ${textoColor}`}>Minijuegos Disponibles</h3>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
+
         {/* JUEGO 1: ANATOMÍA MATCH */}
-        <Link 
+        <Link
           to="/arcade/anatomia-match"
           className={`${bgTarjeta} border rounded-3xl p-6 group hover:-translate-y-2 transition-all duration-300 relative overflow-hidden flex flex-col justify-between min-h-[250px]`}
         >
           <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
-             <IconNovato className="w-32 h-32" />
+            <IconNovato className="w-32 h-32" />
           </div>
           <div>
             <div className="w-12 h-12 rounded-xl bg-[#22d3ee]/20 text-[#22d3ee] flex items-center justify-center mb-4">
-               <IconNovato className="w-6 h-6" />
+              <IconNovato className="w-6 h-6" />
             </div>
             <h4 className={`text-lg font-black mb-2 ${textoColor}`}>Anatomía Match</h4>
             <p className="text-xs text-gray-400 font-medium leading-relaxed mb-4">
@@ -146,22 +148,24 @@ export default function Arcade({ temaOscuro }) {
             </p>
           </div>
           <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-700/50">
-            <span className="text-[10px] font-bold text-gray-500 uppercase">Mejor tiempo: {progreso?.mejor_tiempo_match === 999 ? '--:--' : `${progreso?.mejor_tiempo_match}s`}</span>
+            <span className="text-[10px] font-bold text-gray-500 uppercase">
+              Mejor tiempo: {progreso?.mejor_tiempo_match === 999 ? '--:--' : `${progreso?.mejor_tiempo_match}s`}
+            </span>
             <span className="text-[#22d3ee] font-black text-sm group-hover:translate-x-1 transition-transform">Jugar →</span>
           </div>
         </Link>
 
         {/* JUEGO 2: EL RETO DEL STICKMAN */}
-        <Link 
+        <Link
           to="/arcade/stickman"
           className={`${bgTarjeta} border rounded-3xl p-6 group hover:-translate-y-2 transition-all duration-300 relative overflow-hidden flex flex-col justify-between min-h-[250px]`}
         >
           <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
-             <IconTerapeuta className="w-32 h-32" />
+            <IconTerapeuta className="w-32 h-32" />
           </div>
           <div>
             <div className="w-12 h-12 rounded-xl bg-[#10b981]/20 text-[#10b981] flex items-center justify-center mb-4">
-               <IconTerapeuta className="w-6 h-6" />
+              <IconTerapeuta className="w-6 h-6" />
             </div>
             <h4 className={`text-lg font-black mb-2 ${textoColor}`}>El Reto del Stickman</h4>
             <p className="text-xs text-gray-400 font-medium leading-relaxed mb-4">
@@ -169,22 +173,24 @@ export default function Arcade({ temaOscuro }) {
             </p>
           </div>
           <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-700/50">
-            <span className="text-[10px] font-bold text-gray-500 uppercase">Aciertos Totales: {progreso?.aciertos_stickman || 0}</span>
+            <span className="text-[10px] font-bold text-gray-500 uppercase">
+              Aciertos Totales: {progreso?.aciertos_stickman || 0}
+            </span>
             <span className="text-[#10b981] font-black text-sm group-hover:translate-x-1 transition-transform">Jugar →</span>
           </div>
         </Link>
 
-                {/* JUEGO 3: CONSTRUCTOR DE MÚSCULOS */}
-        <Link 
+        {/* JUEGO 3: CONSTRUCTOR DE MÚSCULOS */}
+        <Link
           to="/arcade/constructor"
           className={`${bgTarjeta} border rounded-3xl p-6 group hover:-translate-y-2 transition-all duration-300 relative overflow-hidden flex flex-col justify-between min-h-[250px]`}
         >
           <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
-             <span className="text-8xl">🧩</span>
+            <span className="text-8xl">🧩</span>
           </div>
           <div>
             <div className="w-12 h-12 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center mb-4">
-               <span className="text-2xl">💪</span>
+              <span className="text-2xl">💪</span>
             </div>
             <h4 className={`text-lg font-black mb-2 ${textoColor}`}>Constructor de Músculos</h4>
             <p className="text-xs text-gray-400 font-medium leading-relaxed mb-4">
@@ -194,6 +200,32 @@ export default function Arcade({ temaOscuro }) {
           <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-700/50">
             <span className="text-[10px] font-bold text-gray-500 uppercase">Rompecabezas Clínico</span>
             <span className="text-orange-400 font-black text-sm group-hover:translate-x-1 transition-transform">Jugar →</span>
+          </div>
+        </Link>
+
+        {/* JUEGO 4: DIAGNÓSTICO RELÁMPAGO */}
+        <Link
+          to="/arcade/diagnostico-relampago"
+          className={`${bgTarjeta} border rounded-3xl p-6 group hover:-translate-y-2 transition-all duration-300 relative overflow-hidden flex flex-col justify-between min-h-[250px]`}
+        >
+          <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
+            <span className="text-8xl">⚡</span>
+          </div>
+          <div>
+            <div className="w-12 h-12 rounded-xl bg-yellow-500/20 text-yellow-400 flex items-center justify-center mb-4">
+              <span className="text-2xl">⚡</span>
+            </div>
+            <h4 className={`text-lg font-black mb-2 ${textoColor}`}>Diagnóstico Relámpago</h4>
+            <p className="text-xs text-gray-400 font-medium leading-relaxed mb-4">
+              Identifica los síntomas correctos de cada patología. Modo Leyenda contra Aura IA con doble XP.
+            </p>
+          </div>
+          <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-700/50">
+            <div className="flex gap-1.5">
+              <span className="px-2 py-0.5 rounded bg-[#22d3ee]/20 text-[#22d3ee] text-[9px] font-black uppercase">IA</span>
+              <span className="px-2 py-0.5 rounded bg-[#10b981]/20 text-[#10b981] text-[9px] font-black uppercase">+40 XP</span>
+            </div>
+            <span className="text-yellow-400 font-black text-sm group-hover:translate-x-1 transition-transform">Jugar →</span>
           </div>
         </Link>
 

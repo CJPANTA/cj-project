@@ -42,27 +42,14 @@ const ZonaAnatomica = ({ id, afectacion, onRegionToggle, children, label }) => {
   );
 };
 
-const Label = ({ x, y, children, active, align = 'middle', esDerecho = false }) => (
-  <text
-    x={x}
-    y={y}
-    textAnchor={align}
-    className={`etiqueta-pie ${active ? 'etiqueta-activa' : ''}`}
-    pointerEvents="none"
-    transform={esDerecho ? `translate(${2 * x}, 0) scale(-1, 1)` : undefined}
-  >
-    {children}
-  </text>
-);
-
-export default function VistaPiePro({ cara, lado, afectaciones = {}, onRegionToggle }) {
-  const esDerecho = lado === 'derecho';
+export default function VistaPiePro({ cara = 'lateral', lado = 'derecho', afectaciones = {}, onRegionToggle }) {
+  const esDerecho = lado === 'derecho' || lado === 'derecha';
   const getAfectacion = (id) => afectaciones[id];
 
   return (
     <div className="flex w-full flex-col items-center">
       <h4 className="mb-2 text-sm font-black tracking-wider text-[#22d3ee] font-mono uppercase text-center">
-        Pie {lado === 'izquierdo' ? 'Izquierdo' : 'Derecho'} — {cara === 'lateral' ? 'Vista Ósea Anatómica' : 'Vista Plantar (Tejidos y Fascia)'}
+        Pie {lado === 'izquierdo' || lado === 'izquierda' ? 'Izquierdo' : 'Derecho'} — {cara === 'lateral' ? 'Vista Ósea Anatómica' : 'Vista Plantar (Tejidos y Fascia)'}
       </h4>
 
       <svg viewBox="0 0 340 380" width="100%" height="100%" className="h-full w-full max-w-xl touch-manipulation select-none">
@@ -81,6 +68,18 @@ export default function VistaPiePro({ cara, lado, afectaciones = {}, onRegionTog
             <path className="hueso-base" d="M 90 35 L 115 35 C 112 70, 115 95, 120 125 C 130 135, 145 150, 165 160 C 185 170, 215 175, 235 175 C 265 175, 290 185, 305 200 C 310 205, 305 212, 290 215 C 270 218, 230 220, 190 225 C 140 230, 90 235, 50 230 C 30 225, 20 210, 25 190 C 30 170, 50 150, 70 145 C 75 125, 78 80, 90 35 Z" />
             <path className="hueso-base" d="M 75 35 L 85 35 L 82 120 L 70 120 Z" />
             <path className="hueso-base" d="M 92 35 L 112 35 L 108 118 L 88 120 Z" />
+
+            <ZonaAnatomica id="tendon_aquiles" afectacion={getAfectacion('tendon_aquiles')} onRegionToggle={onRegionToggle} label="Tendón de Aquiles">
+              <path d="M 50 35 L 62 35 L 56 182 L 40 185 Z" stroke="#e2e8f0" strokeWidth="2.5" fill="#e2e8f0" style={{ opacity: 0.9, pointerEvents: 'all' }} />
+            </ZonaAnatomica>
+
+            <ZonaAnatomica id="fascia_plantar_lateral" afectacion={getAfectacion('fascia_plantar_lateral')} onRegionToggle={onRegionToggle} label="Fascia Plantar Lateral">
+              <path d="M 38 226 C 80 232, 140 230, 224 213" stroke="#94a3b8" strokeWidth="4" strokeLinecap="round" fill="none" style={{ pointerEvents: 'all' }} />
+            </ZonaAnatomica>
+
+            <ZonaAnatomica id="nervio_tibial_posterior" afectacion={getAfectacion('nervio_tibial_posterior')} onRegionToggle={onRegionToggle} label="Nervio Tibial Posterior">
+              <path d="M 82 35 C 78 80, 72 135, 68 165 C 64 190, 75 210, 115 215" stroke="#eab308" strokeWidth="3" strokeLinecap="round" fill="none" style={{ pointerEvents: 'all' }} />
+            </ZonaAnatomica>
 
             <ZonaAnatomica id="calcaneo" afectacion={getAfectacion('calcaneo')} onRegionToggle={onRegionToggle} label="Calcáneo">
               <path d="M 30 195 C 22 205, 24 220, 38 228 C 52 235, 82 232, 105 224 L 118 208 C 102 198, 85 198, 72 202 L 58 185 C 42 182, 34 186, 30 195 Z" />
@@ -159,7 +158,10 @@ export default function VistaPiePro({ cara, lado, afectaciones = {}, onRegionTog
               <path d="M 120 230 C 135 200, 140 180, 150 170 L 165 170 C 150 190, 145 210, 135 240 Z" style={{ fill: '#334155', stroke: '#38bdf8' }} />
             </ZonaAnatomica>
 
-            {/* AQUÍ ESTÁ EL MEDIOPIÉ PLANTAR QUE FALTABA */}
+            <ZonaAnatomica id="nervio_tibial_plantar" afectacion={getAfectacion('nervio_tibial_plantar')} onRegionToggle={onRegionToggle} label="Nervio Tibial / Ramas Plantares">
+              <path d="M 142 275 C 142 210, 105 150, 108 68 M 142 190 C 135 150, 138 68, 138 68 M 142 190 C 152 145, 162 70, 162 70 M 142 200 C 172 150, 186 75, 186 75 M 142 200 C 185 160, 206 82, 206 82" stroke="#eab308" strokeWidth="2.5" strokeLinecap="round" fill="none" style={{ pointerEvents: 'all' }} />
+            </ZonaAnatomica>
+
             <ZonaAnatomica id="mediopie_plantar" afectacion={getAfectacion('mediopie_plantar')} onRegionToggle={onRegionToggle} label="Arco Plantar (Mediopié)">
               <path d="M 98 165 C 108 175, 132 180, 175 175 C 202 170, 208 192, 205 220 C 188 236, 135 236, 102 230 C 88 208, 88 185, 98 165 Z" />
             </ZonaAnatomica>
