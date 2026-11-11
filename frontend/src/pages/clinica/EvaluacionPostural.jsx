@@ -25,6 +25,24 @@ const calcularEdadExacta = (fechaNac) => {
   return edad.toString();
 };
 
+// ============================================================
+// HELPER: Normaliza datos_regiones a { regiones, _meta }
+// Tolera tanto el formato viejo (plano) como el nuevo (anidado).
+// ============================================================
+const normalizarDatosRegiones = (dr) => {
+  if (!dr || typeof dr !== 'object') return { regiones: {}, _meta: {} };
+  if (dr.regiones && typeof dr.regiones === 'object') {
+    return { regiones: dr.regiones, _meta: dr._meta || {} };
+  }
+  const regiones = {};
+  const _meta = {};
+  Object.entries(dr).forEach(([key, val]) => {
+    if (key.startsWith('_')) _meta[key] = val;
+    else regiones[key] = val;
+  });
+  return { regiones, _meta };
+};
+
 export default function EvaluacionPostural({ temaOscuro }) {
   const { pacienteId } = useParams();
   const navigate = useNavigate();
@@ -54,12 +72,12 @@ export default function EvaluacionPostural({ temaOscuro }) {
   const [ejerciciosCompatibles, setEjerciciosCompatibles] = useState([]);
 
   // ===== EQUIPAMIENTO DEL CENTRO (para el prompt IA) =====
-const [agentesDisponiblesCentro, setAgentesDisponiblesCentro] = useState([]);
-const [centroTerapeuta, setCentroTerapeuta] = useState(null);
-const [equipamientoCargado, setEquipamientoCargado] = useState(false);
+  const [agentesDisponiblesCentro, setAgentesDisponiblesCentro] = useState([]);
+  const [centroTerapeuta, setCentroTerapeuta] = useState(null);
+  const [equipamientoCargado, setEquipamientoCargado] = useState(false);
 
-    // ===== AUTO-GUARDADO =====
-  const [autoGuardadoEstado, setAutoGuardadoEstado] = useState('idle'); // idle | saving | saved | error
+  // ===== AUTO-GUARDADO =====
+  const [autoGuardadoEstado, setAutoGuardadoEstado] = useState('idle');
   const [ultimoAutoGuardado, setUltimoAutoGuardado] = useState(null);
   const ultimoSnapshotRef = useRef(null);
   const autoSaveRef = useRef({
@@ -106,7 +124,7 @@ const [equipamientoCargado, setEquipamientoCargado] = useState(false);
     factores_atenuantes: '',
     sintomas_asociados: '',
     regiones: [],
-    datos_regiones: {},
+    datos_regiones: { regiones: {}, _meta: {} },
     analisis_ia: '',
     recomendaciones: '',
     alertas: '',
@@ -173,44 +191,43 @@ const [equipamientoCargado, setEquipamientoCargado] = useState(false);
   }, []);
 
   // ============================================================
-// CARGAR EQUIPAMIENTO DEL CENTRO DEL TERAPEUTA
-// (para que la IA solo sugiera agentes disponibles)
-// ============================================================
-useEffect(() => {
-  const cargarEquipamiento = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setEquipamientoCargado(true);
-        return;
-      }
+  // CARGAR EQUIPAMIENTO DEL CENTRO DEL TERAPEUTA
+  // ============================================================
+  useEffect(() => {
+    const cargarEquipamiento = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          setEquipamientoCargado(true);
+          return;
+        }
 
-      const { data: perfil } = await supabase
-        .from('profiles')
-        .select('centro_id')
-        .eq('id', user.id)
-        .single();
+        const { data: perfil } = await supabase
+          .from('profiles')
+          .select('centro_id')
+          .eq('id', user.id)
+          .single();
 
-      if (perfil?.centro_id) {
-        setCentroTerapeuta(perfil.centro_id);
-        const nombres = await nombresAgentesDisponibles(perfil.centro_id);
-        setAgentesDisponiblesCentro(nombres);
-        console.log('🔧 [Equipamiento] Agentes disponibles del centro', perfil.centro_id, ':', nombres);
-      } else {
-        console.warn('⚠️ [Equipamiento] Usuario sin centro_id. La IA usará el catálogo completo.');
+        if (perfil?.centro_id) {
+          setCentroTerapeuta(perfil.centro_id);
+          const nombres = await nombresAgentesDisponibles(perfil.centro_id);
+          setAgentesDisponiblesCentro(nombres);
+          console.log('🔧 [Equipamiento] Agentes disponibles del centro', perfil.centro_id, ':', nombres);
+        } else {
+          console.warn('⚠️ [Equipamiento] Usuario sin centro_id. La IA usará el catálogo completo.');
+          setAgentesDisponiblesCentro([]);
+        }
+      } catch (err) {
+        console.error('❌ [Equipamiento] Error cargando:', err);
         setAgentesDisponiblesCentro([]);
+      } finally {
+        setEquipamientoCargado(true);
       }
-    } catch (err) {
-      console.error('❌ [Equipamiento] Error cargando:', err);
-      setAgentesDisponiblesCentro([]);
-    } finally {
-      setEquipamientoCargado(true);
-    }
-  };
-  cargarEquipamiento();
-}, []);
+    };
+    cargarEquipamiento();
+  }, []);
 
-    // ============================================================
+  // ============================================================
   // AUTO-GUARDADO CADA 30 SEGUNDOS
   // ============================================================
   useEffect(() => {
@@ -365,7 +382,7 @@ useEffect(() => {
     recognitionRef.current.start();
   };
 
-    // ========== Carga de paciente y evaluación ==========
+  // ========== Carga de paciente y evaluación ==========
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
     const evalId = query.get('evaluacion_id');
@@ -377,24 +394,15 @@ useEffect(() => {
       if (!error && data) {
         setPaciente(data);
 
-        // ============================================================
-        // AUTO-RELLENAR CAMPOS DESDE EL PACIENTE
-        // Solo si es una evaluación NUEVA (no editar existente)
-        // Y solo si el campo está vacío (no pisar datos ya escritos)
-        // ============================================================
         if (esNuevaEvaluacion) {
           setEvaluacion(prev => ({
             ...prev,
-            // Edad desde fecha de nacimiento (cálculo exacto)
             edad: prev.edad || calcularEdadExacta(data.fecha_nacimiento),
-            // Datos de contacto
             telefono: prev.telefono || data.telefono || '',
             direccion: prev.direccion || data.direccion || '',
-            // Motivo: usar el motivo_de_visita del paciente
             motivo_consulta: prev.motivo_consulta || data.motivo_de_visita || '',
           }));
         } else {
-          // Es edición: solo auto-rellenamos edad si está vacía
           if (!evaluacion.edad && data.fecha_nacimiento) {
             setEvaluacion(prev => ({ ...prev, edad: calcularEdadExacta(data.fecha_nacimiento) }));
           }
@@ -414,6 +422,9 @@ useEffect(() => {
       if (data) {
         setEvaluacionId(evalId);
         setEstadoActual(data.estado || 'borrador');
+
+        const dataNorm = normalizarDatosRegiones(data.datos_regiones);
+
         const evalData = {
           paciente_id: data.paciente_id,
           edad: data.edad ? data.edad.toString() : '',
@@ -435,49 +446,53 @@ useEffect(() => {
           factores_agravantes: data.factores_agravantes || '',
           factores_atenuantes: data.factores_atenuantes || '',
           sintomas_asociados: data.sintomas_asociados || '',
-          regiones: data.regiones || [],
-          datos_regiones: data.datos_regiones || {},
+          regiones: data.regiones || Object.keys(dataNorm.regiones),
+          datos_regiones: dataNorm,
           analisis_ia: data.analisis_ia || '',
-          recomendaciones: data.datos_regiones?._recomendaciones || '',
-          alertas: data.datos_regiones?._alertas || '',
-          plan_tratamiento: data.datos_regiones?._plan_tratamiento || '',
-          notas_clinicas: data.datos_regiones?._notas_clinicas || '',
-          hijos: data.datos_regiones?._hijos || [],
-          nivel_educativo: data.datos_regiones?._nivel_educativo || '',
-          como_llego: data.datos_regiones?._como_llego || '',
-          banderas_rojas: data.datos_regiones?._banderas_rojas || [],
-          contactos_emergencia: data.datos_regiones?._contactos_emergencia || [
+          recomendaciones: dataNorm._meta._recomendaciones || '',
+          alertas: dataNorm._meta._alertas || '',
+          plan_tratamiento: dataNorm._meta._plan_tratamiento || '',
+          notas_clinicas: dataNorm._meta._notas_clinicas || '',
+          hijos: dataNorm._meta._hijos || [],
+          nivel_educativo: dataNorm._meta._nivel_educativo || '',
+          como_llego: dataNorm._meta._como_llego || '',
+          banderas_rojas: dataNorm._meta._banderas_rojas || [],
+          contactos_emergencia: dataNorm._meta._contactos_emergencia || [
             { nombre: '', telefono: '', parentesco: '' },
             { nombre: '', telefono: '', parentesco: '' },
           ],
-          signos_vitales: data.datos_regiones?._signos_vitales || {
+          signos_vitales: dataNorm._meta._signos_vitales || {
             ta_sistolica: '', ta_diastolica: '', fc: '', fr: '',
             temperatura: '', spo2: '', peso: '', talla: '', glucemia: '', fecha_toma: '',
           },
-          antecedentes_familiares: data.datos_regiones?._antecedentes_familiares || [],
-          antecedentes_familiares_otros: data.datos_regiones?._antecedentes_familiares_otros || '',
-          habitos: data.datos_regiones?._habitos || {
+          antecedentes_familiares: dataNorm._meta._antecedentes_familiares || [],
+          antecedentes_familiares_otros: dataNorm._meta._antecedentes_familiares_otros || '',
+          habitos: dataNorm._meta._habitos || {
             tabaquismo: false, cigarrillos_dia: '', anios_tabaquismo: '',
             alcohol: false, alcohol_frecuencia: '', drogas: false, dependencia_medicamentos: false,
           },
-          actividad_fisica: data.datos_regiones?._actividad_fisica || '',
-          nivel_deportivo: data.datos_regiones?._nivel_deportivo || '',
-          deporte_practicado: data.datos_regiones?._deporte_practicado || '',
-          calidad_suenio: data.datos_regiones?._calidad_suenio ?? null,
-          estres_percibido: data.datos_regiones?._estres_percibido || '',
-          gineco_obstetricos: data.datos_regiones?._gineco_obstetricos || {
+          actividad_fisica: dataNorm._meta._actividad_fisica || '',
+          nivel_deportivo: dataNorm._meta._nivel_deportivo || '',
+          deporte_practicado: dataNorm._meta._deporte_practicado || '',
+          calidad_suenio: dataNorm._meta._calidad_suenio ?? null,
+          estres_percibido: dataNorm._meta._estres_percibido || '',
+          gineco_obstetricos: dataNorm._meta._gineco_obstetricos || {
             embarazo: '', lactancia: '', fum: '', metodo_anticonceptivo: '',
             menopausia: '', edad_menopausia: '', num_embarazos: '', num_partos: '', num_abortos: '',
           },
-          urologicos: data.datos_regiones?._urologicos || {
+          urologicos: dataNorm._meta._urologicos || {
             visita_urologo: '', hiperplasia_prostata: '', medicacion_prostata: '',
           },
         };
-        const camposExtra = data.datos_regiones?._campos_extra || {};
+
+        const camposExtra = dataNorm._meta._campos_extra || {};
         Object.keys(camposExtra).forEach(key => { evalData[key] = camposExtra[key]; });
+
         setEvaluacion(evalData);
+
         if (data.tipo_formulario) setTipoFormulario(data.tipo_formulario.split(','));
         else setTipoFormulario(['general']);
+
         if (data.regiones && data.regiones.length > 0) setPaso(3);
         else setPaso(1);
       }
@@ -492,40 +507,82 @@ useEffect(() => {
     setEvaluacion(prev => ({ ...prev, [campo]: valor }));
   };
 
+  // ============================================================
+  // Actualiza un campo de una región (EVA, ROM, tests, etc.)
+  // ============================================================
   const handleRegionDataChange = (region, campo, valor) => {
-    setEvaluacion(prev => ({
-      ...prev,
-      datos_regiones: {
-        ...prev.datos_regiones,
-        [region]: { ...prev.datos_regiones[region], [campo]: valor },
-      },
-    }));
-  };
-
-  const handleTestDetalleChange = (region, testNombre, valor) => {
-    setEvaluacion(prev => ({
-      ...prev,
-      datos_regiones: {
-        ...prev.datos_regiones,
-        [region]: {
-          ...prev.datos_regiones[region],
-          tests_detalle: {
-            ...(prev.datos_regiones[region]?.tests_detalle || {}),
-            [testNombre]: valor,
-          },
-        },
-      },
-    }));
-  };
-
-  const toggleRegion = (regionId) => {
     setEvaluacion(prev => {
-      const nuevasRegiones = prev.regiones.includes(regionId)
+      const dataNorm = normalizarDatosRegiones(prev.datos_regiones);
+      return {
+        ...prev,
+        datos_regiones: {
+          regiones: {
+            ...dataNorm.regiones,
+            [region]: { ...(dataNorm.regiones[region] || {}), [campo]: valor },
+          },
+          _meta: dataNorm._meta,
+        },
+      };
+    });
+  };
+
+  // Alias para el BodyChart (misma firma que espera el componente)
+  const handleUpdateRegionData = handleRegionDataChange;
+
+  // ============================================================
+  // Actualiza el detalle de un test específico
+  // ============================================================
+  const handleTestDetalleChange = (region, testNombre, valor) => {
+    setEvaluacion(prev => {
+      const dataNorm = normalizarDatosRegiones(prev.datos_regiones);
+      const regionData = dataNorm.regiones[region] || {};
+      return {
+        ...prev,
+        datos_regiones: {
+          regiones: {
+            ...dataNorm.regiones,
+            [region]: {
+              ...regionData,
+              tests_detalle: {
+                ...(regionData.tests_detalle || {}),
+                [testNombre]: valor,
+              },
+            },
+          },
+          _meta: dataNorm._meta,
+        },
+      };
+    });
+  };
+
+  // ============================================================
+  // Toggle de región con síntoma
+  // ============================================================
+  const toggleRegion = (regionId, sintoma = 'dolor') => {
+    setEvaluacion(prev => {
+      const dataNorm = normalizarDatosRegiones(prev.datos_regiones);
+      const yaExiste = prev.regiones.includes(regionId);
+
+      const nuevasRegiones = yaExiste
         ? prev.regiones.filter(r => r !== regionId)
         : [...prev.regiones, regionId];
-      const nuevosDatos = { ...prev.datos_regiones };
-      if (!nuevasRegiones.includes(regionId)) delete nuevosDatos[regionId];
-      return { ...prev, regiones: nuevasRegiones, datos_regiones: nuevosDatos };
+
+      const nuevasRegionesData = { ...dataNorm.regiones };
+
+      if (yaExiste) {
+        delete nuevasRegionesData[regionId];
+      } else {
+        nuevasRegionesData[regionId] = {
+          eva: 0,
+          sintomas: [sintoma],
+        };
+      }
+
+      return {
+        ...prev,
+        regiones: nuevasRegiones,
+        datos_regiones: { regiones: nuevasRegionesData, _meta: dataNorm._meta },
+      };
     });
   };
 
@@ -542,7 +599,7 @@ useEffect(() => {
     .replace(/aplicaciòn/gi, 'aplicación');
 
   // ============================================================
-  // COMPILAR PLAN DE TRATAMIENTO (CORREGIDO)
+  // COMPILAR PLAN DE TRATAMIENTO
   // ============================================================
   const compilarPlanTexto = () => {
     const agentesSeleccionados = planEditado.agentes_fisicos.map(nombre => {
@@ -632,7 +689,7 @@ useEffect(() => {
   // ============================================================
   // GUARDAR EVALUACIÓN
   // ============================================================
-    const guardarEvaluacion = async (nuevoEstado, opciones = {}) => {
+  const guardarEvaluacion = async (nuevoEstado, opciones = {}) => {
     const { silencioso = false, navegar = true } = opciones;
 
     if (evaluacion.regiones.length === 0) {
@@ -667,86 +724,91 @@ useEffect(() => {
         if (key.startsWith('especial_')) camposEspeciales[key] = evaluacion[key];
       });
 
+      // ===== NUEVA ESTRUCTURA: { regiones, _meta } =====
+      const dataNorm = normalizarDatosRegiones(evaluacion.datos_regiones);
       const datosRegionesConExtra = {
-        ...evaluacion.datos_regiones,
-        _campos_extra: camposEspeciales,
-        _recomendaciones: recomendacionesFinal,
-        _alertas: alertasFinal,
-        _plan_tratamiento: planFinal,
-        _diagnostico_sugerido: planEditado?.diagnostico_sugerido || '',
-        _plan_ejercicios: (planEditado?.ejercicios || []).map(nombre => {
-          const ej = catalogos.ejercicios.find(e => e.nombre === nombre);
-          const params = parametrosEjercicios[nombre] || {};
+        regiones: dataNorm.regiones,
+        _meta: {
+          ...dataNorm._meta,
+          _campos_extra: camposEspeciales,
+          _recomendaciones: recomendacionesFinal,
+          _alertas: alertasFinal,
+          _plan_tratamiento: planFinal,
+          _diagnostico_sugerido: planEditado?.diagnostico_sugerido || '',
+          _plan_ejercicios: (planEditado?.ejercicios || []).map(nombre => {
+            const ej = catalogos.ejercicios.find(e => e.nombre === nombre);
+            const params = parametrosEjercicios[nombre] || {};
 
-          let tipoFinal = ej?.tipo;
-          if (!tipoFinal) {
-            const nombreLower = nombre.toLowerCase();
-            if (nombreLower.includes('estiramiento') || nombreLower.includes('stretching')) {
-              tipoFinal = 'estiramiento';
-            } else if (nombreLower.includes('fortalecimiento') || nombreLower.includes('puente') ||
-                       nombreLower.includes('plancha') || nombreLower.includes('isométrico') ||
-                       nombreLower.includes('activación') || nombreLower.includes('bird-dog') ||
-                       nombreLower.includes('superman') || nombreLower.includes('dead bug')) {
-              tipoFinal = 'fortalecimiento';
-            } else if (nombreLower.includes('movilidad') || nombreLower.includes('rotación') ||
-                       nombreLower.includes('alfabeto')) {
-              tipoFinal = 'movilidad';
-            } else {
-              tipoFinal = 'general';
+            let tipoFinal = ej?.tipo;
+            if (!tipoFinal) {
+              const nombreLower = nombre.toLowerCase();
+              if (nombreLower.includes('estiramiento') || nombreLower.includes('stretching')) {
+                tipoFinal = 'estiramiento';
+              } else if (nombreLower.includes('fortalecimiento') || nombreLower.includes('puente') ||
+                         nombreLower.includes('plancha') || nombreLower.includes('isométrico') ||
+                         nombreLower.includes('activación') || nombreLower.includes('bird-dog') ||
+                         nombreLower.includes('superman') || nombreLower.includes('dead bug')) {
+                tipoFinal = 'fortalecimiento';
+              } else if (nombreLower.includes('movilidad') || nombreLower.includes('rotación') ||
+                         nombreLower.includes('alfabeto')) {
+                tipoFinal = 'movilidad';
+              } else {
+                tipoFinal = 'general';
+              }
             }
-          }
 
-          let posicionFinal = ej?.posicion;
-          if (!posicionFinal) {
-            const nombreLower = nombre.toLowerCase();
-            if (nombreLower.includes('decúbito prono') || nombreLower.includes('prono') ||
-                nombreLower.includes('superman') || nombreLower.includes('plancha')) {
-              posicionFinal = 'prono';
-            } else if (nombreLower.includes('decúbito supino') || nombreLower.includes('supino') ||
-                       nombreLower.includes('boca arriba') || nombreLower.includes('puente') ||
-                       nombreLower.includes('dead bug')) {
-              posicionFinal = 'supino';
-            } else if (nombreLower.includes('cuadrupedia') || nombreLower.includes('bird-dog') ||
-                       nombreLower.includes('cuadrúpede')) {
-              posicionFinal = 'cuadrupedia';
-            } else if (nombreLower.includes('sentado') || nombreLower.includes('sedente') ||
-                       nombreLower.includes('cervical')) {
-              posicionFinal = 'sedente';
-            } else {
-              posicionFinal = 'bipedo';
+            let posicionFinal = ej?.posicion;
+            if (!posicionFinal) {
+              const nombreLower = nombre.toLowerCase();
+              if (nombreLower.includes('decúbito prono') || nombreLower.includes('prono') ||
+                  nombreLower.includes('superman') || nombreLower.includes('plancha')) {
+                posicionFinal = 'prono';
+              } else if (nombreLower.includes('decúbito supino') || nombreLower.includes('supino') ||
+                         nombreLower.includes('boca arriba') || nombreLower.includes('puente') ||
+                         nombreLower.includes('dead bug')) {
+                posicionFinal = 'supino';
+              } else if (nombreLower.includes('cuadrupedia') || nombreLower.includes('bird-dog') ||
+                         nombreLower.includes('cuadrúpede')) {
+                posicionFinal = 'cuadrupedia';
+              } else if (nombreLower.includes('sentado') || nombreLower.includes('sedente') ||
+                         nombreLower.includes('cervical')) {
+                posicionFinal = 'sedente';
+              } else {
+                posicionFinal = 'bipedo';
+              }
             }
-          }
 
-          return {
-            id: ej?.id || '',
-            nombre: nombre,
-            tipo: tipoFinal,
-            posicion: posicionFinal,
-            zonas_aplicables: ej?.zonas_aplicables || [],
-            descripcion_paciente: ej?.descripcion_paciente || '',
-            series: params.series || 3,
-            repeticiones: params.repeticiones || 10,
-            frecuencia: params.frecuencia || 'diaria',
-            duracion_segundos: params.duracion_segundos || null,
-          };
-        }),
-        _hijos: evaluacion.hijos || [],
-        _nivel_educativo: evaluacion.nivel_educativo || '',
-        _como_llego: evaluacion.como_llego || '',
-        _contactos_emergencia: evaluacion.contactos_emergencia || [],
-        _signos_vitales: evaluacion.signos_vitales || {},
-        _antecedentes_familiares: evaluacion.antecedentes_familiares || [],
-        _antecedentes_familiares_otros: evaluacion.antecedentes_familiares_otros || '',
-        _habitos: evaluacion.habitos || {},
-        _actividad_fisica: evaluacion.actividad_fisica || '',
-        _nivel_deportivo: evaluacion.nivel_deportivo || '',
-        _deporte_practicado: evaluacion.deporte_practicado || '',
-        _calidad_suenio: evaluacion.calidad_suenio,
-        _estres_percibido: evaluacion.estres_percibido || '',
-        _gineco_obstetricos: evaluacion.gineco_obstetricos || {},
-        _urologicos: evaluacion.urologicos || {},
-        _banderas_rojas: evaluacion.banderas_rojas || [],
-        _notas_clinicas: evaluacion.notas_clinicas || '',
+            return {
+              id: ej?.id || '',
+              nombre: nombre,
+              tipo: tipoFinal,
+              posicion: posicionFinal,
+              zonas_aplicables: ej?.zonas_aplicables || [],
+              descripcion_paciente: ej?.descripcion_paciente || '',
+              series: params.series || 3,
+              repeticiones: params.repeticiones || 10,
+              frecuencia: params.frecuencia || 'diaria',
+              duracion_segundos: params.duracion_segundos || null,
+            };
+          }),
+          _hijos: evaluacion.hijos || [],
+          _nivel_educativo: evaluacion.nivel_educativo || '',
+          _como_llego: evaluacion.como_llego || '',
+          _contactos_emergencia: evaluacion.contactos_emergencia || [],
+          _signos_vitales: evaluacion.signos_vitales || {},
+          _antecedentes_familiares: evaluacion.antecedentes_familiares || [],
+          _antecedentes_familiares_otros: evaluacion.antecedentes_familiares_otros || '',
+          _habitos: evaluacion.habitos || {},
+          _actividad_fisica: evaluacion.actividad_fisica || '',
+          _nivel_deportivo: evaluacion.nivel_deportivo || '',
+          _deporte_practicado: evaluacion.deporte_practicado || '',
+          _calidad_suenio: evaluacion.calidad_suenio,
+          _estres_percibido: evaluacion.estres_percibido || '',
+          _gineco_obstetricos: evaluacion.gineco_obstetricos || {},
+          _urologicos: evaluacion.urologicos || {},
+          _banderas_rojas: evaluacion.banderas_rojas || [],
+          _notas_clinicas: evaluacion.notas_clinicas || '',
+        },
       };
 
       const datos = {
@@ -806,7 +868,7 @@ useEffect(() => {
           if (newData) setEvaluacionId(newData.id);
         }
       }
-            if (error) throw error;
+      if (error) throw error;
 
       if (!silencioso) {
         alert(`✅ Evaluación guardada como "${nuevoEstado === 'borrador' ? 'borrador' : 'enviada a aprobación'}" correctamente.`);
@@ -877,7 +939,7 @@ useEffect(() => {
   };
 
   // ============================================================
-  // GENERAR PLAN DE TRATAMIENTO (con IA) — VERSIÓN ROBUSTA
+  // GENERAR PLAN DE TRATAMIENTO (con IA)
   // ============================================================
   const generarPlan = async () => {
     if (evaluacion.regiones.length === 0) {
@@ -887,7 +949,6 @@ useEffect(() => {
 
     setGenerandoPlan(true);
     try {
-      // ===== BANDERAS ROJAS =====
       const banderasRojas = evaluacion.banderas_rojas || [];
       const BANDERAS_LABELS = {
         cancer: 'Antecedente de cáncer (últimos 5 años)',
@@ -910,7 +971,9 @@ useEffect(() => {
         ? banderasRojas.map(id => BANDERAS_LABELS[id] || id).join('; ')
         : 'Ninguna';
 
-      // ===== DATOS PARA LA IA =====
+      // Leer regiones con el nuevo esquema
+      const regionesData = normalizarDatosRegiones(evaluacion.datos_regiones).regiones;
+
       const datosParaIA = {
         edad: evaluacion.edad || 'No especificada',
         sexo: evaluacion.sexo || 'No especificado',
@@ -934,32 +997,30 @@ useEffect(() => {
         banderas_rojas: banderasTexto,
         regiones_afectadas: evaluacion.regiones.map(r => formatearNombreRegion(r)).join(', '),
         datos_por_region: evaluacion.regiones.map(r => {
-          const data = evaluacion.datos_regiones[r] || {};
+          const data = regionesData[r] || {};
           const testsConDetalle = (data.tests || []).map(t => {
             const detalle = data.tests_detalle?.[t];
             return detalle ? `${t} (${detalle})` : t;
           }).join(', ');
-          return `${formatearNombreRegion(r)}: EVA ${data.eva || 'N/A'}/10, ROM ${data.rom || 'N/A'}°, Tests: ${testsConDetalle || 'Ninguno'}`;
+          const sintomas = (data.sintomas || []).join(', ') || 'dolor';
+          return `${formatearNombreRegion(r)}: EVA ${data.eva ?? 'N/A'}/10, Síntomas: ${sintomas}, ROM ${data.rom || 'N/A'}°, Tests: ${testsConDetalle || 'Ninguno'}`;
         }).join('; '),
       };
 
-      // ===== DETECTAR FASE =====
       let fase = 'subaguda';
       const tiempo = evaluacion.tiempo_evolucion || '';
       if (tiempo.includes('día') || tiempo.includes('horas') || tiempo.includes('48') || tiempo.includes('72')) fase = 'aguda';
       else if (tiempo.includes('semana') && !tiempo.includes('mes')) fase = 'subaguda';
       else if (tiempo.includes('mes')) fase = 'cronica';
 
-      // ===== AGENTES DISPONIBLES DEL CENTRO =====
-const listaAgentesParaIA = agentesDisponiblesCentro.length > 0
-  ? agentesDisponiblesCentro.join(', ')
-  : 'NINGUNO (el centro no tiene equipamiento disponible)';
+      const listaAgentesParaIA = agentesDisponiblesCentro.length > 0
+        ? agentesDisponiblesCentro.join(', ')
+        : 'NINGUNO (el centro no tiene equipamiento disponible)';
 
-const bloqueoAgentes = agentesDisponiblesCentro.length === 0
-  ? `\n⚠️ REGLA CRÍTICA: El centro NO tiene agentes físicos disponibles. Devuelve "agentes_fisicos": [] SIEMPRE. No sugieras ninguno.\n`
-  : `\n⚠️ REGLA CRÍTICA: Solo puedes usar agentes de la lista de arriba. Si un agente no está en la lista, NO lo sugieras (no existen en el centro).\n`;
+      const bloqueoAgentes = agentesDisponiblesCentro.length === 0
+        ? `\n⚠️ REGLA CRÍTICA: El centro NO tiene agentes físicos disponibles. Devuelve "agentes_fisicos": [] SIEMPRE. No sugieras ninguno.\n`
+        : `\n⚠️ REGLA CRÍTICA: Solo puedes usar agentes de la lista de arriba. Si un agente no está en la lista, NO lo sugieras (no existen en el centro).\n`;
 
-      // ===== SYSTEM PROMPT MEJORADO =====
       const systemPrompt = `Eres un fisioterapeuta experto. Genera un plan de tratamiento en formato JSON ESTRICTO.
 
 ESTRUCTURA OBLIGATORIA (todos los campos son requeridos):
@@ -1009,7 +1070,6 @@ Responde AHORA con el JSON.`;
 
       console.log('🔍 [IA] Respuesta cruda:', respuestaIA);
 
-      // ===== PARSEO ROBUSTO =====
       let planGenerado;
       try {
         let limpia = respuestaIA
@@ -1024,7 +1084,6 @@ Responde AHORA con el JSON.`;
 
         planGenerado = JSON.parse(jsonMatch[0]);
 
-        // Validar campos mínimos
         const camposRequeridos = ['diagnostico_sugerido', 'justificacion', 'agentes_fisicos', 'masoterapia', 'ejercicios'];
         const faltantes = camposRequeridos.filter(c => !planGenerado[c]);
         if (faltantes.length > 0) {
@@ -1036,14 +1095,13 @@ Responde AHORA con el JSON.`;
           });
         }
 
-                planGenerado.agentes_fisicos = planGenerado.agentes_fisicos || [];
+        planGenerado.agentes_fisicos = planGenerado.agentes_fisicos || [];
         planGenerado.masoterapia = planGenerado.masoterapia || [];
         planGenerado.ejercicios = planGenerado.ejercicios || [];
         planGenerado.recomendaciones_naturales = planGenerado.recomendaciones_naturales || [];
         planGenerado.recomendaciones_generales = planGenerado.recomendaciones_generales || [];
         planGenerado.alertas_seguridad = planGenerado.alertas_seguridad || [];
 
-        // ===== FILTRO DEFENSIVO: descartar agentes no disponibles en el centro =====
         if (agentesDisponiblesCentro.length > 0) {
           const agentesOriginales = planGenerado.agentes_fisicos || [];
           const agentesAceptados = agentesOriginales.filter((a) =>
@@ -1078,7 +1136,6 @@ Responde AHORA con el JSON.`;
         };
       }
 
-      // ===== ENRIQUECER CON CATÁLOGO =====
       const { ejercicios, agentes, masoterapia } = catalogos;
       const planEnriquecido = {
         ...planGenerado,
@@ -1100,9 +1157,6 @@ Responde AHORA con el JSON.`;
 
       setPlan(planEnriquecido);
 
-      // ============================================================
-      // FILTRO POR ZONA: validar ejercicios vs regiones del paciente
-      // ============================================================
       const filtro = filtrarEjerciciosPorRegion(
         planEnriquecido.ejercicios_detalle.map((e) => e.nombre),
         catalogos.ejercicios,
@@ -1116,7 +1170,6 @@ Responde AHORA con el JSON.`;
         console.warn('⚠️ Ejercicios fuera de zona detectados:', filtro.incompatibles);
       }
 
-      // Ejercicios aprobados = solo los compatibles (inicialmente)
       const nombresCompatibles = filtro.compatibles.map((c) => c.nombre);
 
       setPlanEditado({
@@ -1130,7 +1183,6 @@ Responde AHORA con el JSON.`;
         alertas_seguridad: planEnriquecido.alertas_seguridad || [],
       });
 
-      // Aviso al usuario si hubo descartes
       if (filtro.incompatibles.length > 0) {
         setTimeout(() => {
           alert(
@@ -1213,10 +1265,9 @@ Responde AHORA con el JSON.`;
             Estado: {estadoActual}
           </div>
         )}
-                <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
+        <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
           <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Paso {paso} de 3</p>
           <div className="flex items-center gap-3 flex-wrap">
-            {/* Indicador de auto-guardado */}
             {autoGuardadoEstado === 'saving' && (
               <span className="text-[10px] text-yellow-400 font-bold uppercase flex items-center gap-1 animate-pulse">
                 <span className="inline-block w-2 h-2 rounded-full bg-yellow-400"></span>
@@ -1275,13 +1326,30 @@ Responde AHORA con el JSON.`;
         {paso === 2 && (
           <div className={`${bgTarjeta} p-4 md:p-6 rounded-3xl border max-w-2xl mx-auto`}>
             <h2 className={`text-xl font-black ${textoPrincipal} mb-4`}>📍 Selecciona las regiones afectadas</h2>
-            <p className={`text-sm ${textoPrincipal} opacity-70 mb-4`}>Haz clic en una zona general (🔍) para ampliarla, o directamente en los puntos para seleccionar.</p>
+            <p className={`text-sm ${textoPrincipal} opacity-70 mb-4`}>
+              Elige el síntoma arriba, luego haz clic en una zona general (🔍) para ampliarla, o directamente en los puntos para seleccionar. Ajusta el EVA por cada región afectada.
+            </p>
             <BodyChartContainer
               regionesSeleccionadas={evaluacion.regiones}
               onRegionToggle={toggleRegion}
               temaOscuro={temaOscuro}
               vistaDetalle={vistaDetalle}
               setVistaDetalle={setVistaDetalle}
+              datosRegiones={normalizarDatosRegiones(evaluacion.datos_regiones).regiones}
+              onUpdateRegionData={handleUpdateRegionData}
+              nombrePaciente={paciente ? `${paciente.nombre || ''} ${paciente.apellidos || ''}`.trim() : ''}
+              dniPaciente={paciente?.dni}
+              centroNombre={paciente?.centro_id ? `Centro: ${paciente.centro_id}` : ''}
+              onLimpiar={() => {
+                setEvaluacion(prev => {
+                  const dataNorm = normalizarDatosRegiones(prev.datos_regiones);
+                  return {
+                    ...prev,
+                    regiones: [],
+                    datos_regiones: { regiones: {}, _meta: dataNorm._meta },
+                  };
+                });
+              }}
             />
             <div className="flex justify-between mt-6">
               <button onClick={() => setPaso(1)} className="px-6 py-3 bg-gray-600 text-white font-black rounded-xl text-sm hover:opacity-80 transition-all">← Anterior</button>
@@ -1299,21 +1367,13 @@ Responde AHORA con el JSON.`;
             ) : (
               <div className="space-y-8 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
                 {evaluacion.regiones.map((region) => {
-                  const data = evaluacion.datos_regiones[region] || {};
+                  const data = normalizarDatosRegiones(evaluacion.datos_regiones).regiones[region] || {};
                   const tests = TESTS_POR_REGION[region] || ['Test realizado (escribir cuál)'];
                   const rangos = RANGOS_ROM[region] || {};
                   return (
                     <div key={region} className={`p-5 rounded-2xl border ${temaOscuro ? 'border-gray-700' : 'border-gray-200'} shadow-sm`}>
                       <h3 className={`text-lg font-bold ${textoPrincipal} capitalize mb-3`}>{region.replace('_', ' ')}</h3>
-                      <div className="mb-4">
-                        <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>Dolor (EVA 0-10)</label>
-                        <div className="flex flex-wrap gap-1 mb-1">
-                          {[0,1,2,3,4,5,6,7,8,9,10].map((num) => (
-                            <button key={num} onClick={() => handleRegionDataChange(region, 'eva', num)} className={`w-8 h-8 rounded-full text-xs font-bold transition-all ${data.eva === num ? 'bg-[#22d3ee] text-black scale-110 shadow-lg shadow-[#22d3ee]/30' : `${temaOscuro ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'} hover:scale-110`}`}>{num}</button>
-                          ))}
-                        </div>
-                        <div className="flex justify-between text-xs text-gray-400"><span>Sin dolor</span><span>Máximo dolor</span></div>
-                      </div>
+
                       <div className="mb-4">
                         <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>ROM (grados)</label>
                         <input type="number" value={data.rom || ''} onChange={(e) => handleRegionDataChange(region, 'rom', e.target.value)} className={`w-full ${bgInput} border p-2.5 rounded-xl outline-none focus:border-[#22d3ee] transition-all text-sm`} placeholder="Ej: 120°" />
@@ -1346,13 +1406,19 @@ Responde AHORA con el JSON.`;
                                       if (!e.target.checked) {
                                         const nuevosDetalles = { ...(data.tests_detalle || {}) };
                                         delete nuevosDetalles[test];
-                                        setEvaluacion(prev => ({
-                                          ...prev,
-                                          datos_regiones: {
-                                            ...prev.datos_regiones,
-                                            [region]: { ...prev.datos_regiones[region], tests_detalle: nuevosDetalles },
-                                          },
-                                        }));
+                                        setEvaluacion(prev => {
+                                          const dataNorm = normalizarDatosRegiones(prev.datos_regiones);
+                                          return {
+                                            ...prev,
+                                            datos_regiones: {
+                                              regiones: {
+                                                ...dataNorm.regiones,
+                                                [region]: { ...(dataNorm.regiones[region] || {}), tests_detalle: nuevosDetalles },
+                                              },
+                                              _meta: dataNorm._meta,
+                                            },
+                                          };
+                                        });
                                       }
                                     }}
                                     className="accent-[#22d3ee] w-4 h-4"
@@ -1413,43 +1479,42 @@ Responde AHORA con el JSON.`;
 
             <div className="mt-6 border-t border-gray-700 pt-6">
               <button
-  type="button"
-  onClick={generarPlan}
-  disabled={generandoPlan}
-  className="inline-flex items-center gap-2 px-6 py-3 bg-[#22d3ee]/10 hover:bg-[#22d3ee]/20 text-[#22d3ee] font-black rounded-xl text-sm transition-all disabled:opacity-50 border-2 border-[#22d3ee]/40 shadow-lg shadow-[#22d3ee]/10"
->
-  {generandoPlan ? (
-    <>⏳ Generando plan...</>
-  ) : (
-    <>
-      <IconIA className="w-4 h-4" />
-      Generar Plan
-    </>
-  )}
-</button>
+                type="button"
+                onClick={generarPlan}
+                disabled={generandoPlan}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-[#22d3ee]/10 hover:bg-[#22d3ee]/20 text-[#22d3ee] font-black rounded-xl text-sm transition-all disabled:opacity-50 border-2 border-[#22d3ee]/40 shadow-lg shadow-[#22d3ee]/10"
+              >
+                {generandoPlan ? (
+                  <>⏳ Generando plan...</>
+                ) : (
+                  <>
+                    <IconIA className="w-4 h-4" />
+                    Generar Plan
+                  </>
+                )}
+              </button>
 
-{/* Info: agentes que se podrán sugerir (FUERA del botón) */}
-{equipamientoCargado && (
-  <div className={`mt-3 flex items-start gap-2 text-[11px] ${
-    agentesDisponiblesCentro.length > 0 ? 'text-emerald-300/90' : 'text-amber-300/90'
-  }`}>
-    <span className="text-base leading-none">
-      {agentesDisponiblesCentro.length > 0 ? '🔧' : '⚠️'}
-    </span>
-    <span className="leading-snug">
-      {agentesDisponiblesCentro.length > 0 ? (
-        <>
-          <span className="font-bold uppercase tracking-wider">Solo se usarán agentes activos: </span>
-          <span className="opacity-80">{agentesDisponiblesCentro.join(' · ')}</span>
-        </>
-      ) : (
-        <span className="font-bold uppercase tracking-wider">
-          Tu centro no tiene equipamiento activo. No se sugerirán agentes físicos.
-        </span>
-      )}
-    </span>
-  </div>
-)}
+              {equipamientoCargado && (
+                <div className={`mt-3 flex items-start gap-2 text-[11px] ${
+                  agentesDisponiblesCentro.length > 0 ? 'text-emerald-300/90' : 'text-amber-300/90'
+                }`}>
+                  <span className="text-base leading-none">
+                    {agentesDisponiblesCentro.length > 0 ? '🔧' : '⚠️'}
+                  </span>
+                  <span className="leading-snug">
+                    {agentesDisponiblesCentro.length > 0 ? (
+                      <>
+                        <span className="font-bold uppercase tracking-wider">Solo se usarán agentes activos: </span>
+                        <span className="opacity-80">{agentesDisponiblesCentro.join(' · ')}</span>
+                      </>
+                    ) : (
+                      <span className="font-bold uppercase tracking-wider">
+                        Tu centro no tiene equipamiento activo. No se sugerirán agentes físicos.
+                      </span>
+                    )}
+                  </span>
+                </div>
+              )}
 
               {mostrarPlan && plan && (
                 <div className="mt-4 p-4 rounded-2xl border border-purple-500/30 bg-purple-900/10">
@@ -1524,13 +1589,9 @@ Responde AHORA con el JSON.`;
                         </div>
                       </div>
 
-                      {/* ============================================================ */}
-                      {/* EJERCICIOS: con filtro por zona y badges                     */}
-                      {/* ============================================================ */}
                       <div>
                         <label className="text-xs text-gray-400">Ejercicios</label>
 
-                        {/* ⚠️ AVISO DE EJERCICIOS FUERA DE ZONA */}
                         {ejerciciosIncompatibles.length > 0 && (
                           <div className="mt-2 mb-3 p-3 rounded-xl border-2 border-yellow-500/50 bg-yellow-500/10">
                             <div className="flex items-center gap-2 mb-2">
@@ -1562,91 +1623,88 @@ Responde AHORA con el JSON.`;
                           </div>
                         )}
 
-                        {/* ✅ EJERCICIOS DEL CATÁLOGO */}
                         {catalogos.ejercicios.map((ej) => {
-  const esCompatible = ejerciciosCompatibles.some((c) => c.nombre === ej.nombre);
-  const esIncompatible = ejerciciosIncompatibles.some((i) => i.nombre === ej.nombre);
-  const badgeInfo = ejerciciosCompatibles.find((c) => c.nombre === ej.nombre);
-  const estaSeleccionado = planEditado.ejercicios?.includes(ej.nombre) || false;
+                          const esCompatible = ejerciciosCompatibles.some((c) => c.nombre === ej.nombre);
+                          const esIncompatible = ejerciciosIncompatibles.some((i) => i.nombre === ej.nombre);
+                          const badgeInfo = ejerciciosCompatibles.find((c) => c.nombre === ej.nombre);
+                          const estaSeleccionado = planEditado.ejercicios?.includes(ej.nombre) || false;
 
-  return (
-    <div
-      key={ej.id}
-      className={`mt-2 border rounded-xl p-3 flex gap-3 ${
-        esCompatible
-          ? 'border-green-500/30 bg-green-500/5'
-          : esIncompatible
-          ? 'border-yellow-500/20 bg-yellow-500/5'
-          : 'border-purple-500/20 bg-black/10'
-      }`}
-    >
-            {/* VISTA PREVIA STICKMAN (3 frames validados) */}
-      <div className="flex-shrink-0">
-        <StickmanFrames
-          ejercicioId={ej.id}
-          tamaño="small"
-          temaOscuro={true}
-          posicionFallback={ej.posicion || 'bipedo'}
-        />
-      </div>
+                          return (
+                            <div
+                              key={ej.id}
+                              className={`mt-2 border rounded-xl p-3 flex gap-3 ${
+                                esCompatible
+                                  ? 'border-green-500/30 bg-green-500/5'
+                                  : esIncompatible
+                                  ? 'border-yellow-500/20 bg-yellow-500/5'
+                                  : 'border-purple-500/20 bg-black/10'
+                              }`}
+                            >
+                              <div className="flex-shrink-0">
+                                <StickmanFrames
+                                  ejercicioId={ej.id}
+                                  tamaño="small"
+                                  temaOscuro={true}
+                                  posicionFallback={ej.posicion || 'bipedo'}
+                                />
+                              </div>
 
-      {/* INFO + CONTROLES */}
-      <div className="flex-1 min-w-0">
-        <label className="flex items-center gap-2 text-sm text-white cursor-pointer">
-          <input
-            type="checkbox"
-            checked={estaSeleccionado}
-            onChange={() => toggleItemPlan('ejercicios', ej.nombre)}
-            className="accent-purple-500 flex-shrink-0"
-          />
-          <span className="font-semibold flex-1 min-w-0">{ej.nombre}</span>
-          {esCompatible && badgeInfo && (
-            <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-green-500/20 text-green-400 uppercase whitespace-nowrap">
-              ✓ Recomendado
-            </span>
-          )}
-          {esIncompatible && (
-            <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 uppercase whitespace-nowrap">
-              ⚠ Fuera de zona
-            </span>
-          )}
-        </label>
+                              <div className="flex-1 min-w-0">
+                                <label className="flex items-center gap-2 text-sm text-white cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={estaSeleccionado}
+                                    onChange={() => toggleItemPlan('ejercicios', ej.nombre)}
+                                    className="accent-purple-500 flex-shrink-0"
+                                  />
+                                  <span className="font-semibold flex-1 min-w-0">{ej.nombre}</span>
+                                  {esCompatible && badgeInfo && (
+                                    <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-green-500/20 text-green-400 uppercase whitespace-nowrap">
+                                      ✓ Recomendado
+                                    </span>
+                                  )}
+                                  {esIncompatible && (
+                                    <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 uppercase whitespace-nowrap">
+                                      ⚠ Fuera de zona
+                                    </span>
+                                  )}
+                                </label>
 
-        {estaSeleccionado && (
-          <div className="ml-6 mt-2 grid grid-cols-3 gap-2 text-xs">
-            <div>
-              <label className="text-gray-400">Series</label>
-              <input
-                type="number"
-                value={parametrosEjercicios[ej.nombre]?.series || 3}
-                onChange={(e) => handleParametroEjercicio(ej.nombre, 'series', parseInt(e.target.value) || 0)}
-                className="w-full p-1 rounded border border-purple-500/30 bg-black/20 text-white"
-              />
-            </div>
-            <div>
-              <label className="text-gray-400">Repeticiones</label>
-              <input
-                type="number"
-                value={parametrosEjercicios[ej.nombre]?.repeticiones || 10}
-                onChange={(e) => handleParametroEjercicio(ej.nombre, 'repeticiones', parseInt(e.target.value) || 0)}
-                className="w-full p-1 rounded border border-purple-500/30 bg-black/20 text-white"
-              />
-            </div>
-            <div>
-              <label className="text-gray-400">Frecuencia</label>
-              <input
-                type="text"
-                value={parametrosEjercicios[ej.nombre]?.frecuencia || 'diaria'}
-                onChange={(e) => handleParametroEjercicio(ej.nombre, 'frecuencia', e.target.value)}
-                className="w-full p-1 rounded border border-purple-500/30 bg-black/20 text-white"
-              />
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-})}
+                                {estaSeleccionado && (
+                                  <div className="ml-6 mt-2 grid grid-cols-3 gap-2 text-xs">
+                                    <div>
+                                      <label className="text-gray-400">Series</label>
+                                      <input
+                                        type="number"
+                                        value={parametrosEjercicios[ej.nombre]?.series || 3}
+                                        onChange={(e) => handleParametroEjercicio(ej.nombre, 'series', parseInt(e.target.value) || 0)}
+                                        className="w-full p-1 rounded border border-purple-500/30 bg-black/20 text-white"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="text-gray-400">Repeticiones</label>
+                                      <input
+                                        type="number"
+                                        value={parametrosEjercicios[ej.nombre]?.repeticiones || 10}
+                                        onChange={(e) => handleParametroEjercicio(ej.nombre, 'repeticiones', parseInt(e.target.value) || 0)}
+                                        className="w-full p-1 rounded border border-purple-500/30 bg-black/20 text-white"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="text-gray-400">Frecuencia</label>
+                                      <input
+                                        type="text"
+                                        value={parametrosEjercicios[ej.nombre]?.frecuencia || 'diaria'}
+                                        onChange={(e) => handleParametroEjercicio(ej.nombre, 'frecuencia', e.target.value)}
+                                        className="w-full p-1 rounded border border-purple-500/30 bg-black/20 text-white"
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
 
                       <div>
