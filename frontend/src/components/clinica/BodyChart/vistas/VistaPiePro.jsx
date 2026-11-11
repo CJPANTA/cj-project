@@ -52,7 +52,7 @@ export default function VistaPiePro({ cara = 'lateral', lado = 'derecho', afecta
         Pie {lado === 'izquierdo' || lado === 'izquierda' ? 'Izquierdo' : 'Derecho'} — {cara === 'lateral' ? 'Vista Ósea Anatómica' : 'Vista Plantar (Tejidos y Fascia)'}
       </h4>
 
-      <svg viewBox="0 0 340 380" width="100%" height="100%" className="h-full w-full max-w-xl touch-manipulation select-none">
+      <svg viewBox="0 0 350 350" width="100%" height="100%" className="h-full w-full max-w-xl scale-125 touch-manipulation select-none">
         <style>{`
           .hueso-base { fill: #09131f; stroke: #334155; stroke-width: 1.2; stroke-linejoin: round; }
           .hueso-pie { fill: #1e293b; stroke: #475569; stroke-width: 1.2; stroke-linejoin: round; transition: all 150ms; cursor: pointer; }

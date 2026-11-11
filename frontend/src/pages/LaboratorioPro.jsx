@@ -1,16 +1,19 @@
-// src/pages/LaboratorioPro.jsx
 import { useState, useEffect } from 'react';
 
-// ==========================================
-// IMPORTS DE LAS VISTAS PRO
-// ==========================================
+import VistaGeneral from '../components/clinica/BodyChart/vistas/VistaGeneral';
 import VistaManoPro from '../components/clinica/BodyChart/vistas/VistaManoPro';
 import VistaPiePro from '../components/clinica/BodyChart/vistas/VistaPiePro';
+import VistaTobilloPro from '../components/clinica/BodyChart/vistas/VistaTobilloPro';
+import VistaPiernaPro from '../components/clinica/BodyChart/vistas/VistaPiernaPro';
 import VistaHombroPro from '../components/clinica/BodyChart/vistas/VistaHombroPro';
 import VistaCodoPro from '../components/clinica/BodyChart/vistas/VistaCodoPro';
+import VistaBrazoPro from '../components/clinica/BodyChart/vistas/VistaBrazoPro';
 import VistaRodillaPro from '../components/clinica/BodyChart/vistas/VistaRodillaPro';
 import VistaColumnaPro from '../components/clinica/BodyChart/vistas/VistaColumnaPro';
+import VistaLumbarPro from '../components/clinica/BodyChart/vistas/VistaLumbarPro';
 import VistaPelvisPro from '../components/clinica/BodyChart/vistas/VistaPelvisPro';
+import VistaCabezaPro from '../components/clinica/BodyChart/vistas/VistaCabezaPro';
+import VistaToraxPro from '../components/clinica/BodyChart/vistas/VistaToraxPro';
 
 const SINTOMAS = [
   { id: 'dolor', nombre: 'Dolor', color: '#ef4444', border: '#f87171' },
@@ -20,19 +23,27 @@ const SINTOMAS = [
 ];
 
 export default function LaboratorioPro({ temaOscuro }) {
-  const [vistaActiva, setVistaActiva] = useState('mano');
+  const [vistaActiva, setVistaActiva] = useState('mano'); 
   const [cara, setCara] = useState('dorsal');
   const [sintomaActivo, setSintomaActivo] = useState(SINTOMAS[0]);
   const [afectaciones, setAfectaciones] = useState({});
 
   useEffect(() => {
-    if (vistaActiva === 'mano') setCara('dorsal');
+    if (vistaActiva === 'general') setCara('anterior');
+    else if (vistaActiva === 'mano') setCara('dorsal');
     else if (vistaActiva === 'pie') setCara('lateral');
+    else if (vistaActiva === 'tobillo') setCara('lateral');
+    else if (vistaActiva === 'pierna') setCara('anterior');
     else if (vistaActiva === 'hombro') setCara('anterior');
     else if (vistaActiva === 'codo') setCara('anterior');
+    else if (vistaActiva === 'brazo') setCara('anterior');
     else if (vistaActiva === 'rodilla') setCara('anterior');
     else if (vistaActiva === 'columna') setCara('posterior');
+    else if (vistaActiva === 'lumbar') setCara('posterior');
     else if (vistaActiva === 'pelvis') setCara('anterior');
+    else if (vistaActiva === 'cabeza') setCara('anterior');
+    else if (vistaActiva === 'torax') setCara('anterior');
+    
     setAfectaciones({}); 
   }, [vistaActiva]);
 
@@ -46,13 +57,20 @@ export default function LaboratorioPro({ temaOscuro }) {
   };
 
   const girarVista = () => {
-    if (vistaActiva === 'mano') setCara(prev => prev === 'dorsal' ? 'palmar' : 'dorsal');
+    if (vistaActiva === 'general') setCara(prev => prev === 'anterior' ? 'posterior' : 'anterior');
+    else if (vistaActiva === 'mano') setCara(prev => prev === 'dorsal' ? 'palmar' : 'dorsal');
     else if (vistaActiva === 'pie') setCara(prev => prev === 'lateral' ? 'plantar' : 'lateral');
+    else if (vistaActiva === 'tobillo') setCara(prev => prev === 'lateral' ? 'medial' : 'lateral');
+    else if (vistaActiva === 'pierna') setCara(prev => prev === 'anterior' ? 'posterior' : 'anterior');
     else if (vistaActiva === 'hombro') setCara(prev => prev === 'anterior' ? 'posterior' : 'anterior');
     else if (vistaActiva === 'codo') setCara(prev => prev === 'anterior' ? 'posterior' : 'anterior');
+    else if (vistaActiva === 'brazo') setCara(prev => prev === 'anterior' ? 'posterior' : 'anterior');
     else if (vistaActiva === 'rodilla') setCara(prev => prev === 'anterior' ? 'posterior' : 'anterior');
     else if (vistaActiva === 'columna') setCara(prev => prev === 'posterior' ? 'anterior' : 'posterior');
+    else if (vistaActiva === 'lumbar') setCara(prev => prev === 'posterior' ? 'anterior' : 'posterior');
     else if (vistaActiva === 'pelvis') setCara(prev => prev === 'anterior' ? 'posterior' : 'anterior');
+    else if (vistaActiva === 'cabeza') setCara(prev => prev === 'anterior' ? 'posterior' : 'anterior');
+    else if (vistaActiva === 'torax') setCara(prev => prev === 'anterior' ? 'posterior' : 'anterior');
   };
 
   const bgPrincipal = temaOscuro ? 'bg-[#020813] text-white' : 'bg-[#e2e8f0] text-[#0f172a]';
@@ -64,14 +82,21 @@ export default function LaboratorioPro({ temaOscuro }) {
         <h1 className="text-3xl font-black mb-2 text-[#22d3ee]">Laboratorio de Vistas Pro</h1>
         <p className="text-xs text-gray-500 uppercase tracking-widest mb-8">Prueba de SVGs detallados para la Clínica</p>
 
-        <div className="flex flex-wrap gap-4 mb-6">
-          <button onClick={() => setVistaActiva('mano')} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${vistaActiva === 'mano' ? 'bg-[#22d3ee] text-black shadow-lg' : bgHUD}`}>Ver Mano</button>
-          <button onClick={() => setVistaActiva('pie')} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${vistaActiva === 'pie' ? 'bg-[#22d3ee] text-black shadow-lg' : bgHUD}`}>Ver Pie</button>
-          <button onClick={() => setVistaActiva('hombro')} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${vistaActiva === 'hombro' ? 'bg-[#22d3ee] text-black shadow-lg' : bgHUD}`}>Ver Hombro</button>
-          <button onClick={() => setVistaActiva('codo')} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${vistaActiva === 'codo' ? 'bg-[#22d3ee] text-black shadow-lg' : bgHUD}`}>Ver Codo</button>
-          <button onClick={() => setVistaActiva('rodilla')} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${vistaActiva === 'rodilla' ? 'bg-[#22d3ee] text-black shadow-lg' : bgHUD}`}>Ver Rodilla</button>
-          <button onClick={() => setVistaActiva('columna')} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${vistaActiva === 'columna' ? 'bg-[#22d3ee] text-black shadow-lg' : bgHUD}`}>Ver Columna</button>
-          <button onClick={() => setVistaActiva('pelvis')} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${vistaActiva === 'pelvis' ? 'bg-[#22d3ee] text-black shadow-lg' : bgHUD}`}>Ver Pelvis</button>
+        <div className="flex flex-wrap gap-3 mb-6">
+          <button onClick={() => setVistaActiva('general')} className={`px-3 py-2 rounded-xl font-bold text-sm transition-all ${vistaActiva === 'general' ? 'bg-[#22d3ee] text-black shadow-lg' : bgHUD}`}>👤 General</button>
+          <button onClick={() => setVistaActiva('cabeza')} className={`px-3 py-2 rounded-xl font-bold text-sm transition-all ${vistaActiva === 'cabeza' ? 'bg-[#22d3ee] text-black shadow-lg' : bgHUD}`}>Cabeza</button>
+          <button onClick={() => setVistaActiva('torax')} className={`px-3 py-2 rounded-xl font-bold text-sm transition-all ${vistaActiva === 'torax' ? 'bg-[#22d3ee] text-black shadow-lg' : bgHUD}`}>Tórax</button>
+          <button onClick={() => setVistaActiva('columna')} className={`px-3 py-2 rounded-xl font-bold text-sm transition-all ${vistaActiva === 'columna' ? 'bg-[#22d3ee] text-black shadow-lg' : bgHUD}`}>Columna</button>
+          <button onClick={() => setVistaActiva('lumbar')} className={`px-3 py-2 rounded-xl font-bold text-sm transition-all ${vistaActiva === 'lumbar' ? 'bg-[#22d3ee] text-black shadow-lg' : bgHUD}`}>Lumbar</button>
+          <button onClick={() => setVistaActiva('pelvis')} className={`px-3 py-2 rounded-xl font-bold text-sm transition-all ${vistaActiva === 'pelvis' ? 'bg-[#22d3ee] text-black shadow-lg' : bgHUD}`}>Pelvis</button>
+          <button onClick={() => setVistaActiva('hombro')} className={`px-3 py-2 rounded-xl font-bold text-sm transition-all ${vistaActiva === 'hombro' ? 'bg-[#22d3ee] text-black shadow-lg' : bgHUD}`}>Hombro</button>
+          <button onClick={() => setVistaActiva('brazo')} className={`px-3 py-2 rounded-xl font-bold text-sm transition-all ${vistaActiva === 'brazo' ? 'bg-[#22d3ee] text-black shadow-lg' : bgHUD}`}>Brazo</button>
+          <button onClick={() => setVistaActiva('codo')} className={`px-3 py-2 rounded-xl font-bold text-sm transition-all ${vistaActiva === 'codo' ? 'bg-[#22d3ee] text-black shadow-lg' : bgHUD}`}>Codo</button>
+          <button onClick={() => setVistaActiva('mano')} className={`px-3 py-2 rounded-xl font-bold text-sm transition-all ${vistaActiva === 'mano' ? 'bg-[#22d3ee] text-black shadow-lg' : bgHUD}`}>Mano</button>
+          <button onClick={() => setVistaActiva('pierna')} className={`px-3 py-2 rounded-xl font-bold text-sm transition-all ${vistaActiva === 'pierna' ? 'bg-[#22d3ee] text-black shadow-lg' : bgHUD}`}>Pierna</button>
+          <button onClick={() => setVistaActiva('rodilla')} className={`px-3 py-2 rounded-xl font-bold text-sm transition-all ${vistaActiva === 'rodilla' ? 'bg-[#22d3ee] text-black shadow-lg' : bgHUD}`}>Rodilla</button>
+          <button onClick={() => setVistaActiva('tobillo')} className={`px-3 py-2 rounded-xl font-bold text-sm transition-all ${vistaActiva === 'tobillo' ? 'bg-[#22d3ee] text-black shadow-lg' : bgHUD}`}>Tobillo</button>
+          <button onClick={() => setVistaActiva('pie')} className={`px-3 py-2 rounded-xl font-bold text-sm transition-all ${vistaActiva === 'pie' ? 'bg-[#22d3ee] text-black shadow-lg' : bgHUD}`}>Pie</button>
         </div>
 
         <div className={`p-4 md:p-6 rounded-3xl border ${bgHUD} mb-6`}>
@@ -88,15 +113,33 @@ export default function LaboratorioPro({ temaOscuro }) {
             </div>
           </div>
 
-          <div className="w-full h-[60vh] max-h-[600px] bg-black/10 rounded-2xl flex items-center justify-center relative overflow-hidden">
-            <div className="w-full h-full flex items-center justify-center [&>div]:w-full [&>div]:h-full [&_svg]:max-h-full [&_svg]:w-auto">
-              {vistaActiva === 'mano' && <VistaManoPro cara={cara} lado="derecho" afectaciones={afectaciones} onRegionToggle={toggleRegion} />}
-              {vistaActiva === 'pie' && <VistaPiePro cara={cara} lado="derecho" afectaciones={afectaciones} onRegionToggle={toggleRegion} />}
-              {vistaActiva === 'hombro' && <VistaHombroPro cara={cara} lado="derecho" afectaciones={afectaciones} onRegionToggle={toggleRegion} />}
-              {vistaActiva === 'codo' && <VistaCodoPro cara={cara} lado="derecho" afectaciones={afectaciones} onRegionToggle={toggleRegion} />}
-              {vistaActiva === 'rodilla' && <VistaRodillaPro cara={cara} lado="derecho" afectaciones={afectaciones} onRegionToggle={toggleRegion} />}
+          {/* EL "MARCO" DEFINITIVO: max-w-[450px] y max-h-[450px] centran y limitan el SVG */}
+          <div className="w-full h-[60vh] max-h-[600px] bg-black/10 rounded-2xl flex items-center justify-center relative overflow-hidden p-4">
+            <div className="w-full h-full max-w-[395px] max-h-[500px] flex items-center justify-center [&_svg]:w-full [&_svg]:h-full [&_svg]:object-contain">
+              
+              {vistaActiva === 'general' && (
+                <VistaGeneral 
+                  cara={cara} 
+                  temaOscuro={temaOscuro}
+                  regionesSeleccionadas={Object.keys(afectaciones)}
+                  onRegionToggle={toggleRegion} 
+                  onSeleccionarRegion={(id) => console.log('Click en:', id)} 
+                />
+              )}
+              
+              {vistaActiva === 'cabeza' && <VistaCabezaPro cara={cara} lado="derecho" afectaciones={afectaciones} onRegionToggle={toggleRegion} />}
+              {vistaActiva === 'torax' && <VistaToraxPro cara={cara} lado="derecho" afectaciones={afectaciones} onRegionToggle={toggleRegion} />}
               {vistaActiva === 'columna' && <VistaColumnaPro cara={cara} lado="derecho" afectaciones={afectaciones} onRegionToggle={toggleRegion} />}
+              {vistaActiva === 'lumbar' && <VistaLumbarPro cara={cara} lado="derecho" afectaciones={afectaciones} onRegionToggle={toggleRegion} />}
               {vistaActiva === 'pelvis' && <VistaPelvisPro cara={cara} lado="derecho" afectaciones={afectaciones} onRegionToggle={toggleRegion} />}
+              {vistaActiva === 'hombro' && <VistaHombroPro cara={cara} lado="derecho" afectaciones={afectaciones} onRegionToggle={toggleRegion} />}
+              {vistaActiva === 'brazo' && <VistaBrazoPro cara={cara} lado="derecho" afectaciones={afectaciones} onRegionToggle={toggleRegion} />}
+              {vistaActiva === 'codo' && <VistaCodoPro cara={cara} lado="derecho" afectaciones={afectaciones} onRegionToggle={toggleRegion} />}
+              {vistaActiva === 'mano' && <VistaManoPro cara={cara} lado="derecho" afectaciones={afectaciones} onRegionToggle={toggleRegion} />}
+              {vistaActiva === 'pierna' && <VistaPiernaPro cara={cara} lado="derecho" afectaciones={afectaciones} onRegionToggle={toggleRegion} />}
+              {vistaActiva === 'rodilla' && <VistaRodillaPro cara={cara} lado="derecho" afectaciones={afectaciones} onRegionToggle={toggleRegion} />}
+              {vistaActiva === 'tobillo' && <VistaTobilloPro cara={cara} lado="derecho" afectaciones={afectaciones} onRegionToggle={toggleRegion} />}
+              {vistaActiva === 'pie' && <VistaPiePro cara={cara} lado="derecho" afectaciones={afectaciones} onRegionToggle={toggleRegion} />}
             </div>
           </div>
         </div>

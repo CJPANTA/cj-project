@@ -1,4 +1,3 @@
-// src/components/clinica/BodyChart/vistas/VistaGeneral.jsx
 import React from 'react';
 
 export default function VistaGeneral({
@@ -20,7 +19,6 @@ export default function VistaGeneral({
     const colorTexto = selected ? '#22d3ee' : (isMacroRegion ? '#facc15' : '#94a3b8');
     const textY = y + (selected ? 15 : 12);
 
-    // En vista posterior el SVG está espejado → contra-transformamos el texto
     const textProps = esPosterior
       ? { x: 0, y: 0, transform: `translate(${x}, ${textY}) scale(-1, 1)` }
       : { x: x, y: textY };
@@ -77,7 +75,8 @@ export default function VistaGeneral({
   };
 
   return (
-        <svg viewBox="0 0 200 320" className="w-full h-auto max-w-lg drop-shadow-xl touch-manipulation">
+    // CAMBIO CLAVE AQUÍ: se cambió "h-auto max-w-lg" por "h-full max-w-full object-contain"
+    <svg viewBox="0 0 200 320" className="w-full h-full max-w-full object-contain scale-110 drop-shadow-xl touch-manipulation">
       <defs>
         <linearGradient id="pielGrad" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#1e293b" />

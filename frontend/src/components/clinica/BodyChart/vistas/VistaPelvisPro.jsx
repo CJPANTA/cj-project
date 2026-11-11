@@ -92,12 +92,7 @@ export default function VistaPelvisPro({
           : 'Vista Posterior Anatómicamente Fiel (Sacro · Isquion · Glúteos · Ciático)'}
       </h4>
 
-      <svg
-        viewBox="0 0 340 400"
-        width="100%"
-        height="100%"
-        className="h-full w-full max-w-xl touch-manipulation select-none"
-      >
+      <svg viewBox="0 0 340 400" width="100%" height="100%" className="h-full w-full max-w-full object-contain scale-115 touch-manipulation select-none drop-shadow-xl">
         <style>{`
           .hueso-base   { fill: #070d18; stroke: #1e293b; stroke-width: 1.2; stroke-linejoin: round; }
           .hueso-pelvis { fill: #1e293b; stroke: #475569; stroke-width: 1.2; stroke-linejoin: round; transition: all 150ms ease; cursor: pointer; }

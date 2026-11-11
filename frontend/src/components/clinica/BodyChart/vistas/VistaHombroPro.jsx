@@ -26,19 +26,22 @@ export const ESTRUCTURA_HOMBRO = {
     { id: 'infraespinoso', nombre: 'Infraespinoso', zona: 'Manguito Rotador' },
     { id: 'subescapular',  nombre: 'Subescapular',  zona: 'Manguito Rotador' },
     { id: 'redondo_menor', nombre: 'Redondo Menor', zona: 'Manguito Rotador' },
+    { id: 'redondo_mayor',  nombre: 'Redondo Mayor',                   zona: 'Dorsal' },
   ],
   musculos_accesorios: [
     { id: 'deltoides_ant',  nombre: 'Deltoides Anterior',              zona: 'Deltoides' },
+    { id: 'deltoides_medio', nombre: 'Deltoides Medio (Lateral)',      zona: 'Deltoides' },
     { id: 'deltoides_post', nombre: 'Deltoides Posterior',             zona: 'Deltoides' },
     { id: 'pectoral_mayor', nombre: 'Pectoral Mayor',                  zona: 'Pectoral' },
-    { id: 'redondo_mayor',  nombre: 'Redondo Mayor',                   zona: 'Dorsal' },
     { id: 'tendon_biceps',  nombre: 'Tendón Bíceps (Porción Larga)',   zona: 'Tendones' },
     { id: 'triceps',        nombre: 'Tríceps Braquial',                zona: 'Tríceps' },
   ],
   nervios: [
-    { id: 'nervio_axilar',         nombre: 'Nervio Axilar (Circunflejo)', zona: 'Inervación' },
-    { id: 'nervio_supraescapular', nombre: 'Nervio Supraescapular',       zona: 'Inervación' },
-    { id: 'plexo_braquial',        nombre: 'Plexo Braquial',              zona: 'Inervación' },
+    { id: 'plexo_braquial',        nombre: 'Plexo Braquial (Troncos & Truncos)', zona: 'Inervación' },
+    { id: 'nervio_axilar',         nombre: 'Nervio Axilar / Circunflejo',        zona: 'Inervación' },
+    { id: 'nervio_supraescapular', nombre: 'Nervio Supraescapular',              zona: 'Inervación' },
+    { id: 'nervio_musculocutaneo', nombre: 'Nervio Musculocutáneo (Hilo)',       zona: 'Inervación' },
+    { id: 'nervio_radial_hombro',  nombre: 'Nervio Radial (Rama Posterior)',     zona: 'Inervación' },
   ],
   articulaciones: [
     { id: 'art_acromioclavicular', nombre: 'Art. Acromioclavicular', zona: 'Articulaciones' },
@@ -106,21 +109,19 @@ export default function VistaHombroPro({
       <h4 className="mb-2 text-xs sm:text-sm font-black tracking-wider text-[#22d3ee] font-mono uppercase text-center">
         Hombro {lado === 'izquierdo' || lado === 'izquierda' ? 'Izquierdo' : 'Derecho'} —{' '}
         {cara === 'anterior'
-          ? 'Vista Anterior (Clavícula · Húmero · Manguito Anterior)'
-          : 'Vista Posterior (Escápula · Manguito Posterior)'}
+          ? 'Vista Anterior (Clavícula · Deltoides · N. Axilar)'
+          : 'Vista Posterior (Escápula · Manguito · N. Radial)'}
       </h4>
 
-      <svg
-        viewBox="0 0 340 400"
-        width="100%"
-        height="100%"
-        className="h-full w-full max-w-xl touch-manipulation select-none"
-      >
+      <svg viewBox="0 0 340 400" width="100%" height="100%" className="h-full w-full max-w-full object-contain scale-125 touch-manipulation select-none drop-shadow-xl">
         <style>{`
           .hueso-base   { fill: #09131f; stroke: #334155; stroke-width: 1.2; stroke-linejoin: round; }
           .hueso-hombro { fill: #1e293b; stroke: #475569; stroke-width: 1.2; stroke-linejoin: round; transition: all 150ms ease; cursor: pointer; }
           .hueso-hombro:hover { fill: #085a75; stroke: #38bdf8; stroke-width: 1.8; filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.5)); }
           .zona-interactiva:focus-visible .hueso-hombro { stroke: #ffffff !important; stroke-width: 2.5 !important; }
+          .linea-fibra { stroke: #334155; stroke-width: 0.8; opacity: 0.45; pointer-events: none; }
+          .hilo-nervio     { stroke: #eab308; stroke-width: 1.6; stroke-linecap: round; fill: none; pointer-events: all; transition: all 150ms ease; filter: drop-shadow(0 0 2px rgba(234, 179, 8, 0.4)); }
+          .hilo-nervio-sec { stroke: #facc15; stroke-width: 1; stroke-dasharray: 2 1.5; stroke-linecap: round; fill: none; opacity: 0.9; pointer-events: all; }
           .linea-referencia { fill: none; stroke: #64748b; stroke-width: 1; stroke-dasharray: 2 2; pointer-events: none; }
           .etiqueta-hombro { fill: #94a3b8; font-size: 8px; font-family: monospace; font-weight: 700; transition: fill 200ms; }
           .etiqueta-activa { fill: #22d3ee; font-size: 9px; filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.6)); }
@@ -181,30 +182,51 @@ export default function VistaHombroPro({
 
             {/* DELTOIDES ANTERIOR */}
             <ZonaAnatomica id="deltoides_ant" afectacion={getAfect('deltoides_ant')} onRegionToggle={onRegionToggle} label="Deltoides Anterior">
-              <path d="M 200 88 C 240 82, 278 108, 288 148 C 292 178, 278 205, 250 215 C 225 220, 208 198, 202 172 C 196 145, 194 112, 200 88 Z" />
+              <path d="M 196 85 C 220 84, 236 100, 240 140 C 242 168, 232 190, 215 208 C 208 190, 202 172, 196 142 C 192 115, 192 98, 196 85 Z" />
+              <path d="M 208 95 C 222 110, 228 140, 224 175" className="linea-fibra" />
             </ZonaAnatomica>
 
-            {/* PECTORAL MAYOR (borde visible del hombro) */}
+            {/* DELTOIDES MEDIO */}
+            <ZonaAnatomica id="deltoides_medio" afectacion={getAfect('deltoides_medio')} onRegionToggle={onRegionToggle} label="Deltoides Medio">
+              <path d="M 240 85 C 265 92, 288 118, 294 155 C 298 182, 276 210, 242 225 C 255 195, 260 160, 252 125 C 248 108, 244 95, 240 85 Z" />
+              <path d="M 252 98 C 270 120, 278 152, 268 190" className="linea-fibra" />
+              <path d="M 262 108 C 278 132, 282 162, 274 198" className="linea-fibra" />
+            </ZonaAnatomica>
+
+            {/* PECTORAL MAYOR */}
             <ZonaAnatomica id="pectoral_mayor" afectacion={getAfect('pectoral_mayor')} onRegionToggle={onRegionToggle} label="Pectoral Mayor">
               <path d="M 25 95 C 55 85, 110 90, 145 118 C 155 145, 150 178, 128 198 C 100 215, 60 205, 38 175 C 22 148, 20 118, 25 95 Z" />
             </ZonaAnatomica>
 
-            {/* TENDÓN DEL BÍCEPS (porción larga) */}
-            <ZonaAnatomica id="tendon_biceps" afectacion={getAfect('tendon_biceps')} onRegionToggle={onRegionToggle} label="Tendón Bíceps (Porción Larga)">
+            {/* TENDÓN DEL BÍCEPS */}
+            <ZonaAnatomica id="tendon_biceps" afectacion={getAfect('tendon_biceps')} onRegionToggle={onRegionToggle} label="Tendón Bíceps">
               <path d="M 178 105 L 182 130 L 188 200" stroke="#fbbf24" strokeWidth="2.5" strokeLinecap="round" fill="none" style={{ pointerEvents: 'all' }} />
+            </ZonaAnatomica>
+
+            {/* PLEXO BRAQUIAL */}
+            <ZonaAnatomica id="plexo_braquial" afectacion={getAfect('plexo_braquial')} onRegionToggle={onRegionToggle} label="Plexo Braquial">
+              <path d="M 50 48 C 75 52, 105 60, 140 78" className="hilo-nervio" />
+              <path d="M 52 56 C 80 62, 110 72, 148 92" className="hilo-nervio" />
+              <path d="M 56 64 C 85 72, 118 84, 155 102" className="hilo-nervio" />
             </ZonaAnatomica>
 
             {/* NERVIO AXILAR */}
             <ZonaAnatomica id="nervio_axilar" afectacion={getAfect('nervio_axilar')} onRegionToggle={onRegionToggle} label="Nervio Axilar">
-              <path d="M 200 138 C 195 158, 182 172, 170 182" stroke="#eab308" strokeWidth="3" strokeLinecap="round" fill="none" style={{ pointerEvents: 'all' }} />
+              <path d="M 152 108 C 175 125, 210 135, 235 138 C 255 140, 275 152, 285 170" className="hilo-nervio" />
+              <path d="M 235 138 C 248 152, 258 170, 260 195" className="hilo-nervio-sec" />
             </ZonaAnatomica>
 
-            {/* ART. ACROMIOCLAVICULAR */}
+            {/* NERVIO MUSCULOCUTÁNEO */}
+            <ZonaAnatomica id="nervio_musculocutaneo" afectacion={getAfect('nervio_musculocutaneo')} onRegionToggle={onRegionToggle} label="Nervio Musculocutáneo">
+              <path d="M 146 95 C 155 120, 170 155, 182 220 C 185 240, 188 270, 186 310" className="hilo-nervio" />
+              <path d="M 165 138 C 170 155, 172 180, 170 200" className="hilo-nervio-sec" />
+            </ZonaAnatomica>
+
+            {/* ARTICULACIONES */}
             <ZonaAnatomica id="art_acromioclavicular" afectacion={getAfect('art_acromioclavicular')} onRegionToggle={onRegionToggle} label="Art. Acromioclavicular">
               <circle cx="208" cy="68" r="7" style={{ fill: 'rgba(244, 114, 182, 0.5)', stroke: '#f472b6', strokeWidth: 1.5, pointerEvents: 'all' }} />
             </ZonaAnatomica>
 
-            {/* ART. GLENOHUMERAL */}
             <ZonaAnatomica id="art_glenohumeral" afectacion={getAfect('art_glenohumeral')} onRegionToggle={onRegionToggle} label="Art. Glenohumeral">
               <circle cx="166" cy="145" r="6" style={{ fill: 'rgba(244, 114, 182, 0.5)', stroke: '#f472b6', strokeWidth: 1.5, pointerEvents: 'all' }} />
             </ZonaAnatomica>
@@ -228,7 +250,7 @@ export default function VistaHombroPro({
             </ZonaAnatomica>
 
             {/* ACROMION POSTERIOR */}
-            <ZonaAnatomica id="acromion_post" afectacion={getAfect('acromion_post')} onRegionToggle={onRegionToggle} label="Acromion">
+            <ZonaAnatomica id="acromion_post" afectacion={getAfect('acromion_post')} onRegionToggle={onRegionToggle} label="Acromion Posterior">
               <path d="M 240 82 L 278 80 L 282 108 L 245 108 Z" />
             </ZonaAnatomica>
 
@@ -253,13 +275,20 @@ export default function VistaHombroPro({
             </ZonaAnatomica>
 
             {/* CABEZA HUMERAL POSTERIOR */}
-            <ZonaAnatomica id="cabeza_humeral_post" afectacion={getAfect('cabeza_humeral_post')} onRegionToggle={onRegionToggle} label="Cabeza Humeral">
+            <ZonaAnatomica id="cabeza_humeral_post" afectacion={getAfect('cabeza_humeral_post')} onRegionToggle={onRegionToggle} label="Cabeza Humeral Posterior">
               <circle cx="228" cy="138" r="20" />
             </ZonaAnatomica>
 
             {/* DELTOIDES POSTERIOR */}
             <ZonaAnatomica id="deltoides_post" afectacion={getAfect('deltoides_post')} onRegionToggle={onRegionToggle} label="Deltoides Posterior">
-              <path d="M 240 102 C 288 108, 302 152, 292 198 C 276 228, 245 232, 225 218 C 215 198, 218 165, 228 140 C 232 122, 236 108, 240 102 Z" />
+              <path d="M 236 102 C 265 106, 282 125, 288 152 C 290 178, 270 206, 248 215 C 238 200, 230 180, 226 155 C 224 135, 230 115, 236 102 Z" />
+              <path d="M 248 112 C 265 130, 272 155, 266 185" className="linea-fibra" />
+            </ZonaAnatomica>
+
+            {/* DELTOIDES MEDIO POSTERIOR */}
+            <ZonaAnatomica id="deltoides_medio" afectacion={getAfect('deltoides_medio')} onRegionToggle={onRegionToggle} label="Deltoides Medio Posterior">
+              <path d="M 278 80 C 298 90, 308 120, 306 155 C 302 185, 284 212, 252 225 C 268 200, 282 170, 280 135 C 278 110, 278 95, 278 80 Z" />
+              <path d="M 288 95 C 298 120, 298 150, 290 185" className="linea-fibra" />
             </ZonaAnatomica>
 
             {/* TRÍCEPS */}
@@ -269,7 +298,15 @@ export default function VistaHombroPro({
 
             {/* NERVIO SUPRAESCAPULAR */}
             <ZonaAnatomica id="nervio_supraescapular" afectacion={getAfect('nervio_supraescapular')} onRegionToggle={onRegionToggle} label="Nervio Supraescapular">
-              <path d="M 145 95 C 162 102, 178 118, 188 132" stroke="#eab308" strokeWidth="3" strokeLinecap="round" fill="none" style={{ pointerEvents: 'all' }} />
+              <path d="M 135 75 C 152 85, 172 95, 188 110" className="hilo-nervio" />
+              <path d="M 188 110 C 195 125, 192 145, 185 165" className="hilo-nervio-sec" />
+              <path d="M 188 110 C 205 120, 218 135, 224 150" className="hilo-nervio-sec" />
+            </ZonaAnatomica>
+
+            {/* NERVIO RADIAL */}
+            <ZonaAnatomica id="nervio_radial_hombro" afectacion={getAfect('nervio_radial_hombro')} onRegionToggle={onRegionToggle} label="Nervio Radial">
+              <path d="M 215 195 C 224 220, 232 255, 230 310 C 228 340, 225 370, 222 390" className="hilo-nervio" />
+              <path d="M 230 255 C 242 270, 252 290, 256 315" className="hilo-nervio-sec" />
             </ZonaAnatomica>
           </g>
         )}
