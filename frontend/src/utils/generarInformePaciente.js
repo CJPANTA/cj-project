@@ -2,18 +2,19 @@
 import { supabase } from '../lib/supabaseClient';
 import { generarStickmanEjercicio, getIconoPosicion } from './stickmans';
 
-// === FUNCIÓN PARA CONVERTIR LOGO A BASE64 (EVITA PROBLEMAS DE CARGA) ===
+// === HELPER: Normalizar estructura regiones/_meta ===
+const normalizarDatosRegiones = (dr) => {
+  if (!dr || typeof dr !== 'object') return { regiones: {}, _meta: {} };
+  if (dr.regiones && typeof dr.regiones === 'object') return { regiones: dr.regiones, _meta: dr._meta || {} };
+  const regiones = {}; const _meta = {};
+  Object.entries(dr).forEach(([key, val]) => { if (key.startsWith('_')) _meta[key] = val; else regiones[key] = val; });
+  return { regiones, _meta };
+};
+
 const urlToBase64 = async (url) => {
   if (!url) return '';
-  
-  // Convertir a URL absoluta si es relativa (ej. /logo_centros/CJ000.png)
-  let absoluteUrl = url;
-  if (!url.startsWith('http')) {
-    absoluteUrl = new URL(url, window.location.origin).href;
-  }
-
+  let absoluteUrl = url.startsWith('http') ? url : new URL(url, window.location.origin).href;
   try {
-    console.log('🖼️ Intentando cargar logo desde:', absoluteUrl);
     const response = await fetch(absoluteUrl);
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     const blob = await response.blob();
@@ -23,91 +24,38 @@ const urlToBase64 = async (url) => {
       reader.onerror = reject;
       reader.readAsDataURL(blob);
     });
-    } catch (error) {
-    console.warn('⚠️ No se pudo cargar el logo como Base64:', error);
-    return absoluteUrl; // Si falla Base64, usamos la URL directa para que el navegador la cargue
-  }
+  } catch (error) { return absoluteUrl; }
 };
 
-// ============================================================
-// CORRECCIÓN DE TYPOS DE LA IA
-// ============================================================
 const corregirTypos = (texto) => {
   if (!texto) return texto;
-  return texto
-    .replace(/Estimamientos/gi, 'Estiramientos')
-    .replace(/estimamiento/gi, 'estiramiento')
-    .replace(/Susponder/gi, 'Suspender')
-    .replace(/susponder/gi, 'suspender')
-    .replace(/Lumbalgia mecanica/gi, 'Lumbalgia mecánica')
-    .replace(/Aplicaciòn/gi, 'Aplicación')
-    .replace(/aplicaciòn/gi, 'aplicación');
+  return texto.replace(/Estimamientos/gi, 'Estiramientos').replace(/estimamiento/gi, 'estiramiento').replace(/Susponder/gi, 'Suspender').replace(/susponder/gi, 'suspender').replace(/Lumbalgia mecanica/gi, 'Lumbalgia mecánica').replace(/Aplicaciòn/gi, 'Aplicación').replace(/aplicaciòn/gi, 'aplicación');
 };
 
-// ============================================================
-// FUNCIÓN PRINCIPAL
-// ============================================================
 export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'borrador') {
-  const { data: evaluacion, error: evalError } = await supabase
-    .from('evaluaciones')
-    .select('*')
-    .eq('id', evaluacionId)
-    .single();
+  const { data: evaluacion, error: evalError } = await supabase.from('evaluaciones').select('*').eq('id', evaluacionId).single();
   if (evalError) throw evalError;
   if (!evaluacion) throw new Error('Evaluación no encontrada.');
 
-  const { data: pacienteData } = await supabase
-    .from('pacientes')
-    .select('*')
-    .eq('id', evaluacion.paciente_id)
-    .single();
-
+  const { data: pacienteData } = await supabase.from('pacientes').select('*').eq('id', evaluacion.paciente_id).single();
   const { data: { user } } = await supabase.auth.getUser();
-  const { data: perfil } = await supabase
-    .from('profiles')
-    .select('nombre_completo, centro_id, titulo_profesional, numero_colegiatura, dni, tipo_profesional, tipo_documento, registro_interno')
-    .eq('id', user.id)
-    .single();
+  const { data: perfil } = await supabase.from('profiles').select('nombre_completo, centro_id, titulo_profesional, numero_colegiatura, dni, tipo_profesional, tipo_documento, registro_interno').eq('id', user.id).single();
 
-  // ============================================================
-  // DETECTAR TIPO DE PROFESIONAL Y TIPO DE CENTRO
-  // ============================================================
   const tipoProfesional = perfil?.tipo_profesional || 'licenciado';
   const esLicenciado = tipoProfesional === 'licenciado';
   const firmaComoTecnico = !esLicenciado;
 
-  let centroNombre = 'Centro CJ';
-  let centroTelefono = '';
-  let centroDireccion = '';
-  let logoUrl = '';
-  let tipoCentro = 'gimnasio_terapeutico';
+  let centroNombre = 'Centro CJ'; let centroTelefono = ''; let centroDireccion = ''; let logoUrl = ''; let tipoCentro = 'gimnasio_terapeutico';
 
   if (perfil?.centro_id) {
-    const { data: centro } = await supabase
-      .from('centros')
-      .select('nombre, logo_url, telefono, direccion, tipo_centro')
-      .eq('id', perfil.centro_id)
-      .single();
-    if (centro) {
-      centroNombre = centro.nombre || 'Centro CJ';
-      centroTelefono = centro.telefono || '';
-      centroDireccion = centro.direccion || '';
-      logoUrl = centro.logo_url || '';
-      tipoCentro = centro.tipo_centro || 'gimnasio_terapeutico';
-    }
+    const { data: centro } = await supabase.from('centros').select('nombre, logo_url, telefono, direccion, tipo_centro').eq('id', perfil.centro_id).single();
+    if (centro) { centroNombre = centro.nombre || 'Centro CJ'; centroTelefono = centro.telefono || ''; centroDireccion = centro.direccion || ''; logoUrl = centro.logo_url || ''; tipoCentro = centro.tipo_centro || 'gimnasio_terapeutico'; }
   }
 
-  // Convertir el logo a Base64 para que se imprima sin problemas
   const logoBase64 = await urlToBase64(logoUrl);
-
   const esGimnasioTerapeutico = tipoCentro === 'gimnasio_terapeutico';
-  const subtituloTipoCentro = esGimnasioTerapeutico
-    ? 'Gimnasio Terapéutico'
-    : 'Centro Fisioterapéutico';
-
-  const nombreCentroConTipo = centroNombre.toLowerCase().includes(subtituloTipoCentro.toLowerCase())
-    ? centroNombre
-    : `${centroNombre} (${subtituloTipoCentro})`;
+  const subtituloTipoCentro = esGimnasioTerapeutico ? 'Gimnasio Terapéutico' : 'Centro Fisioterapéutico';
+  const nombreCentroConTipo = centroNombre.toLowerCase().includes(subtituloTipoCentro.toLowerCase()) ? centroNombre : `${centroNombre} (${subtituloTipoCentro})`;
 
   const nombrePaciente = pacienteData ? `${pacienteData.nombre} ${pacienteData.apellidos}` : 'Paciente';
   const fecha = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -127,67 +75,37 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
     else if (titulo) credenciales = titulo;
   }
 
-    // ============================================================
-  // CARGAR STICKMAN APROBADOS (JSON)
-  // ============================================================
   let stickmanData = {};
-  try {
-    const res = await fetch('/data/stickman_svgs.json');
-    if (res.ok) stickmanData = await res.json();
-  } catch (e) {
-    console.warn('⚠️ No se pudo cargar stickman_svgs.json, usando genéricos:', e);
-  }
+  try { const res = await fetch('/data/stickman_svgs.json'); if (res.ok) stickmanData = await res.json(); } catch (e) {}
 
-  // Helper: renderiza los 3 frames aprobados o cae al genérico
   const renderStickman = (ejercicioId, posicion, tamaño = 'medium') => {
     const frames = stickmanData?.[ejercicioId];
-    if (!frames || !frames.inicio || !frames.medio || !frames.fin) {
-      return generarStickmanEjercicio(posicion, tamaño);
-    }
+    if (!frames || !frames.inicio || !frames.medio || !frames.fin) return generarStickmanEjercicio(posicion, tamaño);
     const sizes = { small: 80, medium: 130, large: 175 };
     const s = sizes[tamaño] || 95;
     const labelStyle = 'font-size:8pt;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;text-align:center;';
     const arrow = '<div style="font-size:26pt;color:#22d3ee;font-weight:900;line-height:1;margin:0 4px;">→</div>';
-    const svgWrap = (svg, label) => {
-      const svgConTamano = svg.replace(/<svg /, `<svg width="${s}" height="${s}" preserveAspectRatio="xMidYMid meet" `);
-      return `<div style="text-align:center;">${'<div style="' + labelStyle + '">' + label + '</div>'}${svgConTamano}</div>`;
-    };
-    return `
-      <div style="display:flex;align-items:center;gap:6px;justify-content:center;">
-        ${svgWrap(frames.inicio, 'INICIO')}
-        ${arrow}
-        ${svgWrap(frames.medio, 'MEDIO')}
-        ${arrow}
-        ${svgWrap(frames.fin, 'FIN')}
-      </div>
-    `;
+    const svgWrap = (svg, label) => { const svgConTamano = svg.replace(/<svg /, `<svg width="${s}" height="${s}" preserveAspectRatio="xMidYMid meet" `); return `<div style="text-align:center;">${'<div style="' + labelStyle + '">' + label + '</div>'}${svgConTamano}</div>`; };
+    return `<div style="display:flex;align-items:center;gap:6px;justify-content:center;">${svgWrap(frames.inicio, 'INICIO')}${arrow}${svgWrap(frames.medio, 'MEDIO')}${arrow}${svgWrap(frames.fin, 'FIN')}</div>`;
   };
 
-  const datosRegiones = evaluacion.datos_regiones || {};
+  // 🟢 CORRECCIÓN AQUÍ: Normalizamos y leemos de _meta
+  const dataNorm = normalizarDatosRegiones(evaluacion.datos_regiones);
+  const datosRegiones = dataNorm._meta;
+  
   const diagnostico = corregirTypos(datosRegiones._diagnostico_sugerido || '');
   const recomendaciones = corregirTypos(datosRegiones._recomendaciones || '');
   const alertas = corregirTypos(datosRegiones._alertas || '');
   const planEjercicios = datosRegiones._plan_ejercicios || [];
 
   let badgeEstado = '';
-  if (estadoEvaluacion === 'borrador') {
-    badgeEstado = `<div class="badge badge-borrador">VISTA PREVIA — Evaluación no aprobada</div>`;
-  } else if (estadoEvaluacion === 'pendiente') {
-    badgeEstado = `<div class="badge badge-pendiente">VISTA PREVIA — Evaluación en revisión</div>`;
-  } else if (estadoEvaluacion === 'rechazado') {
-    badgeEstado = `<div class="badge badge-rechazado">VISTA PREVIA — Evaluación rechazada</div>`;
-  }
+  if (estadoEvaluacion === 'borrador') badgeEstado = `<div class="badge badge-borrador">VISTA PREVIA — Evaluación no aprobada</div>`;
+  else if (estadoEvaluacion === 'pendiente') badgeEstado = `<div class="badge badge-pendiente">VISTA PREVIA — Evaluación en revisión</div>`;
+  else if (estadoEvaluacion === 'rechazado') badgeEstado = `<div class="badge badge-rechazado">VISTA PREVIA — Evaluación rechazada</div>`;
 
-  const badgeCentroHTML = esGimnasioTerapeutico
-    ? `<div style="display:inline-block; padding:3px 10px; background:#fef3c7; color:#78350f; font-size:8pt; font-weight:700; border-radius:4px; letter-spacing:1px; text-transform:uppercase; margin:4px 0;">Gimnasio Terapéutico</div>`
-    : `<div style="display:inline-block; padding:3px 10px; background:#dbeafe; color:#1e40af; font-size:8pt; font-weight:700; border-radius:4px; letter-spacing:1px; text-transform:uppercase; margin:4px 0;">Centro Fisioterapéutico</div>`;
+  const badgeCentroHTML = esGimnasioTerapeutico ? `<div style="display:inline-block; padding:3px 10px; background:#fef3c7; color:#78350f; font-size:8pt; font-weight:700; border-radius:4px; letter-spacing:1px; text-transform:uppercase; margin:4px 0;">Gimnasio Terapéutico</div>` : `<div style="display:inline-block; padding:3px 10px; background:#dbeafe; color:#1e40af; font-size:8pt; font-weight:700; border-radius:4px; letter-spacing:1px; text-transform:uppercase; margin:4px 0;">Centro Fisioterapéutico</div>`;
 
-  const TIPOS = [
-    { key: 'estiramiento', titulo: 'Ejercicios de Estiramiento' },
-    { key: 'fortalecimiento', titulo: 'Ejercicios de Fortalecimiento' },
-    { key: 'movilidad', titulo: 'Ejercicios de Movilidad' },
-    { key: 'general', titulo: 'Otros Ejercicios' },
-  ];
+  const TIPOS = [ { key: 'estiramiento', titulo: 'Ejercicios de Estiramiento' }, { key: 'fortalecimiento', titulo: 'Ejercicios de Fortalecimiento' }, { key: 'movilidad', titulo: 'Ejercicios de Movilidad' }, { key: 'general', titulo: 'Otros Ejercicios' } ];
 
   let ejerciciosHTML = '';
   if (planEjercicios.length > 0) {
@@ -195,7 +113,6 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
     TIPOS.forEach(tipoGrupo => {
       const ejerciciosDelTipo = planEjercicios.filter(ej => (ej.tipo || 'general') === tipoGrupo.key);
       if (ejerciciosDelTipo.length === 0) return;
-
       ejerciciosHTML += `<h2 class="subtitulo-tipo">${tipoGrupo.titulo}</h2>`;
       ejerciciosDelTipo.forEach(ej => {
         contadorGlobal++;
@@ -210,16 +127,12 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
           <div class="ejercicio-card">
             <div class="ejercicio-numero">${contadorGlobal}</div>
             <div class="ejercicio-contenido">
-              <div class="ejercicio-stickman">
-                ${renderStickman(ej.id, posicion, 'medium')}
-              </div>
+              <div class="ejercicio-stickman">${renderStickman(ej.id, posicion, 'medium')}</div>
               <div class="ejercicio-detalle">
                 <div class="ejercicio-nombre">${corregirTypos(ej.nombre)}</div>
                 <div class="ejercicio-posicion">Posición: ${getIconoPosicion(posicion)}</div>
                 ${ej.descripcion_paciente ? `<div class="ejercicio-desc">${corregirTypos(ej.descripcion_paciente)}</div>` : ''}
-                <div class="ejercicio-params">
-                  ${params.map(p => `<span class="param-tag">${p}</span>`).join('')}
-                </div>
+                <div class="ejercicio-params">${params.map(p => `<span class="param-tag">${p}</span>`).join('')}</div>
               </div>
             </div>
           </div>
@@ -231,28 +144,12 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
   }
 
   const recomLines = recomendaciones.split('\n').map(l => l.trim()).filter(l => l !== '');
-  let recomendacionesHTML = '';
-  if (recomLines.length > 0) {
-    recomendacionesHTML = `<ol class="recomendaciones-lista">${recomLines.map(l => `<li>${l}</li>`).join('')}</ol>`;
-  } else {
-    recomendacionesHTML = '<p class="campo-vacio">Sin recomendaciones registradas.</p>';
-  }
+  const recomendacionesHTML = recomLines.length > 0 ? `<ol class="recomendaciones-lista">${recomLines.map(l => `<li>${l}</li>`).join('')}</ol>` : '<p class="campo-vacio">Sin recomendaciones registradas.</p>';
 
   const alertLines = alertas.split('\n').map(l => l.trim()).filter(l => l !== '');
-  let alertasHTML = '';
-  if (alertLines.length > 0) {
-    alertasHTML = `<ul class="alertas-lista">${alertLines.map(l => `<li>${l}</li>`).join('')}</ul>`;
-  } else {
-    alertasHTML = '<p class="campo-vacio">Sin alertas específicas.</p>';
-  }
+  const alertasHTML = alertLines.length > 0 ? `<ul class="alertas-lista">${alertLines.map(l => `<li>${l}</li>`).join('')}</ul>` : '<p class="campo-vacio">Sin alertas específicas.</p>';
 
-  const avisoLegalHTML = firmaComoTecnico
-    ? `<div style="background:#fef3c7; border-left:4px solid #f59e0b; padding:10px 14px; border-radius:6px; margin-top:20px; font-size:9pt; color:#78350f;">
-        <strong>AVISO:</strong> Documento funcional elaborado por un Técnico en Fisioterapia y Rehabilitación. NO constituye diagnóstico clínico ni prescripción médica. Para diagnóstico o prescripción, consulte con un <strong>Lic. T.M. Fisioterapia</strong>.
-      </div>`
-    : `<div style="background:#dbeafe; border-left:4px solid #3b82f6; padding:10px 14px; border-radius:6px; margin-top:20px; font-size:9pt; color:#1e40af;">
-        <strong>Documento confidencial.</strong> Este plan de ejercicios forma parte del tratamiento fisioterapéutico. Consérvelo y tráigalo a su próxima cita.
-      </div>`;
+  const avisoLegalHTML = firmaComoTecnico ? `<div style="background:#fef3c7; border-left:4px solid #f59e0b; padding:10px 14px; border-radius:6px; margin-top:20px; font-size:9pt; color:#78350f;"><strong>AVISO:</strong> Documento funcional elaborado por un Técnico en Fisioterapia y Rehabilitación. NO constituye diagnóstico clínico ni prescripción médica. Para diagnóstico o prescripción, consulte con un <strong>Lic. T.M. Fisioterapia</strong>.</div>` : `<div style="background:#dbeafe; border-left:4px solid #3b82f6; padding:10px 14px; border-radius:6px; margin-top:20px; font-size:9pt; color:#1e40af;"><strong>Documento confidencial.</strong> Este plan de ejercicios forma parte del tratamiento fisioterapéutico. Consérvelo y tráigalo a su próxima cita.</div>`;
 
   const contenidoHTML = `
     <!DOCTYPE html>
@@ -263,15 +160,7 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
       <style>
         @page { size: A4; margin: 1.5cm 1.5cm 1cm 1.5cm; }
         * { box-sizing: border-box; }
-        body {
-          font-family: 'Calibri', 'Roboto', Arial, sans-serif;
-          font-size: 10.5pt;
-          line-height: 1.5;
-          color: #1e293b;
-          background: white;
-          margin: 0;
-          padding: 0;
-        }
+        body { font-family: 'Calibri', 'Roboto', Arial, sans-serif; font-size: 10.5pt; line-height: 1.5; color: #1e293b; background: white; margin: 0; padding: 0; }
         .pagina { display: flex; flex-direction: column; min-height: 100vh; padding: 0; page-break-after: always; position: relative; }
         .pagina:last-child { page-break-after: avoid; }
         .contenido { flex: 1; padding-bottom: 15px; }
@@ -287,20 +176,7 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
         .encabezado .datos { font-size: 9pt; color: #475569; margin-top: 4px; }
         .clearfix::after { content: ""; clear: both; display: table; }
         h1 { font-size: 14pt; font-weight: 700; color: #0f172a; border-left: 5px solid #22d3ee; padding-left: 12px; margin-top: 20px; margin-bottom: 10px; text-transform: uppercase; page-break-after: avoid; }
-        h2.subtitulo-tipo {
-          font-size: 12pt;
-          font-weight: 700;
-          color: #0891b2;
-          background: #ecfeff;
-          padding: 8px 14px;
-          border-radius: 6px;
-          margin-top: 16px;
-          margin-bottom: 12px;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-          page-break-after: avoid;
-          border-left: 4px solid #22d3ee;
-        }
+        h2.subtitulo-tipo { font-size: 12pt; font-weight: 700; color: #0891b2; background: #ecfeff; padding: 8px 14px; border-radius: 6px; margin-top: 16px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; page-break-after: avoid; border-left: 4px solid #22d3ee; }
         .diagnostico-box { background: #f0f9ff; border-left: 4px solid #22d3ee; padding: 12px 16px; border-radius: 6px; font-size: 11pt; line-height: 1.6; }
         .ejercicio-card { display: flex; gap: 12px; padding: 12px; margin-bottom: 12px; border: 1px solid #e2e8f0; border-radius: 8px; page-break-inside: avoid; background: #fafafa; }
         .ejercicio-numero { flex: 0 0 40px; height: 40px; background: #22d3ee; color: white; font-weight: 900; font-size: 18pt; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
@@ -360,9 +236,7 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
           </div>
 
           <h1>1. Tu Diagnóstico</h1>
-          <div class="diagnostico-box">
-            ${diagnostico || '<span class="campo-vacio">Diagnóstico pendiente de registro.</span>'}
-          </div>
+          <div class="diagnostico-box">${diagnostico || '<span class="campo-vacio">Diagnóstico pendiente de registro.</span>'}</div>
 
           <h1>2. Antes de Empezar</h1>
           <div style="background:#f0f9ff; border-left:4px solid #22d3ee; padding:10px 14px; border-radius:6px; margin-bottom:10px;">
@@ -376,9 +250,7 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
           </div>
 
           <h1>3. Tus Ejercicios</h1>
-          <p style="font-size:10pt; color:#475569; margin-bottom:12px;">
-            Realiza estos ejercicios en casa siguiendo las indicaciones. Si sientes dolor intenso, detente y consulta a tu terapeuta.
-          </p>
+          <p style="font-size:10pt; color:#475569; margin-bottom:12px;">Realiza estos ejercicios en casa siguiendo las indicaciones. Si sientes dolor intenso, detente y consulta a tu terapeuta.</p>
           ${ejerciciosHTML}
 
           ${planEjercicios.length > 0 ? `
@@ -393,25 +265,22 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
             </div>
           ` : ''}
         </div>
-                  <div style="margin-top:12px; padding:12px 14px; background:#fef2f2; border-left:4px solid #ef4444; border-radius:6px; page-break-inside:avoid;">
-            <div style="font-size:10pt; font-weight:700; color:#991b1b; margin-bottom:6px;">⚠️ Evita estos errores:</div>
-            <ul style="margin:0; padding-left:20px; font-size:9pt; line-height:1.55; color:#991b1b;">
-              <li>No hagas los ejercicios rápido ni con rebotes.</li>
-              <li>No aguantes la respiración durante el esfuerzo.</li>
-              <li>No ignores el dolor "para terminar la serie".</li>
-              <li>No hagas los ejercicios si tienes fiebre o inflamación aguda nueva.</li>
-            </ul>
-          </div>
+        <div style="margin-top:12px; padding:12px 14px; background:#fef2f2; border-left:4px solid #ef4444; border-radius:6px; page-break-inside:avoid;">
+          <div style="font-size:10pt; font-weight:700; color:#991b1b; margin-bottom:6px;">⚠️ Evita estos errores:</div>
+          <ul style="margin:0; padding-left:20px; font-size:9pt; line-height:1.55; color:#991b1b;">
+            <li>No hagas los ejercicios rápido ni con rebotes.</li>
+            <li>No aguantes la respiración durante el esfuerzo.</li>
+            <li>No ignores el dolor "para terminar la serie".</li>
+            <li>No hagas los ejercicios si tienes fiebre o inflamación aguda nueva.</li>
+          </ul>
         </div>
-       <div class="pie">Plan de Ejercicios — ${centroNombre}</div>
+        <div class="pie">Plan de Ejercicios — ${centroNombre}</div>
       </div>
 
       <div class="pagina">
         <div class="contenido">
           <h1>4. Cuidados en Casa</h1>
-          <p style="font-size:10pt; color:#475569; margin-bottom:10px;">
-            Estas recomendaciones complementan tu tratamiento y ayudan a una mejor recuperación.
-          </p>
+          <p style="font-size:10pt; color:#475569; margin-bottom:10px;">Estas recomendaciones complementan tu tratamiento y ayudan a una mejor recuperación.</p>
           ${recomendacionesHTML}
 
           <h1>5. Cuándo Consultar</h1>
@@ -419,47 +288,25 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
 
           <h1>6. Mi Seguimiento Semanal</h1>
           <table class="seguimiento">
-            <thead>
-              <tr>
-                <th style="width: 15%;">Día</th>
-                <th style="width: 15%;">¿Hice los ejercicios?</th>
-                <th style="width: 45%;">¿Cómo me sentí?</th>
-                <th style="width: 25%;">Nivel de dolor (0-10)</th>
-              </tr>
-            </thead>
+            <thead><tr><th style="width: 15%;">Día</th><th style="width: 15%;">¿Hice los ejercicios?</th><th style="width: 45%;">¿Cómo me sentí?</th><th style="width: 25%;">Nivel de dolor (0-10)</th></tr></thead>
             <tbody>
-              <tr><td>Lunes</td><td>[ ] Sí [ ] No</td><td></td><td></td></tr>
-              <tr><td>Martes</td><td>[ ] Sí [ ] No</td><td></td><td></td></tr>
-              <tr><td>Miércoles</td><td>[ ] Sí [ ] No</td><td></td><td></td></tr>
-              <tr><td>Jueves</td><td>[ ] Sí [ ] No</td><td></td><td></td></tr>
-              <tr><td>Viernes</td><td>[ ] Sí [ ] No</td><td></td><td></td></tr>
-              <tr><td>Sábado</td><td>[ ] Sí [ ] No</td><td></td><td></td></tr>
+              <tr><td>Lunes</td><td>[ ] Sí [ ] No</td><td></td><td></td></tr><tr><td>Martes</td><td>[ ] Sí [ ] No</td><td></td><td></td></tr>
+              <tr><td>Miércoles</td><td>[ ] Sí [ ] No</td><td></td><td></td></tr><tr><td>Jueves</td><td>[ ] Sí [ ] No</td><td></td><td></td></tr>
+              <tr><td>Viernes</td><td>[ ] Sí [ ] No</td><td></td><td></td></tr><tr><td>Sábado</td><td>[ ] Sí [ ] No</td><td></td><td></td></tr>
               <tr><td>Domingo</td><td>[ ] Sí [ ] No</td><td></td><td></td></tr>
             </tbody>
           </table>
           <p class="seguimiento-nota">Trae este documento a tu próxima cita para revisar tu progreso juntos.</p>
 
-          <div class="notas-box">
-            <div class="label">Mis Notas</div>
-            <div class="linea"></div>
-            <div class="linea"></div>
-            <div class="linea"></div>
-          </div>
+          <div class="notas-box"><div class="label">Mis Notas</div><div class="linea"></div><div class="linea"></div><div class="linea"></div></div>
 
           <div class="seccion-final">
            <h1 class="h1-proxima-cita">7. Próxima Cita</h1>
-            <div class="proxima-cita">
-              <div class="label">Fecha sugerida</div>
-              <div class="linea-fecha">&nbsp;</div>
-            </div>
-
+            <div class="proxima-cita"><div class="label">Fecha sugerida</div><div class="linea-fecha">&nbsp;</div></div>
             <div class="firma-box">
               <div class="firma-bloque">
                 <p class="firma-label">${firmaComoTecnico ? 'Firma del profesional técnico:' : 'Firma del profesional:'}</p>
-                <div class="firma-linea">
-                  <p class="firma-nombre">${usuario}</p>
-                  ${credenciales ? `<p class="firma-credenciales">${credenciales}</p>` : ''}
-                </div>
+                <div class="firma-linea"><p class="firma-nombre">${usuario}</p>${credenciales ? `<p class="firma-credenciales">${credenciales}</p>` : ''}</div>
               </div>
             </div>
           </div>
@@ -468,13 +315,9 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
 
           <div class="contacto-centro">
             <strong>${centroNombre}</strong>${centroNombre.toLowerCase().includes(subtituloTipoCentro.toLowerCase()) ? '' : ` — ${subtituloTipoCentro}`}
-            ${centroTelefono ? `<br/>Teléfono: ${centroTelefono}` : ''}
-            ${centroDireccion ? `<br/>Dirección: ${centroDireccion}` : ''}
+            ${centroTelefono ? `<br/>Teléfono: ${centroTelefono}` : ''}${centroDireccion ? `<br/>Dirección: ${centroDireccion}` : ''}
           </div>
-
-          <div style="text-align: center; margin-top: 15px; font-size: 9pt; color: #64748b;">
-            --- Fin del plan ---
-          </div>
+          <div style="text-align: center; margin-top: 15px; font-size: 9pt; color: #64748b;">--- Fin del plan ---</div>
         </div>
        <div class="pie">Plan de Ejercicios — ${centroNombre}</div>
       </div>
@@ -487,7 +330,15 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
     ventana.document.title = `Plan de Ejercicios - ${nombrePaciente}`;
     ventana.document.write(contenidoHTML);
     ventana.document.close();
-setTimeout(() => { const imgs = Array.from(ventana.document.querySelectorAll('img')); const pend = imgs.filter(i => !i.complete); if (pend.length === 0) { ventana.print(); return; } let n = 0; const fin = () => { n++; if (n >= pend.length) ventana.print(); }; pend.forEach(i => { i.addEventListener('load', fin, { once: true }); i.addEventListener('error', fin, { once: true }); }); setTimeout(() => { try { ventana.print(); } catch (e) {} }, 5000); }, 300);
+    setTimeout(() => {
+      const imgs = Array.from(ventana.document.querySelectorAll('img'));
+      const pend = imgs.filter(i => !i.complete);
+      if (pend.length === 0) { ventana.print(); return; }
+      let n = 0;
+      const fin = () => { n++; if (n >= pend.length) ventana.print(); };
+      pend.forEach(i => { i.addEventListener('load', fin, { once: true }); i.addEventListener('error', fin, { once: true }); });
+      setTimeout(() => { try { ventana.print(); } catch (e) {} }, 5000);
+    }, 300);
   } else {
     alert('Por favor, permite las ventanas emergentes para generar el informe.');
   }
