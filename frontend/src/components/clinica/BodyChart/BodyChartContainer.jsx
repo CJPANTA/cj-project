@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { buscarReglaClinica } from './reglasClinicas';
 import VistaGeneral from './vistas/VistaGeneral';
 import VistaCabezaPro, { ESTRUCTURA_CABEZA } from './vistas/VistaCabezaPro';
 import VistaToraxPro, { ESTRUCTURA_TORAX } from './vistas/VistaToraxPro';
@@ -98,10 +99,39 @@ export default function BodyChartContainer({
   const [caraGeneral, setCaraGeneral] = useState('anterior');
   const [caraDetalle, setCaraDetalle] = useState('anterior');
   const [sintomaActivo, setSintomaActivo] = useState('dolor');
+  const [alertaAura, setAlertaAura] = useState(null);
 
   useEffect(() => {
     if (configVista) setCaraDetalle(configVista.caraDefault);
   }, [vistaBase]);
+
+  useEffect(() => {
+    if (alertaAura) {
+      const timer = setTimeout(() => setAlertaAura(null), 7000);
+      return () => clearTimeout(timer);
+    }
+  }, [alertaAura]);
+
+  const procesarToggle = useCallback((id, sintoma) => {
+    onRegionToggle(id, sintoma);
+    if (!regionesSeleccionadas.includes(id)) {
+      const regla = buscarReglaClinica(id);
+      if (regla) {
+        setAlertaAura(regla);
+      }
+    }
+  }, [onRegionToggle, regionesSeleccionadas]);
+
+  const seleccionarRegion = useCallback((regionId) => {
+    const vistaId = MAPA_VISTAS[regionId];
+    if (vistaId) {
+      setVistaDetalle(vistaId);
+      const regla = buscarReglaClinica(regionId);
+      if (regla) setAlertaAura(regla);
+    } else {
+      procesarToggle(regionId, sintomaActivo);
+    }
+  }, [setVistaDetalle, procesarToggle, sintomaActivo]);
 
   const afectacionesPro = useMemo(() => {
     return regionesSeleccionadas.reduce((acc, id) => {
@@ -130,12 +160,6 @@ export default function BodyChartContainer({
     return [...set];
   }, [regionesSeleccionadas, lado]);
 
-  const seleccionarRegion = useCallback((regionId) => {
-    const vistaId = MAPA_VISTAS[regionId];
-    if (vistaId) setVistaDetalle(vistaId);
-    else onRegionToggle(regionId, sintomaActivo);
-  }, [setVistaDetalle, onRegionToggle, sintomaActivo]);
-
   const volverCuerpoEntero = () => setVistaDetalle(null);
 
   const carasDisponibles = configVista ? configVista.caras : ['anterior', 'posterior'];
@@ -153,8 +177,53 @@ export default function BodyChartContainer({
   }, [regionesSeleccionadas, datosRegiones]);
 
   return (
-    <div className={`w-full max-w-2xl mx-auto p-4 md:p-6 rounded-2xl ${bgContainer} border border-gray-700`}>
-      {/* HEADER */}
+    <div className={`w-full max-w-2xl mx-auto p-4 md:p-6 rounded-2xl ${bgContainer} border border-gray-700 relative`}>
+      
+      {/* 🟢 TOAST DE SUGERENCIAS DE AURA (Theme-aware) 🟢 */}
+      {alertaAura && (
+        <div className={`absolute top-2 right-2 z-[100] p-3 rounded-lg shadow-2xl flex items-start gap-3 w-72 animate-slide-in border-l-4 border-[#22d3ee] ${
+          temaOscuro 
+            ? 'bg-[#1e293b] text-white' 
+            : 'bg-white text-slate-800 border-y border-r border-gray-200'
+        }`}>
+          <div className="text-2xl">🧠</div>
+          <div className="flex-1">
+            <p className={`text-[10px] font-black uppercase tracking-wider mb-1 ${
+              temaOscuro ? 'text-[#22d3ee]' : 'text-cyan-700'
+            }`}>
+              Sugerencia de Aura
+            </p>
+            <p className={`text-xs leading-tight ${
+              temaOscuro ? 'text-gray-200' : 'text-slate-600'
+            }`}>
+              {alertaAura.mensaje}
+            </p>
+            <div className="flex flex-wrap gap-1 mt-2">
+              {alertaAura.sugerencias.map(s => (
+                <span 
+                  key={s} 
+                  className={`px-2 py-0.5 rounded text-[9px] font-bold border ${
+                    temaOscuro 
+                      ? 'bg-[#22d3ee]/20 text-[#22d3ee] border-[#22d3ee]/30' 
+                      : 'bg-cyan-50 text-cyan-700 border-cyan-200'
+                  }`}
+                >
+                  {s}
+                </span>
+              ))}
+            </div>
+          </div>
+          <button 
+            onClick={() => setAlertaAura(null)} 
+            className={`ml-auto text-lg leading-none ${
+              temaOscuro ? 'text-gray-400 hover:text-white' : 'text-gray-400 hover:text-gray-800'
+            }`}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {nombrePaciente && (
         <div className="mb-4 pb-3 border-b border-gray-700/50 flex items-center justify-between">
           <div>
@@ -170,7 +239,6 @@ export default function BodyChartContainer({
         </div>
       )}
 
-      {/* SELECTOR DE SÍNTOMAS */}
       <div className="flex flex-wrap gap-2 mb-3 justify-center">
         {Object.entries(SINTOMAS_MAP).map(([key, s]) => (
           <button
@@ -196,7 +264,6 @@ export default function BodyChartContainer({
         </button>
       )}
 
-      {/* TOGGLE CARAS */}
       <div className="flex justify-center gap-3 mb-4">
         {carasDisponibles.map((opcion) => (
           <button
@@ -211,18 +278,18 @@ export default function BodyChartContainer({
         ))}
       </div>
 
-      {/* CONTENEDOR ESTRICTO: caja rígida, overflow oculto y padding interno */}
+      {/* 🟢 AQUÍ ESTÁ LA MAGIA DEL MODO CLARO 🟢 */}
       <div className="w-full h-[420px] relative flex items-center justify-center overflow-hidden my-4">
-        <div className="w-full h-full flex flex-col items-center justify-center
+        <div className={`w-full h-full flex flex-col items-center justify-center ${!temaOscuro ? 'vista-tema-claro' : ''}
           [&>div]:!flex-col [&>div]:!h-full [&>div]:!max-h-full [&>div]:!w-full
           [&_h4]:!shrink-0 [&_h4]:!text-[11px] [&_h4]:!mb-1
           [&_svg]:!h-auto [&_svg]:!max-h-full [&_svg]:!w-auto [&_svg]:!max-w-full [&_svg]:!object-contain [&_svg]:!scale-95
-        ">
+        `}>
           {vistaDetalle && configVista ? (
             <configVista.componente
               cara={caraDetalle}
               lado={lado}
-              onRegionToggle={(id) => onRegionToggle(id, sintomaActivo)}
+              onRegionToggle={(id) => procesarToggle(id, sintomaActivo)}
               afectaciones={afectacionesPro}
             />
           ) : (
@@ -230,14 +297,13 @@ export default function BodyChartContainer({
               cara={caraGeneral}
               onSeleccionarRegion={seleccionarRegion}
               regionesSeleccionadas={macroAfectadas}
-              onRegionToggle={(id) => onRegionToggle(id, sintomaActivo)}
+              onRegionToggle={(id) => procesarToggle(id, sintomaActivo)}
               temaOscuro={temaOscuro}
             />
           )}
         </div>
       </div>
 
-      {/* LEYENDA (solo si hay afectaciones) */}
       {sintomasActivos.length > 0 && (
         <div className="flex flex-wrap justify-center gap-3 mb-4 text-[10px] font-bold">
           {sintomasActivos.map(sid => {
@@ -253,7 +319,6 @@ export default function BodyChartContainer({
         </div>
       )}
 
-      {/* HALLAZGOS CON EVA MEJORADO */}
       {regionesSeleccionadas.length > 0 && (
         <div className="mt-4 pt-3 border-t border-gray-700/50">
           <p className="text-[10px] uppercase tracking-widest text-[#22d3ee] font-bold mb-2">
@@ -275,11 +340,7 @@ export default function BodyChartContainer({
                         const s = SINTOMAS_MAP[sid] || SINTOMAS_MAP.dolor;
                         return <span key={sid} className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} title={s.nombre} />;
                       })}
-                      <button
-                        onClick={() => onRegionToggle(id, sintomaActivo)}
-                        className="text-red-400 ml-2 text-xs hover:text-red-300"
-                        title="Quitar región"
-                      >✕</button>
+                      <button onClick={() => onRegionToggle(id, sintomaActivo)} className="text-red-400 ml-2 text-xs hover:text-red-300" title="Quitar región">✕</button>
                     </div>
                   </div>
                   
@@ -293,9 +354,7 @@ export default function BodyChartContainer({
                       className="flex-1 h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#22d3ee]"
                     />
                     <span className={`text-[12px] font-black w-7 text-center flex-shrink-0 rounded-md py-0.5 ${
-                      eva >= 7 ? 'bg-red-500/20 text-red-400' : 
-                      eva >= 4 ? 'bg-yellow-500/20 text-yellow-400' : 
-                      'bg-green-500/20 text-green-400'
+                      eva >= 7 ? 'bg-red-500/20 text-red-400' : eva >= 4 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-green-500/20 text-green-400'
                     }`}>
                       {eva}
                     </span>

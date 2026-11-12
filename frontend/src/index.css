@@ -600,3 +600,97 @@ html[data-tema="claro"] .border-cyan-500\/30 { border-color: #67e8f9 !important;
 @keyframes shimmer {
   100% { left: 200%; }
 }
+/* ============================================================ */
+/* ANIMACIÓN SLIDE-IN PARA EL TOAST DE AURA                     */
+/* ============================================================ */
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+/* ============================================================ */
+/* VISTAS PRO EN MODO CLARO (TEMA ADAPTATIVO)                   */
+/* ============================================================ */
+
+/* Huesos base (siluetas externas) */
+.vista-tema-claro svg .hueso-base:not(.selected) {
+  fill: #f1f5f9 !important; /* Blanco roto */
+  stroke: #cbd5e1 !important; /* Gris muy claro */
+}
+
+/* Huesos principales (todos los tipos) */
+.vista-tema-claro svg .hueso-cabeza:not(.selected),
+.vista-tema-claro svg .hueso-hombro:not(.selected),
+.vista-tema-claro svg .hueso-codo:not(.selected),
+.vista-tema-claro svg .hueso-mano:not(.selected),
+.vista-tema-claro svg .hueso-pierna:not(.selected),
+.vista-tema-claro svg .hueso-rodilla:not(.selected),
+.vista-tema-claro svg .hueso-tobillo:not(.selected),
+.vista-tema-claro svg .hueso-pie:not(.selected),
+.vista-tema-claro svg .hueso-torax:not(.selected),
+.vista-tema-claro svg .hueso-lumbar:not(.selected),
+.vista-tema-claro svg .hueso-columna:not(.selected),
+.vista-tema-claro svg .hueso-pelvis:not(.selected),
+.vista-tema-claro svg .hueso-brazo:not(.selected),
+.vista-tema-claro svg .cuerpo-vertebral:not(.selected),
+.vista-tema-claro svg .detalle-vertebra:not(.selected),
+.vista-tema-claro svg .tejido-blando:not(.selected) {
+  fill: #e2e8f0 !important; /* Gris claro */
+  stroke: #94a3b8 !important; /* Gris medio */
+}
+
+/* Discos y facetas */
+.vista-tema-claro svg .disco-inter:not(.selected) {
+  fill: #e0f2fe !important; /* Azul muy claro */
+  stroke: #38bdf8 !important;
+}
+.vista-tema-claro svg .faceta:not(.selected) {
+  fill: #f3e8ff !important; /* Púrpura muy claro */
+  stroke: #c084fc !important;
+}
+
+/* Textos y etiquetas */
+.vista-tema-claro svg text {
+  fill: #475569 !important; /* Gris oscuro para leer bien */
+}
+.vista-tema-claro svg .etiqueta-hombro,
+.vista-tema-claro svg .etiqueta-mano,
+.vista-tema-claro svg .etiqueta-pie {
+  fill: #64748b !important;
+}
+
+/* Líneas de referencia y fibras */
+.vista-tema-claro svg .linea-fibra,
+.vista-tema-claro svg .linea-referencia,
+.vista-tema-claro svg .linea-anat {
+  stroke: #cbd5e1 !important;
+}
+
+/* Nervios y vasos */
+.vista-tema-claro svg .hilo-nervio {
+  stroke: #f59e0b !important; /* Naranja oscuro para contrastar */
+}
+.vista-tema-claro svg .hilo-nervio-sec {
+  stroke: #fbbf24 !important;
+}
+.vista-tema-claro svg .trazo-nervio {
+  stroke: #9333ea !important; /* Púrpura oscuro */
+}
+
+/* Efecto Hover en modo claro */
+.vista-tema-claro svg .zona-interactiva:hover .hueso-cabeza:not(.selected),
+.vista-tema-claro svg .zona-interactiva:hover .hueso-lumbar:not(.selected),
+.vista-tema-claro svg .zona-interactiva:hover .hueso-pierna:not(.selected),
+.vista-tema-claro svg .zona-interactiva:hover .hueso-brazo:not(.selected) {
+  fill: #bae6fd !important; /* Celeste pastel */
+  stroke: #0ea5e9 !important;
+}

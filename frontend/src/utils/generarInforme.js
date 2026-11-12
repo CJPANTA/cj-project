@@ -2,9 +2,8 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { supabase } from '../lib/supabaseClient';
-import { TIPOS_FORMULARIO } from '../components/clinica/Formularios/plantillas';
 
-// Importamos las Vistas Pro
+// Vistas Pro
 import VistaLumbarPro from '../components/clinica/BodyChart/vistas/VistaLumbarPro';
 import VistaPelvisPro from '../components/clinica/BodyChart/vistas/VistaPelvisPro';
 import VistaRodillaPro from '../components/clinica/BodyChart/vistas/VistaRodillaPro';
@@ -19,7 +18,7 @@ import VistaToraxPro from '../components/clinica/BodyChart/vistas/VistaToraxPro'
 import VistaColumnaPro from '../components/clinica/BodyChart/vistas/VistaColumnaPro';
 import VistaBrazoPro from '../components/clinica/BodyChart/vistas/VistaBrazoPro';
 
-// === HELPER: Normalizar estructura regiones/_meta ===
+// Helpers
 const normalizarDatosRegiones = (dr) => {
   if (!dr || typeof dr !== 'object') return { regiones: {}, _meta: {} };
   if (dr.regiones && typeof dr.regiones === 'object') return { regiones: dr.regiones, _meta: dr._meta || {} };
@@ -28,15 +27,23 @@ const normalizarDatosRegiones = (dr) => {
   return { regiones, _meta };
 };
 
-// === MAPA DE COLORES DE SÍNTOMAS ===
-const SINTOMAS_COLORES = {
-  dolor: '#ef4444', inflamacion: '#f59e0b', neuropatia: '#a855f7', rigidez: '#22d3ee',
-};
-const SINTOMAS_NOMBRES = {
-  dolor: 'Dolor', inflamacion: 'Inflamación', neuropatia: 'Neuropatía', rigidez: 'Rigidez'
+const SINTOMAS_COLORES = { dolor: '#ef4444', inflamacion: '#f59e0b', neuropatia: '#a855f7', rigidez: '#22d3ee' };
+const SINTOMAS_NOMBRES = { dolor: 'Dolor', inflamacion: 'Inflamación', neuropatia: 'Neuropatía', rigidez: 'Rigidez' };
+
+const PRIORIDAD_FILL = ['inflamacion', 'dolor', 'neuropatia', 'rigidez'];
+
+const calcularColoresAfectacion = (sintomasArray) => {
+  const arr = (sintomasArray && sintomasArray.length) ? sintomasArray : ['dolor'];
+  const fillSymptom = PRIORIDAD_FILL.find(s => arr.includes(s)) || arr[0];
+  const borderSymptom = arr.find(s => s !== fillSymptom) || fillSymptom;
+  return {
+    fillSymptom,
+    borderSymptom,
+    color: SINTOMAS_COLORES[fillSymptom] || '#ef4444',
+    border: SINTOMAS_COLORES[borderSymptom] || '#ef4444',
+  };
 };
 
-// === FUNCIÓN PARA CONVERTIR LOGO A BASE64 ===
 const urlToBase64 = async (url) => {
   if (!url) return '';
   let absoluteUrl = url.startsWith('http') ? url : new URL(url, window.location.origin).href;
@@ -53,6 +60,41 @@ const urlToBase64 = async (url) => {
   } catch (error) { return absoluteUrl; }
 };
 
+const corregirTypos = (t) => (t || '')
+  .replace(/Estimamientos/gi, 'Estiramientos').replace(/estimamiento/gi, 'estiramiento')
+  .replace(/Susponder/gi, 'Suspender').replace(/susponder/gi, 'suspender')
+  .replace(/Lumbalgia mecanica/gi, 'Lumbalgia mecánica').replace(/Aplicaciòn/gi, 'Aplicación').replace(/aplicaciòn/gi, 'aplicación');
+
+const formatearNombreRegion = (nombre) => {
+  const map = {
+    'cabeza': 'Cabeza', 'cuello': 'Cuello', 'nuca': 'Nuca', 'torax': 'Tórax', 'pecho': 'Pecho', 'espalda': 'Espalda',
+    'hombro': 'Hombro', 'brazo': 'Brazo', 'antebrazo': 'Antebrazo', 'mano': 'Mano', 'muneca': 'Muñeca', 'codo': 'Codo',
+    'pelvis': 'Pelvis', 'cadera': 'Cadera', 'sacro': 'Sacro', 'pubis': 'Pubis', 'pierna': 'Pierna', 'muslo': 'Muslo', 'rodilla': 'Rodilla',
+    'rotula': 'Rótula', 'gemelo': 'Gemelo', 'tobillo': 'Tobillo', 'pie': 'Pie', 'talon': 'Talón',
+    'acromion': 'Acromion', 'deltoides': 'Deltoides', 'manguito': 'Manguito Rotador',
+    'clavicula': 'Clavícula', 'trapecio': 'Trapecio', 'escapula': 'Escápula',
+    'lumbar': 'Lumbar', 'cervical': 'Cervical', 'dorsal': 'Dorsal', 'columna_dorsal': 'Columna Dorsal', 'columna': 'Columna',
+    'poplitea': 'Fosa Poplítea', 'lca': 'LCA', 'lcp': 'LCP', 'lcm': 'LCM', 'lcl': 'LCL', 'menisco': 'Menisco',
+    'cuadriceps': 'Cuádriceps', 'isquiotibial': 'Isquiotibial', 'soleo': 'Sóleo', 'tendon_aquiles': 'Tendón de Aquiles',
+    'biceps': 'Bíceps', 'triceps': 'Tríceps', 'olecranon': 'Olécranon', 'tibial': 'Tibial',
+    'izq': 'Izquierdo', 'der': 'Derecho', 'ant': 'Anterior', 'post': 'Posterior', 'med': 'Medial', 'lat': 'Lateral',
+    'inf': 'Inferior', 'sup': 'Superior', 'prox': 'Proximal', 'dist': 'Distal',
+    'ilion': 'Ilion', 'isquion': 'Isquion', 'gluteo': 'Glúteo', 'coxis': 'Coxis', 'carpo': 'Carpo',
+    'metacarpo': 'Metacarpo', 'metacarpiano': 'Metacarpiano',
+    'falanges_prox': 'Falanges Proximales', 'falanges_dist': 'Falanges Distales', 'pulgar': 'Pulgar', 'eminencia_tenar': 'Eminencia Tenar',
+    'retropie_calcaneo': 'Retropié', 'mediopie_tarso': 'Mediopié', 'antepie_metatarso': 'Antepié', 'falanges_lateral': 'Dedos del Pie',
+    'talon_plantar': 'Talón', 'mediopie_plantar': 'Arco Plantar', 'metatarsianos_plantar': 'Metatarsianos', 'falanges_plantar': 'Dedos del Pie',
+    'pulpejo': 'Pulpejo', 'pulpejos': 'Pulpejos', 'almohadilla': 'Almohadilla', 'almohadillas': 'Almohadillas',
+    'tendones': 'Tendones', 'tendon': 'Tendón', 'extensores': 'Extensores', 'flexores': 'Flexores',
+    'extensor': 'Extensor', 'flexor': 'Flexor',
+    'semilunar': 'Semilunar', 'piramidal': 'Piramidal', 'pisiforme': 'Pisiforme', 'trapezoide': 'Trapezoide',
+  };
+  let resultado = nombre;
+  Object.keys(map).forEach(key => { resultado = resultado.replace(new RegExp(`_${key}(_|$)`, 'g'), ` ${map[key]}$1`); });
+  resultado = resultado.split('_').map(p => map[p] ? map[p] : p.charAt(0).toUpperCase() + p.slice(1)).join(' ').trim();
+  return resultado;
+};
+
 export async function generarInformeDesdeEvaluacion(evaluacionId) {
   const { data: evaluacion, error: evalError } = await supabase.from('evaluaciones').select('*').eq('id', evaluacionId).single();
   if (evalError) throw evalError;
@@ -62,230 +104,173 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
   const { data: { user } } = await supabase.auth.getUser();
   const { data: perfil } = await supabase.from('profiles').select('nombre_completo, centro_id, titulo_profesional, numero_colegiatura, dni, tipo_profesional, tipo_documento, registro_interno').eq('id', user.id).single();
 
-  const tipoProfesional = perfil?.tipo_profesional || 'licenciado';
-  const firmaComoTecnico = tipoProfesional !== 'licenciado';
-
-  let centroNombre = 'Centro CJ';
-  let centroTelefono = '';
-  let centroDireccion = '';
-  let logoUrl = '';
-  let tipoCentro = 'gimnasio_terapeutico';
-
+  const firmaComoTecnico = (perfil?.tipo_profesional || 'licenciado') !== 'licenciado';
+  let centroNombre = 'Centro CJ', logoUrl = '';
   if (perfil?.centro_id) {
-    const { data: centro } = await supabase.from('centros').select('nombre, logo_url, telefono, direccion, tipo_centro').eq('id', perfil.centro_id).single();
-    if (centro) {
-      centroNombre = centro.nombre || 'Centro CJ';
-      centroTelefono = centro.telefono || '';
-      centroDireccion = centro.direccion || '';
-      logoUrl = centro.logo_url || '';
-      tipoCentro = centro.tipo_centro || 'gimnasio_terapeutico';
-    }
-    if (!logoUrl) {
-      const publicLogo = `/logo_centros/${perfil.centro_id}.png`;
-      try { const response = await fetch(publicLogo); if (response.ok) logoUrl = publicLogo; } catch (e) {}
-    }
+    const { data: centro } = await supabase.from('centros').select('nombre, logo_url').eq('id', perfil.centro_id).single();
+    if (centro) { centroNombre = centro.nombre || 'Centro CJ'; logoUrl = centro.logo_url || ''; }
   }
-
   const logoBase64 = await urlToBase64(logoUrl);
-  const esGimnasioTerapeutico = tipoCentro === 'gimnasio_terapeutico';
-
-  const tituloDocumento = firmaComoTecnico ? 'Evaluación Funcional y Plan de Ejercicios' : 'Informe de Evaluación Clínica';
-  const seccion1Titulo = firmaComoTecnico ? '1. Datos del Usuario' : '1. Datos Generales';
-  const seccion8Titulo = firmaComoTecnico ? '8. Plan de Ejercicios Terapéuticos' : '8. Plan de Tratamiento Fisioterapéutico';
-  const subtituloTipoCentro = esGimnasioTerapeutico ? 'Gimnasio Terapéutico' : 'Centro Fisioterapéutico';
-  const nombreCentroConTipo = centroNombre.toLowerCase().includes(subtituloTipoCentro.toLowerCase()) ? centroNombre : `${centroNombre} (${subtituloTipoCentro})`;
 
   const nombrePaciente = pacienteData ? `${pacienteData.nombre} ${pacienteData.apellidos}` : 'Paciente';
   const fecha = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const hora = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
   const usuario = perfil?.nombre_completo || 'Usuario';
-  const titulo = perfil?.titulo_profesional || '';
-  const colegiatura = perfil?.numero_colegiatura || '';
-  const dni = perfil?.dni || '';
-  const registroInterno = perfil?.registro_interno || '';
-
-  let credenciales = '';
-  if (firmaComoTecnico) {
-    if (dni) credenciales = `Técnico en Fisioterapia y Rehabilitación — DNI: ${dni}`;
-    else if (registroInterno) credenciales = `Técnico en Fisioterapia — Registro Interno: ${registroInterno}`;
-    else credenciales = titulo || 'Técnico en Fisioterapia';
-  } else {
-    if (colegiatura) credenciales = `Lic. T.M. Fisioterapia — C.T.M.P. N° ${colegiatura}`;
-    else if (titulo) credenciales = titulo;
-  }
+  const credenciales = firmaComoTecnico ? `Técnico en Fisioterapia y Rehabilitación — DNI: ${perfil?.dni || ''}` : `Lic. T.M. Fisioterapia — C.T.M.P. N° ${perfil?.numero_colegiatura || ''}`;
 
   const regiones = evaluacion.regiones || [];
-  
-  // 🟢 AQUÍ USAMOS EL HELPER DE NORMALIZACIÓN
   const dataNorm = normalizarDatosRegiones(evaluacion.datos_regiones);
   const datosRegiones = dataNorm._meta;
   const regionesData = dataNorm.regiones;
 
-  const corregirTypos = (t) => (t || '')
-    .replace(/Estimamientos/gi, 'Estiramientos').replace(/estimamiento/gi, 'estiramiento')
-    .replace(/Susponder/gi, 'Suspender').replace(/susponder/gi, 'suspender')
-    .replace(/Lumbalgia mecanica/gi, 'Lumbalgia mecánica').replace(/Aplicaciòn/gi, 'Aplicación').replace(/aplicaciòn/gi, 'aplicación');
-
-  const recomendaciones = corregirTypos(datosRegiones._recomendaciones || '');
-  const alertas = corregirTypos(datosRegiones._alertas || '');
-  const planTratamiento = corregirTypos(datosRegiones._plan_tratamiento || '');
-  const hijos = datosRegiones._hijos || [];
-  const contactosEmergencia = datosRegiones._contactos_emergencia || [];
-  const signosVitales = datosRegiones._signos_vitales || {};
-  const familiares = datosRegiones._antecedentes_familiares || [];
-  const familiaresOtros = datosRegiones._antecedentes_familiares_otros || '';
-  const habitos = datosRegiones._habitos || {};
-  const actividadFisica = datosRegiones._actividad_fisica || '';
-  const nivelDeportivo = datosRegiones._nivel_deportivo || '';
-  const deportePracticado = datosRegiones._deporte_practicado || '';
-  const calidadSuenio = datosRegiones._calidad_suenio;
-  const estresPercibido = datosRegiones._estres_percibido || '';
-  const gineco = datosRegiones._gineco_obstetricos || {};
-  const uro = datosRegiones._urologicos || {};
-
-  // ============================================================
-  // RENDERIZAR EVALUACIÓN ESPECIALIZADA (por grupo)
-  // ============================================================
-  const renderizarEvaluacionEspecializada = () => {
-    const campos = datosRegiones._campos_extra || {};
-    const grupos = {};
-    Object.keys(campos).forEach(key => {
-      if (!key.startsWith('especial_')) return;
-      const sinPrefijo = key.replace('especial_', '');
-      const primerGuion = sinPrefijo.indexOf('_');
-      if (primerGuion === -1) return;
-      const tipo = sinPrefijo.substring(0, primerGuion);
-      const idx = parseInt(sinPrefijo.substring(primerGuion + 1));
-      const valor = campos[key];
-      if (!valor || valor.toString().trim() === '') return;
-      if (!TIPOS_FORMULARIO[tipo]) return;
-      const preguntas = TIPOS_FORMULARIO[tipo].preguntas || [];
-      if (isNaN(idx) || idx < 0 || idx >= preguntas.length) return;
-      if (!grupos[tipo]) grupos[tipo] = { nombre: TIPOS_FORMULARIO[tipo].nombre, items: [] };
-      grupos[tipo].items.push({ label: preguntas[idx].label, valor: valor });
-    });
-
-    const tipos = Object.keys(grupos);
-    if (tipos.length === 0) return '';
-    let html = '<h1>3.5 Evaluación Especializada</h1>';
-    tipos.forEach(tipo => {
-      const g = grupos[tipo];
-      html += `
-        <div style="margin-bottom:10px; page-break-inside:avoid;">
-          <div style="font-size:10pt; font-weight:700; color:#0f172a; background:#f1f5f9; padding:5px 10px; border-left:4px solid #22d3ee; border-radius:3px; margin-bottom:6px;">${g.nombre}</div>
-          <table><tbody>${g.items.map(item => `<tr><td style="width:45%; font-weight:600; background:#f8fafc;">${item.label}</td><td>${item.valor}</td></tr>`).join('')}</tbody></table>
-        </div>
-      `;
-    });
-    return html;
+  // === LÓGICA DE VISTAS PRO ===
+  const VISTAS_PRO_CONFIG = {
+    rodilla: { componente: VistaRodillaPro, keywords: ['rodilla', 'menisco', 'lca', 'lcp', 'rotula'] },
+    pie: { componente: VistaPiePro, keywords: ['pie', 'calcaneo', 'talon', 'fascia_plantar', 'metatarsiano', 'hallux', 'falanges_plantar', 'mediopie', 'antepie'] },
+    tobillo: { componente: VistaTobilloPro, keywords: ['tobillo', 'aquiles', 'peroneo'] },
+    pelvis: { componente: VistaPelvisPro, keywords: ['pelvis', 'cadera', 'sacro', 'gluteo', 'acetabulo', 'cresta_iliaca', 'pubis', 'isquion', 'coxis'] },
+    pierna: { componente: VistaPiernaPro, keywords: ['pierna', 'cuadriceps', 'femoral', 'tibial', 'perone', 'gemelo', 'soleo'] },
+    lumbar: { componente: VistaLumbarPro, keywords: ['lumbar', 'l1', 'l2', 'l3', 'l4', 'l5', 'faceta_l', 'disco_l'] },
+    columna: { componente: VistaColumnaPro, keywords: ['columna', 'cervical', 'dorsal'] },
+    hombro: { componente: VistaHombroPro, keywords: ['hombro', 'acromion', 'clavicula', 'escapula', 'manguito', 'deltoides'] },
+    brazo: { componente: VistaBrazoPro, keywords: ['brazo', 'biceps', 'triceps', 'humero'] },
+    codo: { componente: VistaCodoPro, keywords: ['codo', 'olecranon', 'epicondilo'] },
+    mano: { componente: VistaManoPro, keywords: [
+      'mano', 'muneca', 'carpo', 'metacarpo', 'metacarpiano', 'falange', 'pulgar',
+      'pulpejo', 'pulpejos', 'almohadilla', 'almohadillas',
+      'tendones_extensor', 'tendones_flexor', 'tendon_extensor', 'tendon_flexor',
+      'tunel_carpo', 'escafoides', 'grande', 'ganchoso', 'tenar',
+      'nervio_mediano', 'nervio_cubital', 'retinaculo', 'semilunar', 'piramidal', 'pisiforme', 'trapezoide'
+    ]},
+    cabeza: { componente: VistaCabezaPro, keywords: ['cabeza', 'cuello', 'nuca', 'craneo', 'mandibula', 'ecom', 'temporal', 'occipital'] },
+    torax: { componente: VistaToraxPro, keywords: ['torax', 'pecho', 'costilla', 'esternon', 'pectoral', 'trapecio'] }
   };
 
-  // ============================================================
-  // FORMATEAR NOMBRES DE REGIONES
-  // ============================================================
-  const formatearNombreRegion = (nombre) => {
-    const map = {
-      'cabeza': 'Cabeza', 'cuello': 'Cuello', 'nuca': 'Nuca', 'torax': 'Tórax', 'pecho': 'Pecho', 'espalda': 'Espalda',
-      'hombro': 'Hombro', 'brazo': 'Brazo', 'antebrazo': 'Antebrazo', 'mano': 'Mano', 'muneca': 'Muñeca', 'codo': 'Codo',
-      'pelvis': 'Pelvis', 'cadera': 'Cadera', 'sacro': 'Sacro', 'pubis': 'Pubis', 'pierna': 'Pierna', 'muslo': 'Muslo', 'rodilla': 'Rodilla',
-      'rotula': 'Rótula', 'gemelo': 'Gemelo', 'tobillo': 'Tobillo', 'pie': 'Pie', 'talon': 'Talón',
-      'acromion': 'Acromion', 'deltoides': 'Deltoides', 'manguito': 'Manguito Rotador',
-      'clavicula': 'Clavícula', 'trapecio': 'Trapecio', 'escapula': 'Escápula',
-      'lumbar': 'Lumbar', 'cervical': 'Cervical', 'dorsal': 'Dorsal', 'columna_dorsal': 'Columna Dorsal', 'columna': 'Columna',
-      'poplitea': 'Fosa Poplítea', 'lca': 'LCA', 'lcp': 'LCP', 'lcm': 'LCM', 'lcl': 'LCL', 'menisco': 'Menisco',
-      'cuadriceps': 'Cuádriceps', 'isquiotibial': 'Isquiotibial', 'soleo': 'Sóleo', 'tendon_aquiles': 'Tendón de Aquiles',
-      'biceps': 'Bíceps', 'triceps': 'Tríceps', 'olecranon': 'Olécranon', 'tibial': 'Tibial',
-      'izq': 'Izquierdo', 'der': 'Derecho', 'ant': 'Anterior', 'post': 'Posterior', 'med': 'Medial', 'lat': 'Lateral',
-      'inf': 'Inferior', 'sup': 'Superior', 'prox': 'Proximal', 'dist': 'Distal',
-      'ilion': 'Ilion', 'isquion': 'Isquion', 'gluteo': 'Glúteo', 'coxis': 'Coxis', 'carpo': 'Carpo', 'metacarpo': 'Metacarpo',
-      'falanges_prox': 'Falanges Proximales', 'falanges_dist': 'Falanges Distales', 'pulgar': 'Pulgar', 'eminencia_tenar': 'Eminencia Tenar',
-      'retropie_calcaneo': 'Retropié', 'mediopie_tarso': 'Mediopié', 'antepie_metatarso': 'Antepié', 'falanges_lateral': 'Dedos del Pie',
-      'talon_plantar': 'Talón', 'mediopie_plantar': 'Arco Plantar', 'metatarsianos_plantar': 'Metatarsianos', 'falanges_plantar': 'Dedos del Pie',
-    };
-    let resultado = nombre;
-    Object.keys(map).forEach(key => { resultado = resultado.replace(new RegExp(`_${key}(_|$)`, 'g'), ` ${map[key]}$1`); });
-    resultado = resultado.split('_').map(p => map[p] ? map[p] : p.charAt(0).toUpperCase() + p.slice(1)).join(' ').trim();
-    resultado = resultado.replace(/\bLCA\b/g, 'Ligamento Cruzado Anterior').replace(/\bLCP\b/g, 'Ligamento Cruzado Posterior')
-                           .replace(/\bLCM\b/g, 'Ligamento Colateral Medial').replace(/\bLCL\b/g, 'Ligamento Colateral Lateral');
-    return resultado;
-  };
-
-  // ============================================================
-  // TABLA POR ZONAS (COLUMNAS)
-  // ============================================================
-  const zonas = {
-    'Cabeza y Cuello': ['cabeza', 'cuello', 'nuca', 'cervical', 'craneo', 'mandibula', 'ecom', 'temporal', 'occipital', 'frontal', 'parietal', 'zigomatico', 'maxilar', 'atm', 'masetero', 'escalenos', 'suboccipitales', 'trapecio_sup', 'trigemino', 'occipital_mayor', 'plexo_braquial'],
-    'Columna': ['lumbar', 'dorsal', 'columna', 'l1', 'l2', 'l3', 'l4', 'l5', 'faceta_l', 'disco_l', 'escoliosis'],
-    'Tronco': ['torax', 'pecho', 'espalda', 'abdomen', 'clavicula', 'trapecio', 'escapula', 'costillas', 'esternon', 'pectoral', 'serrato', 'dorsal_ancho'],
-    'Miembro Superior': ['hombro', 'brazo', 'antebrazo', 'mano', 'muneca', 'codo', 'biceps', 'triceps', 'olecranon', 'deltoides', 'manguito', 'acromion', 'carpo', 'metacarpo', 'falanges_prox', 'falanges_dist', 'pulgar', 'eminencia_tenar', 'supraespinoso', 'infraespinoso', 'subescapular', 'redondo_menor', 'redondo_mayor', 'art_acromioclavicular', 'art_glenohumeral', 'coracobraquial', 'braquial', 'braquiorradial', 'pronador_redondo', 'anconeo', 'epicondilo', 'lcm_codo', 'lcl_codo', 'lig_anular', 'tunel_carpo', 'escafoides', 'semilunar', 'piramidal', 'pisiforme', 'trapecio_hueso', 'trapezoide', 'grande', 'ganchoso', 'eminencia_hipotenar'],
-    'Miembro Inferior': ['pierna', 'muslo', 'rodilla', 'rotula', 'gemelo', 'tobillo', 'pie', 'talon', 'cuadriceps', 'isquiotibial', 'isquiotibiales', 'soleo', 'tendon_aquiles', 'tibial', 'poplitea', 'lca', 'lcp', 'lcm', 'lcl', 'menisco', 'retropie_calcaneo', 'mediopie_tarso', 'antepie_metatarso', 'falanges_lateral', 'talon_plantar', 'mediopie_plantar', 'metatarsianos_plantar', 'falanges_plantar', 'recto_femoral', 'vasto_lateral', 'vasto_medial', 'sartorio', 'tensor_fascia_lata', 'tibial_anterior', 'extensor_largo_dedos', 'biceps_femoral', 'semitendinoso', 'gastrocnemio', 'calcaneo', 'astragalo', 'navicular', 'cuboides', 'cuneiforme', 'metatarsiano', 'hallux', 'dedo_ii', 'dedo_iii', 'dedo_iv', 'dedo_v', 'tendon_patelar', 'tendon_cuadriceps', 'aquiles', 'fascia_plantar', 'tendones_peroneos', 'tendon_tibial', 'seno_tarso', 'vientre_gastrocnemio_soleo', 'ligamento_deltoideo', 'sindesmosis', 'retinaculo_inferior', 'lpaa', 'lpap'],
-    'Pelvis': ['pelvis', 'cadera', 'sacro', 'pubis', 'gluteo', 'ilion', 'isquion', 'coxis', 'cresta_iliaca', 'acetabulo', 'trocanter_mayor', 'piriforme', 'aductor', 'psoas', 'iliaco'],
-    'Otras': [],
-  };
-  const zonasKeys = Object.keys(zonas);
-  const regionesPorZona = {};
-  zonasKeys.forEach(z => regionesPorZona[z] = []);
+  const vistasAgrupadas = {};
   regiones.forEach(r => {
-    let asignada = false;
-    for (const [zona, keywords] of Object.entries(zonas)) {
-      if (zona === 'Otras') continue;
-      if (keywords.some(k => r.includes(k))) { regionesPorZona[zona].push(r); asignada = true; break; }
+    for (const [vistaBase, config] of Object.entries(VISTAS_PRO_CONFIG)) {
+      if (config.keywords.some(k => r.includes(k)) || r === vistaBase) {
+        if (!vistasAgrupadas[vistaBase]) vistasAgrupadas[vistaBase] = { componente: config.componente, afectaciones: {} };
+        const sintomasArray = regionesData[r]?.sintomas || ['dolor'];
+        const colores = calcularColoresAfectacion(sintomasArray);
+        vistasAgrupadas[vistaBase].afectaciones[r] = {
+          color: colores.color,
+          border: colores.border,
+          sintomas: sintomasArray,
+          colors: sintomasArray.map(s => SINTOMAS_COLORES[s] || '#ef4444')
+        };
+        return;
+      }
     }
-    if (!asignada) regionesPorZona['Otras'].push(r);
   });
 
-  const zonasConContenido = zonasKeys.filter(z => regionesPorZona[z].length > 0);
-  let regionesColumnasHTML = '';
-  if (zonasConContenido.length === 0) {
-    regionesColumnasHTML = '<p class="campo-vacio">No se han registrado regiones afectadas.</p>';
-  } else {
-    const maxItems = Math.max(...zonasConContenido.map(z => regionesPorZona[z].length), 1);
-    regionesColumnasHTML = '<table style="width:100%; border-collapse: collapse; font-size:8.5pt; margin: 4px 0;"><thead><tr>';
-    zonasConContenido.forEach(zona => { regionesColumnasHTML += `<th style="background:#f1f5f9; border:1px solid #cbd5e1; padding:4px; text-align:center; font-weight:700; font-size:8.5pt;">${zona}</th>`; });
-    regionesColumnasHTML += '</tr></thead><tbody>';
-    for (let i = 0; i < maxItems; i++) {
-      regionesColumnasHTML += '<tr>';
-      zonasConContenido.forEach(zona => {
-        const items = regionesPorZona[zona] || [];
-        const nombre = items[i] ? formatearNombreRegion(items[i]) : '';
-        regionesColumnasHTML += `<td style="border:1px solid #cbd5e1; padding:4px; text-align:center; vertical-align:top; font-size:8.5pt;">${nombre}</td>`;
-      });
-      regionesColumnasHTML += '</tr>';
+  const vistaProHTML = Object.entries(vistasAgrupadas).map(([vistaBase, data]) => {
+    const afectacionesKeys = Object.keys(data.afectaciones);
+
+    let carasAGenerar = [];
+    if (vistaBase === 'mano') {
+      const palmarKeys = ['tendones_flexor', 'tendon_flexor', 'nervio_mediano', 'tunel_carpo', 'tenar', 'pulpejo', 'nervio_cubital', 'almohadilla'];
+      const tienePalmar = afectacionesKeys.some(k => palmarKeys.some(pk => k.includes(pk)));
+      const tieneDorsal = afectacionesKeys.some(k => !palmarKeys.some(pk => k.includes(pk)));
+      if (tienePalmar) carasAGenerar.push('palmar');
+      if (tieneDorsal || !tienePalmar) carasAGenerar.push('dorsal');
+    } else if (vistaBase === 'pie') {
+      const plantarKeys = ['fascia_plantar', 'talon_plantar', 'pulpejo'];
+      const tienePlantar = afectacionesKeys.some(k => plantarKeys.some(pk => k.includes(pk)));
+      const tieneLateral = afectacionesKeys.some(k => !plantarKeys.some(pk => k.includes(pk)));
+      if (tienePlantar) carasAGenerar.push('plantar');
+      if (tieneLateral || !tienePlantar) carasAGenerar.push('lateral');
+    } else {
+      const esPosterior = afectacionesKeys.some(k => k.includes('_post') || k.includes('poplitea') || k.includes('sacro') || k.includes('gluteo') || k.includes('isquio'));
+      carasAGenerar = [esPosterior ? 'posterior' : 'anterior'];
     }
-    regionesColumnasHTML += '</tbody></table>';
-  }
 
-  // ============================================================
-  // STICKMAN (Vista Anterior / Posterior) CON COLORES
-  // ============================================================
-  const esPosterior = (r) => {
-    const postRegions = ['nuca', 'espalda', 'sacro', 'gluteo', 'poplitea', 'lumbar', 'dorsal', 'escapula', 'trapecio', 'post', 'isquion', 'ilion'];
-    if (postRegions.some(p => r.includes(p))) return true;
-    return false;
-  };
-  const esAnterior = (r) => !esPosterior(r);
-  const regionesAnteriores = regiones.filter(esAnterior);
-  const regionesPosteriores = regiones.filter(esPosterior);
+    return carasAGenerar.map(cara => {
+      const clavesCara = afectacionesKeys.filter(k => {
+        if (vistaBase === 'mano') {
+          const esPalmar = ['tendones_flexor', 'tendon_flexor', 'nervio_mediano', 'tunel_carpo', 'tenar', 'pulpejo', 'nervio_cubital', 'almohadilla'].some(pk => k.includes(pk));
+          return cara === 'palmar' ? esPalmar : !esPalmar;
+        }
+        if (vistaBase === 'pie') {
+          const esPlantar = ['fascia_plantar', 'talon_plantar', 'pulpejo'].some(pk => k.includes(pk));
+          return cara === 'plantar' ? esPlantar : !esPlantar;
+        }
+        return true;
+      });
 
-  // 🟢 CENTROIDES REDUCIDOS (Lógica de fallback)
+      const hallazgosHTML = clavesCara.map(r => {
+        const nombre = formatearNombreRegion(r);
+        const sintomasArray = regionesData[r]?.sintomas || ['dolor'];
+        const nombresSintomas = sintomasArray.map(s => SINTOMAS_NOMBRES[s] || s).join(', ');
+        const colores = calcularColoresAfectacion(sintomasArray);
+        return `<span style="display:inline-block; background:${colores.color}15; color:${colores.color}; border:1px solid ${colores.color}40; padding:2px 8px; border-radius:12px; font-size:8pt; font-weight:700; margin:2px;">${nombre} (${nombresSintomas})</span>`;
+      }).join('');
+
+      const afectacionesFiltradas = {};
+      clavesCara.forEach(k => { afectacionesFiltradas[k] = data.afectaciones[k]; });
+
+      const props = { cara: cara, lado: 'derecho', afectaciones: afectacionesFiltradas };
+      
+      try {
+        let svgStr = renderToStaticMarkup(React.createElement(data.componente, props));
+        svgStr = svgStr.replace(/<h4[^>]*>.*?<\/h4>/g, '');
+        svgStr = svgStr
+          .replace(/#09131f/gi, '#f8fafc').replace(/#070d18/gi, '#f8fafc').replace(/#0b1622/gi, '#f8fafc')
+          .replace(/#1e293b/gi, '#e2e8f0').replace(/#2d3748/gi, '#e2e8f0').replace(/#334155/gi, '#cbd5e1')
+          .replace(/#475569/gi, '#94a3b8').replace(/#2d4355/gi, '#e2e8f0').replace(/#354b60/gi, '#e2e8f0')
+          .replace(/#384f63/gi, '#e2e8f0').replace(/#263f54/gi, '#e2e8f0').replace(/#3b5064/gi, '#e2e8f0')
+          .replace(/#2a475a/gi, '#e2e8f0').replace(/#354f63/gi, '#e2e8f0');
+        const svgLimpio = svgStr.replace(/<svg /g, '<svg style="max-width:180px; height:auto; margin-top:10px;" ');
+
+        return `
+          <div class="vista-pro">
+            <div>
+              <h4 style="margin:0 0 5px 0; font-size:11pt; text-transform:capitalize; color:#0f172a;">${vistaBase.replace(/_/g, ' ')} (${cara.charAt(0).toUpperCase() + cara.slice(1)})</h4>
+              <div style="margin-bottom:5px;">${hallazgosHTML}</div>
+            </div>
+            <div style="text-align:center;">${svgLimpio}</div>
+          </div>
+        `;
+      } catch (e) { return ''; }
+    }).join('');
+  }).join('');
+
+  // === STICKMAN ===
   const centroides = {
-    cabeza: { cx: 100, cy: 30 }, cuello: { cx: 100, cy: 50 }, nuca: { cx: 100, cy: 50 },
-    hombro_izq: { cx: 125, cy: 45 }, hombro_der: { cx: 75, cy: 45 }, brazo_izq: { cx: 138, cy: 80 }, brazo_der: { cx: 62, cy: 80 },
-    codo_izq: { cx: 138, cy: 105 }, codo_der: { cx: 62, cy: 105 }, mano_izq: { cx: 138, cy: 155 }, mano_der: { cx: 62, cy: 155 },
-    torax: { cx: 100, cy: 85 }, columna: { cx: 100, cy: 90 }, dorsal: { cx: 100, cy: 70 }, lumbar: { cx: 100, cy: 110 },
-    pelvis: { cx: 100, cy: 145 }, sacro: { cx: 100, cy: 138 }, gluteo_izq: { cx: 120, cy: 140 }, gluteo_der: { cx: 80, cy: 140 },
-    pierna_izq: { cx: 120, cy: 200 }, pierna_der: { cx: 80, cy: 200 }, rodilla_izq: { cx: 120, cy: 235 }, rodilla_der: { cx: 80, cy: 235 },
-    tobillo_izq: { cx: 120, cy: 280 }, tobillo_der: { cx: 80, cy: 280 }, pie_izq: { cx: 125, cy: 295 }, pie_der: { cx: 75, cy: 295 },
-    cuadriceps: { cx: 120, cy: 200 }, cuadriceps_der: { cx: 80, cy: 200 }, menisco_med: { cx: 115, cy: 235 }, tendones_extensores: { cx: 138, cy: 140 }
+    cabeza: { cx: 100, cy: 30 }, cuello: { cx: 100, cy: 50 }, hombro_izq: { cx: 125, cy: 45 }, hombro_der: { cx: 75, cy: 45 },
+    brazo_izq: { cx: 138, cy: 80 }, brazo_der: { cx: 62, cy: 80 }, codo_izq: { cx: 138, cy: 105 }, codo_der: { cx: 62, cy: 105 },
+    mano_izq: { cx: 138, cy: 155 }, mano_der: { cx: 62, cy: 155 }, torax: { cx: 100, cy: 85 }, columna: { cx: 100, cy: 90 },
+    lumbar: { cx: 100, cy: 110 }, pelvis: { cx: 100, cy: 145 }, sacro: { cx: 100, cy: 138 },
+    grande: { cx: 138, cy: 155 }, ganchoso: { cx: 138, cy: 155 }, escafoides: { cx: 138, cy: 155 }, semilunar: { cx: 138, cy: 155 },
+    metacarpiano_1: { cx: 138, cy: 155 }, metacarpiano_2: { cx: 138, cy: 155 }, metacarpiano_3: { cx: 138, cy: 155 },
+    metacarpiano_4: { cx: 138, cy: 155 }, metacarpiano_5: { cx: 138, cy: 155 },
+    dedo_2_falanges: { cx: 138, cy: 155 }, dedo_3_falanges: { cx: 138, cy: 155 }, dedo_4_falanges: { cx: 138, cy: 155 }, dedo_5_falanges: { cx: 138, cy: 155 },
+    tendones_flexores: { cx: 138, cy: 155 }, tendones_extensores: { cx: 138, cy: 155 },
+    pulpejos_digitales: { cx: 138, cy: 155 }, pulpejos: { cx: 138, cy: 155 }, pulpejo: { cx: 138, cy: 155 },
+    almohadillas_palmares: { cx: 138, cy: 155 }, almohadillas: { cx: 138, cy: 155 }, almohadilla: { cx: 138, cy: 155 },
+    tunel_carpo: { cx: 138, cy: 155 }, nervio_mediano: { cx: 138, cy: 155 }, nervio_cubital: { cx: 138, cy: 155 },
+    retinaculo_extensor: { cx: 138, cy: 155 }, trapecio: { cx: 110, cy: 48 }
+  };
+
+  // 🆕 MEJORA 2: Clasificar correctamente las regiones de la mano (palmar=anterior, dorsal=posterior)
+  const esPosterior = (r) => {
+    const palmarKeys = ['tendones_flexor', 'tendon_flexor', 'nervio_mediano', 'tunel_carpo', 'tenar', 'pulpejo', 'nervio_cubital', 'almohadilla'];
+    if (palmarKeys.some(pk => r.includes(pk))) return false; // Palmar se ve en Anterior
+
+    const dorsalKeys = ['extensor', 'retinaculo', 'escafoides', 'dedo_', 'metacarpiano', 'grande', 'ganchoso', 'semilunar'];
+    if (dorsalKeys.some(dk => r.includes(dk))) return true; // Dorsal se ve en Posterior
+
+    return ['nuca','espalda','sacro','gluteo','poplitea','lumbar','dorsal','escapula','trapecio','post','isquion','ilion'].some(p => r.includes(p));
   };
 
   const generarPuntosSVG = (regionesVista, esPost) => {
     return regionesVista.map(r => {
       let coords = centroides[r] || centroides[r.split('_')[0]] || { cx: 100, cy: 100 };
+      if (r.includes('_izq') || regionesVista.some(rv => rv.includes('mano_izq'))) coords = { ...coords, cx: 62 };
       const cxFinal = esPost ? (200 - coords.cx) : coords.cx;
-      const sintomas = regionesData[r]?.sintomas || ['dolor'];
-      const color = SINTOMAS_COLORES[sintomas[0]] || '#ef4444';
-      return `<circle cx="${cxFinal}" cy="${coords.cy}" r="5" fill="${color}" stroke="#fff" stroke-width="1.5"/>`;
+      const sintomasArray = regionesData[r]?.sintomas || ['dolor'];
+      const { color, border } = calcularColoresAfectacion(sintomasArray);
+      return `<circle cx="${cxFinal}" cy="${coords.cy}" r="5" fill="${color}" stroke="${border}" stroke-width="2"/>`;
     }).join('');
   };
 
@@ -293,22 +278,14 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
 
   const generarStickman = (regionesVista, tituloVista, esPost) => {
     if (regionesVista.length === 0) return '';
-    return `
-      <div style="text-align:center; margin: 5px 0;">
-        <h3 style="font-size:11pt; margin: 3px 0;">${tituloVista}</h3>
-        <svg viewBox="0 0 200 320" width="140" height="224" xmlns="http://www.w3.org/2000/svg" style="max-width:160px; height:auto;">
-          <defs><linearGradient id="bodyGrad${esPost ? 'P' : 'A'}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#f8fafc"/><stop offset="100%" stopColor="#e2e8f0"/></linearGradient></defs>
-          <g fill="url(#bodyGrad${esPost ? 'P' : 'A'})" stroke="#94a3b8" stroke-width="1.2" opacity="0.8"><path d="${siluetaPaths}"/></g>
-          ${generarPuntosSVG(regionesVista, esPost)}
-        </svg>
-      </div>
-    `;
+    return `<div style="text-align:center; margin: 5px 0;"><h3 style="font-size:11pt; margin: 3px 0;">${tituloVista}</h3><svg viewBox="0 0 200 320" width="140" height="224" xmlns="http://www.w3.org/2000/svg" style="max-width:160px; height:auto;"><g fill="#f8fafc" stroke="#94a3b8" stroke-width="1.2" opacity="0.9"><path d="${siluetaPaths}"/></g>${generarPuntosSVG(regionesVista, esPost)}</svg></div>`;
   };
 
-  const stickmanAnterior = generarStickman(regionesAnteriores, 'Vista Anterior', false);
-  const stickmanPosterior = generarStickman(regionesPosteriores, 'Vista Posterior', true);
+  const rAnt = regiones.filter(r => !esPosterior(r));
+  const rPost = regiones.filter(r => esPosterior(r));
+  const stickmanAnterior = generarStickman(rAnt, 'Vista Anterior', false);
+  const stickmanPosterior = generarStickman(rPost, 'Vista Posterior', true);
 
-  // 🟢 LEYENDA DE COLORES
   const leyendaSintomasHTML = () => {
     const activos = new Set();
     regiones.forEach(r => (regionesData[r]?.sintomas || ['dolor']).forEach(s => activos.add(s)));
@@ -316,486 +293,262 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
     return `<div style="text-align:center; font-size:8pt; font-weight:700; margin-top:5px;">${Array.from(activos).map(s => `<span style="color:${SINTOMAS_COLORES[s]}; margin:0 8px;">● ${SINTOMAS_NOMBRES[s]}</span>`).join('')}</div>`;
   };
 
-  // 🟢 AGRUPACIÓN INTELIGENTE DE VISTAS PRO
-  const VISTAS_PRO_CONFIG = {
-    rodilla: { componente: VistaRodillaPro, caraDefecto: 'anterior', keywords: ['rodilla', 'menisco', 'lca', 'lcp', 'lcm', 'lcl', 'rotula', 'tendon_patelar', 'tendon_cuadriceps', 'fosa_poplitea'] },
-    pie: { componente: VistaPiePro, caraDefecto: 'lateral', keywords: ['pie', 'calcaneo', 'talon', 'fascia_plantar', 'metatarsiano', 'hallux', 'falanges_pie', 'dedo_ii', 'dedo_iii', 'dedo_iv', 'dedo_v', 'astragalo', 'navicular', 'cuboides', 'cuneiforme'] },
-    tobillo: { componente: VistaTobilloPro, caraDefecto: 'lateral', keywords: ['tobillo', 'aquiles', 'tendon_aquiles', 'peroneo', 'tendones_peroneos', 'deltoideo', 'ligamento_deltoideo', 'sindesmosis', 'retinaculo_inferior', 'lpaa', 'lpap', 'seno_tarso', 'tendon_tibial'] },
-    pelvis: { componente: VistaPelvisPro, caraDefecto: 'anterior', keywords: ['pelvis', 'cadera', 'sacro', 'gluteo', 'acetabulo', 'cresta_iliaca', 'pubis', 'isquion', 'coxis', 'trocanter_mayor', 'piriforme', 'aductor', 'psoas', 'iliaco'] },
-    pierna: { componente: VistaPiernaPro, caraDefecto: 'anterior', keywords: ['pierna', 'cuadriceps', 'femoral', 'tibial', 'perone', 'gemelo', 'soleo', 'isquiotibial', 'vasto_lateral', 'vasto_medial', 'sartorio', 'tensor_fascia_lata', 'tibial_anterior', 'extensor_largo_dedos', 'biceps_femoral', 'semitendinoso', 'gastrocnemio', 'vientre_gastrocnemio_soleo'] },
-    lumbar: { componente: VistaLumbarPro, caraDefecto: 'posterior', keywords: ['lumbar', 'l1', 'l2', 'l3', 'l4', 'l5', 'faceta_l', 'disco_l', 'erector_espinal', 'cuadrado_lumbar', 'multifidos'] },
-    columna: { componente: VistaColumnaPro, caraDefecto: 'posterior', keywords: ['columna', 'cervical', 'dorsal', 'toracica', 'escoliosis'] },
-    hombro: { componente: VistaHombroPro, caraDefecto: 'anterior', keywords: ['hombro', 'acromion', 'clavicula', 'escapula', 'manguito', 'deltoides', 'supraespinoso', 'infraespinoso', 'subescapular', 'redondo_menor', 'redondo_mayor', 'art_acromioclavicular', 'art_glenohumeral'] },
-    brazo: { componente: VistaBrazoPro, caraDefecto: 'anterior', keywords: ['brazo', 'biceps', 'triceps', 'humero', 'coracobraquial', 'braquial', 'braquiorradial', 'pronador_redondo', 'anconeo'] },
-    codo: { componente: VistaCodoPro, caraDefecto: 'anterior', keywords: ['codo', 'olecranon', 'epicondilo', 'lcm_codo', 'lcl_codo', 'lig_anular'] },
-    mano: { componente: VistaManoPro, caraDefecto: 'dorsal', keywords: ['mano', 'muneca', 'carpo', 'metacarpo', 'falanges_mano', 'pulgar', 'tunel_carpo', 'escafoides', 'semilunar', 'piramidal', 'pisiforme', 'trapecio_hueso', 'trapezoide', 'grande', 'ganchoso', 'eminencia_tenar', 'eminencia_hipotenar'] },
-    cabeza: { componente: VistaCabezaPro, caraDefecto: 'anterior', keywords: ['cabeza', 'cuello', 'nuca', 'craneo', 'mandibula', 'ecom', 'temporal', 'occipital', 'frontal', 'parietal', 'zigomatico', 'maxilar', 'atm', 'masetero', 'escalenos', 'suboccipitales', 'trapecio_sup', 'trigemino', 'occipital_mayor', 'plexo_braquial'] },
-    torax: { componente: VistaToraxPro, caraDefecto: 'anterior', keywords: ['torax', 'pecho', 'costillas', 'esternon', 'pectoral', 'serrato', 'abdomen', 'dorsal_ancho'] }
+  // === JERARQUÍA ===
+  const jerarquia = {
+    'Cabeza y Cuello': ['cabeza', 'cuello', 'nuca', 'craneo', 'mandibula', 'frontal', 'parietal', 'temporal', 'occipital', 'atm', 'ecom', 'masetero', 'trapecio'],
+    'Columna': ['cervical', 'dorsal', 'lumbar', 'sacro', 'columna', 'l1', 'l2', 'l3', 'l4', 'l5', 'disco_l', 'faceta_l'],
+    'Tórax / Tronco': ['torax', 'pecho', 'costilla', 'esternon', 'pectoral', 'serrato', 'abdomen'],
+    'Miembro Superior': [
+      'hombro', 'brazo', 'codo', 'muneca', 'mano', 'dedo', 'pulgar', 'carpo', 'metacarpo', 'metacarpiano',
+      'falange', 'tenar', 'grande', 'ganchoso', 'escafoides', 'semilunar', 'piramidal', 'pisiforme', 'trapezoide',
+      'pulpejo', 'pulpejos', 'almohadilla', 'almohadillas',
+      'tendones_extensor', 'tendones_flexor', 'tendon_extensor', 'tendon_flexor',
+      'epicondilo', 'olecranon', 'tunel_carpo', 'nervio_mediano', 'nervio_cubital', 'retinaculo'
+    ],
+    'Miembro Inferior': ['cadera', 'muslo', 'rodilla', 'pierna', 'tobillo', 'pie', 'cuadriceps', 'femoral', 'tibial', 'peroneo', 'gemelo', 'soleo', 'aquiles', 'calcaneo', 'metatarsiano', 'menisco', 'lca'],
+    'Pelvis': ['pelvis', 'gluteo', 'cresta', 'acetabulo', 'pubis', 'isquion', 'coxis']
   };
 
-  // 1. Agrupar las regiones afectadas por su Vista Base
-  const vistasAgrupadas = {};
-  regiones.forEach(r => {
-    for (const [vistaBase, config] of Object.entries(VISTAS_PRO_CONFIG)) {
-      if (config.keywords.some(k => r.includes(k)) || r === vistaBase) {
-        if (!vistasAgrupadas[vistaBase]) {
-          vistasAgrupadas[vistaBase] = { componente: config.componente, caraDefecto: config.caraDefecto, afectaciones: {} };
-        }
-        const sintomas = regionesData[r]?.sintomas || ['dolor'];
-        vistasAgrupadas[vistaBase].afectaciones[r] = { color: SINTOMAS_COLORES[sintomas[0]], border: SINTOMAS_COLORES[sintomas[0]] };
-        return; // Ya la asignamos, pasamos a la siguiente región
-      }
-    }
+  const subRegionKeysMano = ['mano', 'dedo', 'carpo', 'metacarpo', 'metacarpiano', 'falange', 'pulgar', 'tenar', 'grande', 'ganchoso', 'tunel_carpo', 'nervio_mediano', 'escafoides', 'retinaculo', 'pulpejo', 'almohadilla', 'tendones_extensor', 'tendones_flexor', 'semilunar', 'nervio_cubital'];
+
+  const generarBadgesSintomas = (sintomasArray, tamano = '7.5pt') => {
+    return (sintomasArray || ['dolor']).map(s => {
+      const color = SINTOMAS_COLORES[s] || '#ef4444';
+      return `<span style="display:inline-block; margin:1px; background:${color}15; color:${color}; border:1px solid ${color}40; padding:1px 7px; border-radius:10px; font-size:${tamano}; font-weight:700;">${SINTOMAS_NOMBRES[s] || s}</span>`;
+    }).join('');
+  };
+
+  // 🆕 MEJORA 1: Agrupar datos para combinar celdas con rowspan
+  const tablaData = [];
+  Object.entries(jerarquia).forEach(([macro, keys]) => {
+    const hallazgosMacro = regiones.filter(r => keys.some(k => r.includes(k)));
+    if (hallazgosMacro.length === 0) return;
+
+    const subRegiones = {};
+    hallazgosMacro.forEach(r => {
+      let subRegion = 'General';
+      if (subRegionKeysMano.some(k => r.includes(k))) subRegion = 'Mano y Dedos';
+      else if (r.includes('muneca')) subRegion = 'Muñeca';
+      else if (r.includes('hombro')) subRegion = 'Hombro';
+      else if (r.includes('codo')) subRegion = 'Codo';
+      else if (r.includes('rodilla') || r.includes('menisco')) subRegion = 'Rodilla';
+      else if (r.includes('tobillo')) subRegion = 'Tobillo';
+      else if (r.includes('pie') || r.includes('calcaneo')) subRegion = 'Pie';
+      else if (r.includes('lumbar') || r.includes('l1')) subRegion = 'Lumbar';
+      else if (r.includes('sacro') || r.includes('gluteo')) subRegion = 'Sacro/Glúteo';
+      else if (r.includes('trapecio')) subRegion = 'Cuello/Trapecio';
+
+      if (!subRegiones[subRegion]) subRegiones[subRegion] = [];
+      subRegiones[subRegion].push(r);
+    });
+
+    tablaData.push({
+      macro,
+      totalMacro: hallazgosMacro.length,
+      subRegiones: Object.entries(subRegiones).map(([subName, regs]) => ({
+        subName,
+        totalSub: regs.length,
+        regiones: regs
+      }))
+    });
   });
 
-  // 2. Generar el HTML de cada vista agrupada
-  const vistaProHTML = Object.entries(vistasAgrupadas).map(([vistaBase, data]) => {
-    const afectacionesKeys = Object.keys(data.afectaciones);
-    
-    // Generar la lista de hallazgos formateados (Ej: "Recto Femoral", "Cresta Iliaca")
-    const hallazgosHTML = afectacionesKeys.map(r => {
-      const nombre = formatearNombreRegion(r);
-      const sintomas = regionesData[r]?.sintomas || ['dolor'];
-      const color = SINTOMAS_COLORES[sintomas[0]] || '#ef4444';
-      return `<span style="display:inline-block; background:${color}15; color:${color}; border:1px solid ${color}40; padding:2px 8px; border-radius:12px; font-size:8pt; font-weight:700; margin:2px;">${nombre}</span>`;
-    }).join('');
+  let tablaJerarquicaHTML = '<table style="width:100%; border-collapse: collapse; font-size:9pt; margin-top:10px;">';
+  tablaJerarquicaHTML += '<thead><tr><th style="background:#f1f5f9; padding:8px; text-align:left; border:1px solid #cbd5e1; width: 30%;">Región Principal</th><th style="background:#f1f5f9; padding:8px; text-align:left; border:1px solid #cbd5e1; width: 30%;">Sub-región / Estructura</th><th style="background:#f1f5f9; padding:8px; text-align:left; border:1px solid #cbd5e1; width: 40%;">Estructura Afectada</th></tr></thead><tbody>';
 
-    // Detectar si necesita vista posterior
-    const esPosterior = afectacionesKeys.some(k => k.includes('_post') || k.includes('poplitea') || k.includes('sacro') || k.includes('gluteo') || k.includes('isquio'));
-    const caraFinal = esPosterior ? 'posterior' : data.caraDefecto;
+  if (tablaData.length === 0) {
+    tablaJerarquicaHTML += '<tr><td colspan="3" style="text-align:center; padding:15px; color:#94a3b8; font-style:italic;">No se han registrado regiones afectadas.</td></tr>';
+  } else {
+    tablaData.forEach(macroData => {
+      let isFirstMacroRow = true;
+      macroData.subRegiones.forEach(subData => {
+        let isFirstSubRow = true;
+        subData.regiones.forEach(r => {
+          const nombreFormateado = formatearNombreRegion(r);
+          let tds = '';
 
-    const props = { cara: caraFinal, lado: 'derecho', afectaciones: data.afectaciones };
-    
-    try {
-      let svgStr = renderToStaticMarkup(React.createElement(data.componente, props));
-      
-      // 🪄 EL TRUCO: Eliminamos el <h4> interno que trae el componente de React para que no se vea gigante
-      svgStr = svgStr.replace(/<h4[^>]*>.*?<\/h4>/g, '');
-      
-      // Ajustamos el tamaño del SVG para el PDF
-      const svgLimpio = svgStr.replace(/<svg /g, '<svg style="max-width:180px; height:auto; margin-top:10px;" ');
-      
-      return `
-        <div class="vista-pro" style="display:flex; flex-direction:column; justify-content:space-between;">
-          <div>
-            <h4 style="margin:0 0 5px 0; font-size:11pt; text-transform:capitalize; color:#0f172a;">${vistaBase.replace(/_/g, ' ')}</h4>
-            <div style="margin-bottom:5px;">${hallazgosHTML}</div>
-          </div>
-          <div style="text-align:center;">${svgLimpio}</div>
-        </div>
-      `;
-    } catch (e) {
-      console.error('Error renderizando vista:', vistaBase, e);
-      return '';
-    }
-  }).join('');
+          if (isFirstMacroRow) {
+            tds += `<td rowspan="${macroData.totalMacro}" style="padding:8px; border:1px solid #cbd5e1; background:#f8fafc; font-weight:700; vertical-align:middle;">${macroData.macro}</td>`;
+            isFirstMacroRow = false;
+          }
+          if (isFirstSubRow) {
+            tds += `<td rowspan="${subData.totalSub}" style="padding:8px; border:1px solid #cbd5e1; color:#475569; vertical-align:middle;">${subData.subName}</td>`;
+            isFirstSubRow = false;
+          }
 
-  // ============================================================
-  // PUNTO 6: EVALUACIÓN POR REGIÓN
-  // ============================================================
+          tds += `<td style="padding:8px; border:1px solid #cbd5e1; font-weight:600;">${nombreFormateado}</td>`;
+          tablaJerarquicaHTML += `<tr>${tds}</tr>`;
+        });
+      });
+    });
+  }
+  tablaJerarquicaHTML += '</tbody></table>';
+
+  // === TABLA EVALUACIÓN POR REGIÓN ===
   const tablaRegiones = regiones.map(region => {
     const data = regionesData[region] || {};
-    const nombreFormateado = formatearNombreRegion(region);
     const eva = data.eva !== undefined ? `${data.eva}/10` : '—';
-    const rom = data.rom || '—';
-    let testsTexto = '—';
-    if (data.tests && data.tests.length > 0) {
-      const testsDetalle = data.tests_detalle || {};
-      const esPlaceholder = (t) => t === 'Test realizado (escribir cuál)' || t === 'Test no específico' || t === 'Test no especifico' || t === 'Test realizado';
-      const testsAMostrar = data.tests.map(t => { const detalle = testsDetalle[t]; if (esPlaceholder(t)) return detalle ? detalle : null; return detalle ? `${t} (${detalle})` : t; }).filter(Boolean);
-      testsTexto = testsAMostrar.length > 0 ? testsAMostrar.join('; ') : '—';
-    }
-    const obs = data.observaciones || '—';
-    const notas = data.notas || '—';
-    return { region: nombreFormateado, eva, rom, tests: testsTexto, obs, notas };
+    const sintomasArray = data.sintomas || ['dolor'];
+    return {
+      region: formatearNombreRegion(region),
+      sintomasArray,
+      eva,
+      rom: data.rom || '—',
+      tests: '—',
+      obs: data.observaciones || '—',
+      notas: data.notas || '—'
+    };
   });
 
-  const tablaHTML = tablaRegiones.map(row => `<tr><td style="font-weight:600;">${row.region}</td><td>${row.eva}</td><td>${row.rom}</td><td>${row.tests}</td><td>${row.obs}</td><td>${row.notas}</td></tr>`).join('');
+  const tablaHTML = tablaRegiones.map(row => `<tr>
+    <td style="font-weight:600;">${row.region}</td>
+    <td>${generarBadgesSintomas(row.sintomasArray, '7.5pt')}</td>
+    <td>${row.eva}</td>
+    <td>${row.rom}</td>
+    <td>${row.tests}</td>
+    <td>${row.obs}</td>
+    <td>${row.notas}</td>
+  </tr>`).join('');
 
-  // ============================================================
-  // PUNTO 7: RECOMENDACIONES
-  // ============================================================
-  const recomLines = recomendaciones.split('\n').map(l => l.trim()).filter(l => l !== '');
-  let recomendacionesHTML = '';
-  if (recomLines.length > 0) {
-    recomendacionesHTML = '<div style="font-size:9.5pt; line-height:1.6;">';
-    recomLines.forEach((line, idx) => { recomendacionesHTML += `<div style="margin-bottom: 4px;"><strong>${idx + 1}.</strong> ${line}</div>`; });
-    recomendacionesHTML += '</div>';
-  } else {
-    recomendacionesHTML = '<span class="campo-vacio">No se han registrado recomendaciones.</span>';
-  }
-
-  // ============================================================
-  // PUNTO 8: PLAN DE TRATAMIENTO
-  // ============================================================
+  // === PLAN DE TRATAMIENTO ===
   let planHTML = '<div style="font-size:9.5pt; line-height:1.55;">';
-  if (planTratamiento) {
-    const planLines = planTratamiento.split('\n');
-    planLines.forEach((line) => {
+  if (datosRegiones._plan_tratamiento) {
+    corregirTypos(datosRegiones._plan_tratamiento).split('\n').forEach((line) => {
       const trimmed = line.trim();
       if (trimmed === '') { planHTML += '<div style="height: 6px;"></div>'; return; }
       if (/^\d+\./.test(trimmed)) { planHTML += `<div style="font-weight: 700; margin-top: 8px; margin-bottom: 3px; color:#0f172a;">${trimmed}</div>`; return; }
       if (trimmed.endsWith(':') && !trimmed.startsWith('-')) { planHTML += `<div style="font-weight: 600; margin-top: 5px; margin-bottom: 2px; margin-left: 15px;">${trimmed}</div>`; return; }
-      if (trimmed.startsWith('-') || trimmed.startsWith('•')) {
-        const indentMatch = line.match(/^\s*/); const indentLevel = indentMatch ? indentMatch[0].length : 0;
-        const marginLeft = indentLevel >= 6 ? 45 : 25; const content = trimmed.replace(/^[-•]\s*/, '');
-        planHTML += `<div style="margin-left: ${marginLeft}px; margin-bottom: 2px;">• ${content}</div>`; return;
-      }
-      const indentMatch = line.match(/^\s*/); const indentLevel = indentMatch ? indentMatch[0].length : 0;
-      const marginLeft = indentLevel >= 6 ? 45 : (indentLevel >= 3 ? 25 : 0);
-      planHTML += `<div style="margin-left: ${marginLeft}px; margin-bottom: 2px;">${trimmed}</div>`;
+      if (trimmed.startsWith('-') || trimmed.startsWith('•')) { planHTML += `<div style="margin-left: 25px; margin-bottom: 2px;">• ${trimmed.replace(/^[-•]\s*/, '')}</div>`; return; }
+      planHTML += `<div style="margin-left: 0px; margin-bottom: 2px;">${trimmed}</div>`;
     });
-  } else {
-    planHTML += '<span class="campo-vacio">No se ha registrado un plan de tratamiento.</span>';
-  }
+  } else { planHTML += '<span style="color:#94a3b8; font-style:italic;">No registrado.</span>'; }
   planHTML += '</div>';
 
-  // ============================================================
-  // PUNTO 9: ALERTAS
-  // ============================================================
-  const alertLines = alertas.split('\n').map(l => l.trim()).filter(l => l !== '');
-  let alertasHTML = '<div style="font-size:9.5pt; line-height:1.55; margin-bottom: 8px;"><div style="font-weight:600; margin-bottom: 4px;">9.1 Alertas Clínicas Específicas:</div>';
-  if (alertLines.length > 0) {
-    alertasHTML += '<div style="background:#fef2f2; border-left:3px solid #ef4444; padding:6px 10px; border-radius:3px;">';
-    alertLines.forEach(line => { alertasHTML += `<div style="margin-bottom: 2px;"><strong>!</strong> ${line}</div>`; });
-    alertasHTML += '</div>';
-  } else {
-    alertasHTML += '<div style="background:#f8fafc; padding:6px 10px; border-radius:3px; color:#94a3b8; font-style:italic;">No se han registrado alertas específicas.</div>';
-  }
-  alertasHTML += '</div>';
-
-  if (firmaComoTecnico) {
-    alertasHTML += `<div class="alerta" style="background:#fef3c7; border-left-color:#f59e0b; color:#78350f;">AVISO: Documento funcional elaborado por un Técnico en Fisioterapia y Rehabilitación. NO constituye diagnóstico clínico ni prescripción médica. Para diagnóstico o prescripción, consulte con un <strong>Lic. T.M. Fisioterapia</strong>.</div>`;
-  } else {
-    alertasHTML += `<div class="alerta">Este informe contiene información confidencial del paciente. Solo debe ser utilizado por personal autorizado.</div>`;
-  }
-
-  // ============================================================
-  // BLOQUES AUXILIARES (Signos Vitales, Hábitos, Gineco, Uro, Banderas)
-  // ============================================================
-  const nivelEducativoHTML = evaluacion.nivel_educativo ? `<tr><td>Nivel educativo</td><td>${evaluacion.nivel_educativo}</td></tr>` : '';
-  let hijosHTML = '';
-  if (hijos && hijos.length > 0) {
-    const hijosTexto = hijos.map((h, i) => { const sexo = h.sexo === 'M' ? 'Masculino' : h.sexo === 'F' ? 'Femenino' : ''; return `Hijo ${i + 1}: ${h.edad || '?'} años${sexo ? ` (${sexo})` : ''}`; }).join(' | ');
-    hijosHTML = `<tr><td>Nº de hijos</td><td>${hijosTexto}</td></tr>`;
-  }
-  const contactosValidos = contactosEmergencia.filter(c => c.nombre || c.telefono);
-  let contactosEmergenciaHTML = '';
-  if (contactosValidos.length > 0) {
-    const texto = contactosValidos.map((c, i) => `Contacto ${i + 1}: ${c.nombre || '?'} (${c.parentesco || '?'}) — ${c.telefono || '?'}`).join(' | ');
-    contactosEmergenciaHTML = `<tr><td>Contactos de emergencia</td><td>${texto}</td></tr>`;
-  }
-
-  const tieneSignosVitales = signosVitales && (signosVitales.ta_sistolica || signosVitales.ta_diastolica || signosVitales.fc || signosVitales.fr || signosVitales.temperatura || signosVitales.spo2 || signosVitales.peso || signosVitales.talla || signosVitales.glucemia);
-  let signosVitalesHTML = '';
-  if (tieneSignosVitales) {
-    let imcTexto = '—'; let imcAlerta = '';
-    if (signosVitales.peso && signosVitales.talla) {
-      const p = parseFloat(signosVitales.peso); const t = parseFloat(signosVitales.talla); const tM = t > 3 ? t / 100 : t; const imc = p / (tM * tM);
-      if (isFinite(imc) && imc > 0) { imcTexto = imc.toFixed(1); if (imc < 18.5) imcAlerta = ' (bajo peso)'; else if (imc < 25) imcAlerta = ' (normal)'; else if (imc < 30) imcAlerta = ' (sobrepeso)'; else imcAlerta = ' (obesidad)'; }
-    }
-    const alertasSV = [];
-    const s = parseFloat(signosVitales.ta_sistolica); const d = parseFloat(signosVitales.ta_diastolica);
-    if ((!isNaN(s) && s >= 140) || (!isNaN(d) && d >= 90)) alertasSV.push('TA elevada'); else if ((!isNaN(s) && s >= 130) || (!isNaN(d) && d >= 85)) alertasSV.push('TA limítrofe');
-    const fc = parseFloat(signosVitales.fc);
-    if (!isNaN(fc) && (fc > 110 || fc < 50)) alertasSV.push('FC fuera de rango'); else if (!isNaN(fc) && (fc > 100 || fc < 60)) alertasSV.push('FC limítrofe');
-    const fr = parseFloat(signosVitales.fr);
-    if (!isNaN(fr) && (fr > 24 || fr < 10)) alertasSV.push('FR fuera de rango');
-    const temp = parseFloat(signosVitales.temperatura);
-    if (!isNaN(temp) && (temp >= 38 || temp < 35.5)) alertasSV.push('Temperatura fuera de rango'); else if (!isNaN(temp) && temp > 37.2) alertasSV.push('Febrícula');
-    const spo2 = parseFloat(signosVitales.spo2);
-    if (!isNaN(spo2) && spo2 < 90) alertasSV.push('SpO2 baja'); else if (!isNaN(spo2) && spo2 < 95) alertasSV.push('SpO2 limítrofe');
-    const glu = parseFloat(signosVitales.glucemia);
-    if (!isNaN(glu) && (glu > 140 || glu < 60)) alertasSV.push('Glucemia fuera de rango'); else if (!isNaN(glu) && (glu > 110 || glu < 70)) alertasSV.push('Glucemia limítrofe');
-    let fechaToma = '';
-    if (signosVitales.fecha_toma) { const df = new Date(signosVitales.fecha_toma); if (!isNaN(df)) { fechaToma = `${String(df.getDate()).padStart(2, '0')}/${String(df.getMonth() + 1).padStart(2, '0')}/${df.getFullYear()} ${String(df.getHours()).padStart(2, '0')}:${String(df.getMinutes()).padStart(2, '0')}`; } }
-    
-    signosVitalesHTML = `
-      <h1>1.1 Signos Vitales</h1>
-      ${fechaToma ? `<p style="font-size:8pt; color:#64748b; margin:2px 0 4px 0;">Toma registrada: ${fechaToma}</p>` : ''}
-      <table>
-        <tr><th>Signo</th><th>Valor</th></tr>
-        ${signosVitales.ta_sistolica || signosVitales.ta_diastolica ? `<tr><td>Presión Arterial</td><td>${signosVitales.ta_sistolica || '—'}/${signosVitales.ta_diastolica || '—'} mmHg</td></tr>` : ''}
-        ${signosVitales.fc ? `<tr><td>Frecuencia Cardíaca</td><td>${signosVitales.fc} lpm</td></tr>` : ''}
-        ${signosVitales.fr ? `<tr><td>Frecuencia Respiratoria</td><td>${signosVitales.fr} rpm</td></tr>` : ''}
-        ${signosVitales.temperatura ? `<tr><td>Temperatura</td><td>${signosVitales.temperatura} °C</td></tr>` : ''}
-        ${signosVitales.spo2 ? `<tr><td>Saturación de Oxígeno</td><td>${signosVitales.spo2} %</td></tr>` : ''}
-        ${signosVitales.peso ? `<tr><td>Peso</td><td>${signosVitales.peso} kg</td></tr>` : ''}
-        ${signosVitales.talla ? `<tr><td>Talla</td><td>${signosVitales.talla} cm</td></tr>` : ''}
-        ${imcTexto !== '—' ? `<tr><td>IMC</td><td>${imcTexto}${imcAlerta}</td></tr>` : ''}
-        ${signosVitales.glucemia ? `<tr><td>Glucemia</td><td>${signosVitales.glucemia} mg/dL</td></tr>` : ''}
-      </table>
-      ${alertasSV.length > 0 ? `<div class="alerta">Observaciones de signos vitales: ${alertasSV.join(', ')}</div>` : ''}
-    `;
-  }
-
-  let familiaresTexto = '';
-  if (familiares.length > 0) { familiaresTexto = familiares.filter(f => f !== 'Otros').join(', '); if (familiares.includes('Otros') && familiaresOtros) familiaresTexto += (familiaresTexto ? ', ' : '') + familiaresOtros; } else if (familiaresOtros) familiaresTexto = familiaresOtros;
-  const familiaresHTML = familiaresTexto ? `<tr><th>Antecedentes familiares</th><td>${familiaresTexto}</td></tr>` : '';
-
-  const tieneHabitos = habitos.tabaquismo || habitos.alcohol || habitos.drogas || habitos.dependencia_medicamentos || actividadFisica || nivelDeportivo || (calidadSuenio !== null && calidadSuenio !== undefined) || estresPercibido;
-  let habitosHTML = '';
-  if (tieneHabitos) {
-    const items = [];
-    items.push(`Tabaquismo: ${habitos.tabaquismo ? `Sí${habitos.cigarrillos_dia ? ` (${habitos.cigarrillos_dia} cig/día` : ''}${habitos.anios_tabaquismo ? `, ${habitos.anios_tabaquismo} años` : ''}${habitos.cigarrillos_dia ? ')' : ''}` : 'No'}`);
-    items.push(`Alcohol: ${habitos.alcohol ? `Sí (${habitos.alcohol_frecuencia || 'frecuencia no especificada'})` : 'No'}`);
-    if (habitos.drogas) items.push('Drogas recreativas: Sí');
-    if (habitos.dependencia_medicamentos) items.push('Dependencia a medicamentos: Sí');
-    if (actividadFisica) items.push(`Actividad física: ${actividadFisica}`);
-    if (nivelDeportivo) items.push(`Nivel deportivo: ${nivelDeportivo}${deportePracticado ? ` (${deportePracticado})` : ''}`);
-    if (calidadSuenio !== null && calidadSuenio !== undefined) items.push(`Calidad del sueño: ${calidadSuenio}/10`);
-    if (estresPercibido) items.push(`Estrés percibido: ${estresPercibido}`);
-    
-    habitosHTML = `
-      <h1>3.1 Hábitos y estilo de vida</h1>
-      <table><tr><th>Aspecto</th><th>Detalle</th></tr>${items.map(i => { const idx = i.indexOf(':'); return `<tr><td>${i.substring(0, idx)}</td><td>${i.substring(idx + 1).trim()}</td></tr>`; }).join('')}</table>
-      ${estresPercibido === 'Alto' ? `<div class="alerta">Se sugiere abordar manejo de estrés como parte complementaria del tratamiento.</div>` : ''}
-    `;
-  }
-
-  const tieneGineco = gineco.embarazo || gineco.lactancia || gineco.fum || gineco.metodo_anticonceptivo || gineco.menopausia || gineco.num_embarazos || gineco.num_partos || gineco.num_abortos;
-  let ginecoHTML = '';
-  if (tieneGineco) {
-    const items = [];
-    if (gineco.embarazo) items.push(['¿Embarazo?', gineco.embarazo]);
-    if (gineco.lactancia) items.push(['¿Lactancia?', gineco.lactancia]);
-    if (gineco.fum) { const fumDate = new Date(gineco.fum); items.push(['Fecha de última menstruación (FUM)', !isNaN(fumDate) ? `${String(fumDate.getDate()).padStart(2, '0')}/${String(fumDate.getMonth() + 1).padStart(2, '0')}/${fumDate.getFullYear()}` : gineco.fum]); }
-    if (gineco.metodo_anticonceptivo) items.push(['Método anticonceptivo', gineco.metodo_anticonceptivo]);
-    if (gineco.menopausia) items.push(['Menopausia', gineco.menopausia]);
-    if (gineco.edad_menopausia !== '' && gineco.edad_menopausia !== undefined) items.push(['Edad de menopausia', `${gineco.edad_menopausia} años`]);
-    if (gineco.num_embarazos) items.push(['Nº de embarazos', gineco.num_embarazos]);
-    if (gineco.num_partos) items.push(['Nº de partos', gineco.num_partos]);
-    if (gineco.num_abortos !== '' && gineco.num_abortos !== undefined) items.push(['Nº de abortos', gineco.num_abortos]);
-
-    ginecoHTML = `
-      <h1>3.2 Antecedentes Gineco-obstétricos</h1>
-      <table><tr><th>Aspecto</th><th>Detalle</th></tr>${items.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>
-      ${gineco.embarazo === 'Sí' ? `<div class="alerta">Paciente embarazada: revisar contraindicaciones antes de aplicar agentes físicos, masoterapia profunda o electroterapia.</div>` : ''}
-    `;
-  }
-
-  const tieneUro = uro.visita_urologo || uro.hiperplasia_prostata || uro.medicacion_prostata;
-  let uroHTML = '';
-  if (tieneUro) {
-    const items = [];
-    if (uro.visita_urologo) items.push(['Visita al urólogo (último año)', uro.visita_urologo]);
-    if (uro.hiperplasia_prostata) items.push(['Hiperplasia prostática', uro.hiperplasia_prostata]);
-    if (uro.medicacion_prostata) items.push(['Medicación prostática', uro.medicacion_prostata]);
-    uroHTML = `<h1>3.2 Antecedentes urológicos</h1><table><tr><th>Aspecto</th><th>Detalle</th></tr>${items.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>`;
-  }
-
-  const banderasRojasSeleccionadas = datosRegiones._banderas_rojas || [];
-  const BANDERAS_LABELS = { cancer: 'Antecedente de cáncer (últimos 5 años)', anticoagulantes: 'Uso de anticoagulantes (warfarina, rivaroxabán, etc.)', marcapasos: 'Marcapasos o dispositivo implantado', cirugia_reciente: 'Cirugía reciente (< 6 semanas) en la zona afectada', perdida_peso: 'Pérdida de peso inexplicable en los últimos 3 meses', fiebre_persistente: 'Fiebre o sudoración nocturna persistente', embarazo: 'Embarazo o sospecha de embarazo', deficit_motor: 'Pérdida de fuerza o sensibilidad progresiva en extremidades', deficit_neuro: 'Déficit neurológico progresivo (adormecimiento, entumecimiento)', trauma: 'Trauma grave reciente (>1m de altura o accidente)', cronico_peso: 'Pérdida de peso inexplicable asociada al dolor', esfinteres: 'Pérdida de control de esfínteres (orina o heces)', silla_montar: 'Alteración de sensibilidad en silla de montar', deficit_mmii: 'Déficit neurológico progresivo en miembros inferiores', rigidez_nuca: 'Rigidez de nuca intensa con fiebre' };
-  
-  let banderasRojasHTML = '';
-  if (banderasRojasSeleccionadas.length > 0) {
-    banderasRojasHTML = `
-      <h1>3.3 Banderas Rojas Detectadas</h1>
-      <div style="background:#fef2f2; border-left:4px solid #ef4444; padding:8px 12px; border-radius:4px; margin:4px 0;">
-        <div style="font-weight:700; color:#b91c1c; margin-bottom:4px;">Se identificaron las siguientes banderas rojas:</div>
-        <ul style="margin:4px 0 8px 20px; padding:0; color:#7f1d1d;">${banderasRojasSeleccionadas.map(id => BANDERAS_LABELS[id] ? `<li style="margin-bottom:2px;">${BANDERAS_LABELS[id]}</li>` : '').join('')}</ul>
-        <div style="font-size:9pt; color:#7f1d1d; font-style:italic;">Estas condiciones pueden requerir evaluación médica previa antes de iniciar el tratamiento. Se recomienda revisar la pertinencia de los agentes físicos seleccionados.</div>
-      </div>
-    `;
-  }
-  let alertaBanderasHTML = banderasRojasSeleccionadas.length > 0 ? `<div class="alerta">ATENCIÓN: El paciente presenta ${banderasRojasSeleccionadas.length} bandera(s) roja(s). Revisar antes de aplicar tratamiento.</div>` : '';
-
-  const badgeCentroHTML = esGimnasioTerapeutico ? `<div style="display:inline-block; padding:3px 10px; background:#fef3c7; color:#78350f; font-size:8pt; font-weight:700; border-radius:4px; letter-spacing:1px; text-transform:uppercase; margin-bottom:6px;">Gimnasio Terapéutico</div>` : `<div style="display:inline-block; padding:3px 10px; background:#dbeafe; color:#1e40af; font-size:8pt; font-weight:700; border-radius:4px; letter-spacing:1px; text-transform:uppercase; margin-bottom:6px;">Centro Fisioterapéutico</div>`;
-
+  // === HTML FINAL ===
   const contenidoHTML = `
     <!DOCTYPE html>
     <html>
-    <head>
-      <meta charset="UTF-8">
-      <title>${tituloDocumento} - ${nombrePaciente}</title>
+    <head><meta charset="UTF-8"><title>${firmaComoTecnico ? 'Evaluación Funcional' : 'Informe Clínico'} - ${nombrePaciente}</title>
       <style>
-        @page { size: A4; margin: 1.5cm 1.5cm 1cm 1.5cm; }
-        * { box-sizing: border-box; }
-        body { font-family: 'Calibri', 'Roboto', Arial, sans-serif; font-size: 10pt; line-height: 1.4; color: #1e293b; background: white; margin: 0; padding: 0; }
-        .pagina { display: flex; flex-direction: column; height: 100vh; padding: 0; page-break-after: always; position: relative; }
-        .pagina:last-child { page-break-after: avoid; }
-        .contenido { flex: 1; padding-bottom: 15px; }
-        .encabezado { text-align: center; border-bottom: 2px solid #22d3ee; padding-bottom: 8px; margin-bottom: 15px; position: relative; min-height: 70px; }
-        .encabezado .logo { max-width: 60px; max-height: 60px; float: left; margin-right: 12px; border-radius: 50%; object-fit: cover; border: 2px solid #22d3ee; padding: 2px; background: #fff; }
-        .encabezado .titulo { font-size: 16pt; font-weight: 700; color: #0f172a; text-transform: uppercase; letter-spacing: 1px; }
-        .encabezado .subtitulo { font-size: 9pt; color: #64748b; }
-        .encabezado .datos { font-size: 8pt; color: #475569; margin-top: 3px; }
-        .pie { text-align: center; font-size: 8pt; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 6px; margin-top: auto; width: 100%; }
-        .marca-agua { position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; align-items: center; pointer-events: none; z-index: 1000; opacity: 0.04; font-size: 80pt; font-weight: 900; color: #22d3ee; transform: rotate(-30deg); text-transform: uppercase; letter-spacing: 20px; user-select: none; }
-        h1 { font-size: 13pt; font-weight: 700; color: #0f172a; border-left: 4px solid #22d3ee; padding-left: 10px; margin-top: 14px; margin-bottom: 6px; text-transform: uppercase; page-break-after: avoid; }
-        table { width: 100%; border-collapse: collapse; margin: 4px 0; font-size: 9pt; page-break-inside: avoid; }
-        th, td { border: 1px solid #cbd5e1; padding: 3px 5px; text-align: left; vertical-align: top; }
-        th { background-color: #f1f5f9; font-weight: 700; }
-        .alerta { background-color: #fee2e2; border-left: 4px solid #ef4444; padding: 5px 10px; margin: 6px 0; border-radius: 3px; font-weight: 600; font-size: 9pt; }
-        .stickman-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin: 8px 0; }
-        .stickman-container > div { flex: 0 1 auto; text-align: center; }
-        .firma { margin-top: 30px; border-top: 1px solid #94a3b8; padding-top: 30px; padding-right: 60px; }
-        .firma .firma-bloque { max-width: 320px; margin-left: auto; text-align: left; }
-        .firma .firma-label { font-size: 9pt; color: #475569; font-weight: 600; margin: 0 0 50px 0; }
-        .firma .firma-linea { border-top: 1.5px solid #475569; padding-top: 6px; margin: 0; }
-        .firma .firma-nombre { font-size: 10pt; font-weight: 700; color: #0f172a; margin: 0; }
-        .firma .firma-credenciales { font-size: 8.5pt; color: #64748b; margin: 2px 0 0 0; }
-        .campo-vacio { color: #94a3b8; font-style: italic; }
-        .vista-pro { border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; page-break-inside: avoid; text-align: center; }
-        @media print { .marca-agua { opacity: 0.03; } .pagina { height: auto; min-height: 100vh; } }
+        @page { size: A4; margin: 1.5cm; }
+        body { font-family: 'Calibri', Arial, sans-serif; font-size: 10pt; color: #1e293b; margin: 0; padding: 0; }
+        .pagina { page-break-after: always; padding-bottom: 20px; }
+        h1 { font-size: 13pt; font-weight: 700; color: #0f172a; border-left: 4px solid #22d3ee; padding-left: 10px; margin-top: 14px; margin-bottom: 6px; text-transform: uppercase; }
+        table { width: 100%; border-collapse: collapse; margin: 4px 0; font-size: 9pt; }
+        th, td { border: 1px solid #cbd5e1; padding: 4px 6px; }
+        th { background-color: #f1f5f9; }
+        .alerta { background: #fee2e2; border-left: 4px solid #ef4444; padding: 6px 10px; margin: 6px 0; border-radius: 3px; font-size: 9pt; }
+        .stickman-container { display: flex; justify-content: center; gap: 20px; margin: 10px 0; }
+        .vista-pro { border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; break-inside: avoid; text-align: center; background: #fff; display:flex; flex-direction:column; justify-content:space-between; }
+        .seccion-anatomica { page-break-inside: avoid; break-inside: avoid; margin-top: 20px; }
       </style>
     </head>
     <body>
-      <div class="marca-agua">${firmaComoTecnico ? 'DOCUMENTO FUNCIONAL' : 'CONFIDENCIAL'}</div>
-
+      <!-- PÁGINA 1 -->
       <div class="pagina">
-        <div class="contenido">
-          ${alertaBanderasHTML}
-          <div class="encabezado clearfix">
-            ${logoBase64 ? `<img src="${logoBase64}" class="logo" alt="Logo Centro" />` : ''}
-            <div>
-              <div class="titulo">${tituloDocumento}</div>
-              <div class="subtitulo">${centroNombre}</div>
-              <div style="text-align:center;">${badgeCentroHTML}</div>
-              <div class="datos">Paciente: ${nombrePaciente} &nbsp;|&nbsp; Fecha: ${fecha} &nbsp;|&nbsp; ID: ${evaluacion.paciente_id}</div>
-            </div>
-          </div>
-
-          <h1>${seccion1Titulo}</h1>
-          <table>
-            <tr><th>Campo</th><th>Valor</th></tr>
-            ${evaluacion.edad ? `<tr><td>Edad</td><td>${evaluacion.edad}</td></tr>` : ''}
-            ${evaluacion.sexo ? `<tr><td>Sexo</td><td>${evaluacion.sexo}</td></tr>` : ''}
-            ${evaluacion.estado_civil ? `<tr><td>Estado Civil</td><td>${evaluacion.estado_civil}</td></tr>` : ''}
-            ${evaluacion.ocupacion ? `<tr><td>Ocupación</td><td>${evaluacion.ocupacion}</td></tr>` : ''}
-            ${nivelEducativoHTML}
-            ${evaluacion.telefono ? `<tr><td>Teléfono</td><td>${evaluacion.telefono}</td></tr>` : ''}
-            ${evaluacion.direccion ? `<tr><td>Dirección</td><td>${evaluacion.direccion}</td></tr>` : ''}
-            ${evaluacion.como_llego ? `<tr><td>¿Cómo llegó al centro?</td><td>${evaluacion.como_llego}</td></tr>` : ''}
-            ${hijosHTML}
-            ${contactosEmergenciaHTML}
-          </table>
-
-          ${signosVitalesHTML}
-
-          <h1>2. Motivo de Consulta</h1>
-          ${evaluacion.motivo_consulta ? `<p><strong>Motivo principal:</strong> ${evaluacion.motivo_consulta}</p>` : ''}
-          ${evaluacion.tiempo_evolucion ? `<p><strong>Tiempo de evolución:</strong> ${evaluacion.tiempo_evolucion}</p>` : ''}
-          ${evaluacion.mecanismo_lesion ? `<p><strong>Mecanismo de lesión:</strong> ${evaluacion.mecanismo_lesion}</p>` : ''}
-
-          <h1>3. Antecedentes</h1>
-          <table>
-            ${evaluacion.antecedentes_medicos ? `<tr><th>Antecedentes médicos</th><td>${evaluacion.antecedentes_medicos}</td></tr>` : ''}
-            ${evaluacion.alergias ? `<tr><th>Alergias</th><td>${evaluacion.alergias}</td></tr>` : ''}
-            ${evaluacion.medicamentos ? `<tr><th>Medicamentos actuales</th><td>${evaluacion.medicamentos}</td></tr>` : ''}
-            ${evaluacion.cirugias_previas ? `<tr><th>Cirugías previas</th><td>${evaluacion.cirugias_previas}</td></tr>` : ''}
-            ${familiaresHTML}
-          </table>
-
-          ${habitosHTML}
-          ${ginecoHTML}
-          ${uroHTML}
-          ${banderasRojasHTML}
-
-          ${(() => {
-            const notas = corregirTypos(datosRegiones._notas_clinicas || '');
-            if (!notas.trim()) return '';
-            return `<h1>3.4 Notas Clínicas del Terapeuta</h1><div style="background:#f0f9ff; border-left:4px solid #22d3ee; padding:8px 12px; border-radius:4px; margin:4px 0; font-size:9.5pt; line-height:1.55; white-space:pre-wrap;">${notas}</div>`;
-          })()}
-
-          ${renderizarEvaluacionEspecializada()}
+        <div style="text-align:center; border-bottom:2px solid #22d3ee; padding-bottom:10px; margin-bottom:15px;">
+          ${logoBase64 ? `<img src="${logoBase64}" style="max-height:60px; float:left;" />` : ''}
+          <h2 style="margin:0; color:#0f172a;">${firmaComoTecnico ? 'Evaluación Funcional y Plan de Ejercicios' : 'Informe de Evaluación Clínica'}</h2>
+          <p style="margin:2px 0; color:#64748b; font-size:9pt;">${centroNombre}</p>
+          <p style="margin:2px 0; font-size:9pt;">Paciente: ${nombrePaciente} | Fecha: ${fecha}</p>
         </div>
-        <div class="pie">${tituloDocumento} - ${centroNombre} - Pág. 1</div>
+
+        <h1>1. Datos del Paciente</h1>
+        <table>
+          <tr><th>Campo</th><th>Valor</th></tr>
+          ${evaluacion.edad ? `<tr><td>Edad</td><td>${evaluacion.edad}</td></tr>` : ''}
+          ${evaluacion.sexo ? `<tr><td>Sexo</td><td>${evaluacion.sexo}</td></tr>` : ''}
+          ${evaluacion.telefono ? `<tr><td>Teléfono</td><td>${evaluacion.telefono}</td></tr>` : ''}
+          ${evaluacion.direccion ? `<tr><td>Dirección</td><td>${evaluacion.direccion}</td></tr>` : ''}
+        </table>
+
+        <h1>2. Motivo de Consulta</h1>
+        <p>${evaluacion.motivo_consulta || 'No registrado'}</p>
+
+        <h1>3. Antecedentes</h1>
+        <table>
+          ${evaluacion.antecedentes_medicos ? `<tr><th>Antecedentes médicos</th><td>${evaluacion.antecedentes_medicos}</td></tr>` : ''}
+          ${evaluacion.alergias ? `<tr><th>Alergias</th><td>${evaluacion.alergias}</td></tr>` : ''}
+          ${evaluacion.medicamentos ? `<tr><th>Medicamentos</th><td>${evaluacion.medicamentos}</td></tr>` : ''}
+          ${evaluacion.cirugias_previas ? `<tr><th>Cirugías previas</th><td>${evaluacion.cirugias_previas}</td></tr>` : ''}
+        </table>
       </div>
 
+      <!-- PÁGINA 2 -->
       <div class="pagina">
-        <div class="contenido">
-          <h1>4. Evaluación del Dolor</h1>
-          ${evaluacion.tipo_dolor && evaluacion.tipo_dolor.length > 0 ? `<p><strong>Tipo de dolor:</strong> ${evaluacion.tipo_dolor.join(', ')}</p>` : ''}
-          <table>
-            <tr><th>Intensidad en reposo (EVA)</th><td>${evaluacion.intensidad_reposo || 0} / 10</td></tr>
-            <tr><th>Intensidad en actividad (EVA)</th><td>${evaluacion.intensidad_actividad || 0} / 10</td></tr>
-            ${evaluacion.factores_agravantes ? `<tr><th>Factores agravantes</th><td>${evaluacion.factores_agravantes}</td></tr>` : ''}
-            ${evaluacion.factores_atenuantes ? `<tr><th>Factores atenuantes</th><td>${evaluacion.factores_atenuantes}</td></tr>` : ''}
-            ${evaluacion.sintomas_asociados ? `<tr><th>Síntomas asociados</th><td>${evaluacion.sintomas_asociados}</td></tr>` : ''}
-          </table>
+        <h1>4. Evaluación del Dolor</h1>
+        <table>
+          <tr><th>Intensidad en reposo (EVA)</th><td>${evaluacion.intensidad_reposo || 0} / 10</td></tr>
+          <tr><th>Intensidad en actividad (EVA)</th><td>${evaluacion.intensidad_actividad || 0} / 10</td></tr>
+        </table>
 
-          <h1>5. Regiones Afectadas</h1>
-          ${regionesColumnasHTML}
+        <h1>5. Regiones Afectadas</h1>
+        ${tablaJerarquicaHTML}
 
-          <div class="stickman-container">
-            ${stickmanAnterior}
-            ${stickmanPosterior}
-          </div>
-          ${leyendaSintomasHTML()}
+        <div class="stickman-container">${stickmanAnterior}${stickmanPosterior}</div>
+        ${leyendaSintomasHTML()}
 
-          <h1>6. Evaluación por Región</h1>
-          <table>
-            <thead><tr><th style="width:22%;">Región</th><th style="width:8%;">EVA</th><th style="width:10%;">ROM</th><th style="width:18%;">Tests</th><th style="width:22%;">Observaciones</th><th style="width:20%;">Notas</th></tr></thead>
-            <tbody>${tablaHTML}</tbody>
-          </table>
-        </div>
-        <div class="pie">${tituloDocumento} - ${centroNombre} - Pág. 2</div>
-      </div>
+        <h1>6. Evaluación por Región</h1>
+        <table>
+          <thead><tr>
+            <th style="width:19%;">Región</th>
+            <th style="width:17%; font-size:8pt; line-height:1.15;">
+              Hallazgo<br/>
+              <span style="font-size:7pt; font-weight:500; color:#64748b;">/ Síntomas</span>
+            </th>
+            <th style="width:7%;">EVA</th>
+            <th style="width:9%;">ROM</th>
+            <th style="width:13%;">Tests</th>
+            <th style="width:17%;">Observaciones</th>
+            <th style="width:18%;">Notas</th>
+          </tr></thead>
+          <tbody>${tablaHTML}</tbody>
+        </table>
 
-        <div class="pagina">
-        <div class="contenido">
+        <div class="seccion-anatomica">
           <h1>6.5 Detalle Anatómico</h1>
           <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:15px;">
             ${vistaProHTML}
           </div>
-
-          <h1>7. Recomendaciones Generales</h1>
-          ${recomendacionesHTML}
         </div>
-        <div class="pie">${tituloDocumento} - ${centroNombre} - Pág. 3</div>
+
+        <div class="seccion-anatomica">
+          <h1>7. Recomendaciones Generales</h1>
+          <div style="font-size:9.5pt;">${corregirTypos(datosRegiones._recomendaciones) || 'No registradas.'}</div>
+        </div>
       </div>
 
+      <!-- PÁGINA 3 -->
       <div class="pagina">
-        <div class="contenido">
-          <h1>${seccion8Titulo}</h1>
-          ${firmaComoTecnico ? `<p style="font-size:8.5pt; color:#78350f; background:#fef3c7; padding:5px 8px; border-radius:4px; margin-bottom:6px;"><strong>Nota:</strong> Los agentes físicos y técnicas manuales aquí descritos son <strong>sugerencias de aplicación</strong> basadas en protocolos estándar de rehabilitación funcional. Su aplicación está sujeta a validación por un <strong>Lic. T.M. Fisioterapia</strong>.</p>` : ''}
-          ${planHTML}
+        <h1>${firmaComoTecnico ? '8. Plan de Ejercicios Terapéuticos' : '8. Plan de Tratamiento Fisioterapéutico'}</h1>
+        ${firmaComoTecnico ? `<p style="font-size:8.5pt; color:#78350f; background:#fef3c7; padding:5px 8px; border-radius:4px; margin-bottom:6px;"><strong>Nota:</strong> Los agentes físicos y técnicas manuales aquí descritos son <strong>sugerencias de aplicación</strong> basadas en protocolos estándar. Su aplicación está sujeta a validación por un <strong>Lic. T.M. Fisioterapia</strong>.</p>` : ''}
+        ${planHTML}
 
-          <h1>9. Alertas de Seguridad</h1>
-          ${alertasHTML}
+        <h1>9. Alertas de Seguridad</h1>
+        <div class="alerta">${corregirTypos(datosRegiones._alertas) || 'Sin alertas específicas.'}</div>
 
-          <h1>10. Datos de Generación</h1>
-          <table>
-            <tr><th>Documento generado por</th><td>${usuario}</td></tr>
-            <tr><th>Tipo de profesional</th><td>${firmaComoTecnico ? 'Técnico en Fisioterapia y Rehabilitación' : 'Licenciado en Tecnología Médica - Fisioterapia'}</td></tr>
-            <tr><th>Fecha de generación</th><td>${fecha}</td></tr>
-            <tr><th>Hora de generación</th><td>${hora}</td></tr>
-            <tr><th>Centro</th><td>${nombreCentroConTipo}</td></tr>
-          </table>
+        <h1>10. Datos de Generación</h1>
+        <table>
+          <tr><th>Documento generado por</th><td>${usuario}</td></tr>
+          <tr><th>Tipo de profesional</th><td>${firmaComoTecnico ? 'Técnico en Fisioterapia y Rehabilitación' : 'Licenciado en Tecnología Médica - Fisioterapia'}</td></tr>
+          <tr><th>Fecha de generación</th><td>${fecha}</td></tr>
+          <tr><th>Centro</th><td>${centroNombre}</td></tr>
+        </table>
 
-          <div class="firma">
-            <div class="firma-bloque">
-              <p class="firma-label">${firmaComoTecnico ? 'Firma del profesional técnico:' : 'Firma del profesional:'}</p>
-              <div class="firma-linea">
-                <p class="firma-nombre">${usuario}</p>
-                ${credenciales ? `<p class="firma-credenciales">${credenciales}</p>` : ''}
-              </div>
-            </div>
-          </div>
-          <div style="text-align: center; margin-top: 15px; font-size: 9pt; color: #64748b;">--- Fin del documento ---</div>
+        <div style="margin-top:40px; text-align:right;">
+          <p style="margin:0 0 30px 0;">Firma del Profesional:</p>
+          <p style="border-top:1px solid #000; display:inline-block; padding-top:5px; min-width:250px; font-weight:bold;">${usuario}</p>
+          <p style="margin:2px 0 0 0; font-size:8.5pt; color:#64748b;">${credenciales}</p>
         </div>
-        <div class="pie">${tituloDocumento} - ${centroNombre} - Pág. 4</div>
       </div>
     </body>
     </html>
   `;
 
-  const ventana = window.open('', '_blank', 'width=800,height=600,scrollbars=yes');
+  const ventana = window.open('', '_blank', 'width=800,height=600');
   if (ventana) {
-    ventana.document.title = `${tituloDocumento} - ${nombrePaciente}`;
     ventana.document.write(contenidoHTML);
     ventana.document.close();
-    setTimeout(() => {
-      const imgs = Array.from(ventana.document.querySelectorAll('img'));
-      const pend = imgs.filter(i => !i.complete);
-      if (pend.length === 0) { ventana.print(); return; }
-      let n = 0;
-      const fin = () => { n++; if (n >= pend.length) ventana.print(); };
-      pend.forEach(i => { i.addEventListener('load', fin, { once: true }); i.addEventListener('error', fin, { once: true }); });
-      setTimeout(() => { try { ventana.print(); } catch (e) {} }, 5000);
-    }, 300);
-  } else {
-    alert('Por favor, permite las ventanas emergentes para generar el informe.');
-  }
+    setTimeout(() => { ventana.print(); }, 800);
+  } else { alert('Permite las ventanas emergentes.'); }
 }
