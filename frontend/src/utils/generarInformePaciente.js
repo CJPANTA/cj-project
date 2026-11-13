@@ -2,6 +2,10 @@
 import { supabase } from '../lib/supabaseClient';
 import { generarStickmanEjercicio, getIconoPosicion } from './stickmans';
 
+// 🆕 Configuración QR para el paciente
+const URL_APP = 'https://cj-project-86im.vercel.app';
+const generarQR = (url, size = 120) => `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}&bgcolor=ffffff&color=0f172a&margin=0`;
+
 // === HELPER: Normalizar estructura regiones/_meta ===
 const normalizarDatosRegiones = (dr) => {
   if (!dr || typeof dr !== 'object') return { regiones: {}, _meta: {} };
@@ -157,24 +161,17 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
     <head>
       <meta charset="UTF-8">
       <title>Plan de Ejercicios - ${nombrePaciente}</title>
-      <style>
+            <style>
         @page { size: A4; margin: 1.5cm 1.5cm 1cm 1.5cm; }
         * { box-sizing: border-box; }
         body { font-family: 'Calibri', 'Roboto', Arial, sans-serif; font-size: 10.5pt; line-height: 1.5; color: #1e293b; background: white; margin: 0; padding: 0; }
-        .pagina { display: flex; flex-direction: column; min-height: 100vh; padding: 0; page-break-after: always; position: relative; }
+        .pagina { page-break-after: always; position: relative; padding-bottom: 40px; min-height: 250mm; }
         .pagina:last-child { page-break-after: avoid; }
-        .contenido { flex: 1; padding-bottom: 15px; }
-        .pie { text-align: center; font-size: 8pt; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 6px; margin-top: auto; width: 100%; }
+        .pie { position: absolute; bottom: 0; left: 0; right: 0; text-align: center; font-size: 8pt; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 6px; }
         .badge { text-align: center; padding: 6px 12px; font-size: 9pt; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; border-radius: 4px; }
         .badge-borrador { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
         .badge-pendiente { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
         .badge-rechazado { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
-        .encabezado { text-align: center; border-bottom: 3px solid #22d3ee; padding-bottom: 12px; margin-bottom: 20px; position: relative; min-height: 80px; }
-        .encabezado .logo { max-width: 70px; max-height: 70px; float: left; margin-right: 12px; border-radius: 50%; object-fit: cover; border: 2px solid #22d3ee; padding: 2px; background: #fff; }
-        .encabezado .titulo { font-size: 18pt; font-weight: 700; color: #0f172a; text-transform: uppercase; letter-spacing: 1px; }
-        .encabezado .subtitulo { font-size: 10pt; color: #64748b; }
-        .encabezado .datos { font-size: 9pt; color: #475569; margin-top: 4px; }
-        .clearfix::after { content: ""; clear: both; display: table; }
         h1 { font-size: 14pt; font-weight: 700; color: #0f172a; border-left: 5px solid #22d3ee; padding-left: 12px; margin-top: 20px; margin-bottom: 10px; text-transform: uppercase; page-break-after: avoid; }
         h2.subtitulo-tipo { font-size: 12pt; font-weight: 700; color: #0891b2; background: #ecfeff; padding: 8px 14px; border-radius: 6px; margin-top: 16px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; page-break-after: avoid; border-left: 4px solid #22d3ee; }
         .diagnostico-box { background: #f0f9ff; border-left: 4px solid #22d3ee; padding: 12px 16px; border-radius: 6px; font-size: 11pt; line-height: 1.6; }
@@ -210,30 +207,51 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
         .proxima-cita .linea-fecha { font-size: 11pt; color: #064e3b; border-bottom: 1.5px solid #064e3b; padding-bottom: 4px; display: inline-block; min-width: 280px; }
         .h1-proxima-cita { page-break-after: avoid; }
         .seccion-final { page-break-inside: avoid; }
-        .firma-box { margin-top: 30px; border-top: 1px solid #94a3b8; padding-top: 30px; padding-right: 60px; }
-        .firma-box .firma-bloque { max-width: 320px; margin-left: auto; text-align: left; }
-        .firma-box .firma-label { font-size: 9pt; color: #475569; font-weight: 600; margin: 0 0 50px 0; }
+        .firma-box { margin-top: 30px; }
+        .firma-box .firma-bloque { max-width: 340px; margin-left: auto; text-align: left; }
+        .firma-box .firma-label { font-size: 9pt; color: #475569; font-weight: 600; margin: 0 0 70px 0; }
         .firma-box .firma-linea { border-top: 1.5px solid #475569; padding-top: 6px; margin: 0; }
         .firma-box .firma-nombre { font-size: 10pt; font-weight: 700; color: #0f172a; margin: 0; }
         .firma-box .firma-credenciales { font-size: 8.5pt; color: #64748b; margin: 2px 0 0 0; }
         .contacto-centro { margin-top: 20px; padding: 10px; background: #f8fafc; border-radius: 6px; font-size: 9pt; color: #475569; text-align: center; }
         .campo-vacio { color: #94a3b8; font-style: italic; }
-        @media print { .pagina { min-height: auto; } }
       </style>
     </head>
     <body>
       <div class="pagina">
-        <div class="contenido">
+        <div style="padding-bottom: 40px;">
           ${badgeEstado}
-          <div class="encabezado clearfix">
-            ${logoBase64 ? `<img src="${logoBase64}" class="logo" alt="Logo Centro" />` : ''}
-            <div>
-              <div class="titulo">Plan de Ejercicios y Cuidados en Casa</div>
-              <div class="subtitulo">${centroNombre}</div>
-              <div style="text-align:center;">${badgeCentroHTML}</div>
-              <div class="datos">Paciente: ${nombrePaciente} &nbsp;|&nbsp; Fecha: ${fecha}</div>
-            </div>
+                    <!-- 🆕 Header + QR compactos para página 1 -->
+          <table style="width: 100%; border: none; margin: 0 0 12px 0; page-break-inside: avoid;">
+            <tr>
+              <td style="border: none; padding: 0 10px 0 0; vertical-align: middle; width: 85px;">
+                ${logoBase64 ? `<img src="${logoBase64}" style="width: 70px; height: 70px; border-radius: 50%; border: 2px solid #22d3ee; padding: 2px; background: #fff; object-fit: cover;" />` : ''}
+              </td>
+              <td style="border: none; padding: 0; vertical-align: middle; text-align: left;">
+                <div style="font-size: 18pt; font-weight: 700; color: #0f172a; text-transform: uppercase; letter-spacing: 1px; line-height: 1.1;">Plan de Ejercicios y Cuidados en Casa</div>
+                <div style="font-size: 10pt; color: #64748b; margin-top: 2px;">${centroNombre}</div>
+                <div style="margin-top: 4px;">${badgeCentroHTML}</div>
+              </td>
+            </tr>
+          </table>
+
+          <div style="text-align: center; font-size: 9pt; color: #475569; border-bottom: 3px solid #22d3ee; padding-bottom: 10px; margin-bottom: 12px;">
+            Paciente: <strong>${nombrePaciente}</strong> &nbsp;|&nbsp; Fecha: <strong>${fecha}</strong>
           </div>
+
+          <!-- 🆕 QR en tabla compacto -->
+          <table style="width: 100%; border: 1px solid #22d3ee; border-radius: 8px; background: #f0f9ff; margin: 0 0 14px 0; page-break-inside: avoid;">
+            <tr>
+              <td style="width: 95px; padding: 8px; border: none; vertical-align: middle; text-align: center;">
+                <img src="${generarQR(`${URL_APP}/login`, 160)}" alt="QR Acceso Paciente" style="width: 80px; height: 80px; border-radius: 4px; display: block; margin: 0 auto;" />
+              </td>
+              <td style="padding: 8px 12px; border: none; vertical-align: middle; font-size: 9pt; color: #0f172a; line-height: 1.4;">
+                <div style="font-weight: 800; font-size: 11pt; color: #0f172a; margin-bottom: 2px;">📱 Accede a tu cuenta</div>
+                <div>Escanea este código con tu celular para entrar a tu perfil y ver tus ejercicios asignados y progreso.</div>
+                <div style="color: #64748b; margin-top: 4px; font-size: 7.5pt;">${URL_APP}/login</div>
+              </td>
+            </tr>
+          </table>
 
           <h1>1. Tu Diagnóstico</h1>
           <div class="diagnostico-box">${diagnostico || '<span class="campo-vacio">Diagnóstico pendiente de registro.</span>'}</div>
@@ -278,7 +296,7 @@ export async function generarInformePaciente(evaluacionId, estadoEvaluacion = 'b
       </div>
 
       <div class="pagina">
-        <div class="contenido">
+        <div style="padding-bottom: 40px;">
           <h1>4. Cuidados en Casa</h1>
           <p style="font-size:10pt; color:#475569; margin-bottom:10px;">Estas recomendaciones complementan tu tratamiento y ayudan a una mejor recuperación.</p>
           ${recomendacionesHTML}
