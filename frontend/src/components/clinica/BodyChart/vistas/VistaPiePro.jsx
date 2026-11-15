@@ -42,6 +42,46 @@ const ZonaAnatomica = ({ id, afectacion, onRegionToggle, children, label }) => {
   );
 };
 
+// ==========================================
+// ESTRUCTURA ANATÓMICA DEL PIE
+// ==========================================
+export const ESTRUCTURA_PIE = {
+  huesos_lateral: [
+    { id: 'calcaneo',          nombre: 'Calcáneo',                   zona: 'Retropié' },
+    { id: 'astragalo',         nombre: 'Astrágalo (Talus)',          zona: 'Retropié' },
+    { id: 'navicular',         nombre: 'Navicular',                  zona: 'Mediopié' },
+    { id: 'cuboides',          nombre: 'Cuboides',                   zona: 'Mediopié' },
+    { id: 'cuneiforme_medial', nombre: 'Cuneiformes',                zona: 'Mediopié' },
+    { id: 'metatarsiano_I',    nombre: '1er Metatarsiano',           zona: 'Antepié' },
+    { id: 'metatarsiano_II',   nombre: '2º Metatarsiano',            zona: 'Antepié' },
+    { id: 'metatarsiano_III',  nombre: '3er Metatarsiano',           zona: 'Antepié' },
+    { id: 'metatarsiano_IV',   nombre: '4º Metatarsiano',            zona: 'Antepié' },
+    { id: 'metatarsiano_V',    nombre: '5º Metatarsiano',            zona: 'Antepié' },
+    { id: 'hallux_falanges',   nombre: '1er Dedo (Hallux)',          zona: 'Dedos' },
+    { id: 'dedo_II_falanges',  nombre: '2º Dedo',                    zona: 'Dedos' },
+    { id: 'dedo_III_falanges', nombre: '3er Dedo',                   zona: 'Dedos' },
+    { id: 'dedo_IV_falanges',  nombre: '4º Dedo',                    zona: 'Dedos' },
+    { id: 'dedo_V_falanges',   nombre: '5º Dedo',                    zona: 'Dedos' },
+  ],
+  tejidos_lateral: [
+    { id: 'tendon_aquiles',          nombre: 'Tendón de Aquiles',             zona: 'Tejido Posterior' },
+    { id: 'fascia_plantar_lateral',  nombre: 'Fascia Plantar (Lateral)',      zona: 'Fascia' },
+    { id: 'nervio_tibial_posterior', nombre: 'Nervio Tibial Posterior',       zona: 'Inervación' },
+  ],
+  estructuras_plantar: [
+    { id: 'talon_plantar',          nombre: 'Talón (Vista Plantar)',           zona: 'Retropié' },
+    { id: 'fascia_plantar',         nombre: 'Fascia Plantar Central',          zona: 'Fascia' },
+    { id: 'nervio_tibial_plantar',  nombre: 'Nervio Tibial / Ramas Plantares', zona: 'Inervación' },
+    { id: 'mediopie_plantar',       nombre: 'Arco Plantar (Mediopié)',         zona: 'Mediopié' },
+    { id: 'almohadilla_metatarsal', nombre: 'Almohadilla Metatarsiana',        zona: 'Antepié' },
+    { id: 'pulpejo_hallux',         nombre: 'Pulpejo Hallux',                  zona: 'Dedos' },
+    { id: 'pulpejo_dedo_2',         nombre: 'Pulpejo 2º Dedo',                 zona: 'Dedos' },
+    { id: 'pulpejo_dedo_3',         nombre: 'Pulpejo 3er Dedo',                zona: 'Dedos' },
+    { id: 'pulpejo_dedo_4',         nombre: 'Pulpejo 4º Dedo',                 zona: 'Dedos' },
+    { id: 'pulpejo_dedo_5',         nombre: 'Pulpejo 5º Dedo',                 zona: 'Dedos' },
+  ],
+};
+
 export default function VistaPiePro({ cara = 'lateral', lado = 'derecho', afectaciones = {}, onRegionToggle }) {
   const esDerecho = lado === 'derecho' || lado === 'derecha';
   const getAfectacion = (id) => afectaciones[id];

@@ -245,7 +245,7 @@ const SUBREGION_MAP = {
   'pie': 'Pie', 'calcaneo': 'Pie', 'talon': 'Pie', 'talon_plantar': 'Pie', 'retropie': 'Pie',
   'astragalo': 'Pie', 'mediopie': 'Pie', 'navicular': 'Pie', 'cuboides': 'Pie', 'cuneiforme': 'Pie',
   'metatarsiano': 'Pie', 'metatarsianos_plantar': 'Pie', 'antepie': 'Pie', 'hallux': 'Pie', 'dedo_pie': 'Pie',
-  'falanges_plantar': 'Pie', 'almohadilla_metatarsal': 'Pie',  // 🔧 FIX: era Mano por bug
+  'falanges_plantar': 'Pie', 'almohadilla_metatarsal': 'Pie',
 };
 
 // 🆕 Funciones auxiliares
@@ -302,6 +302,66 @@ const corregirTypos = (t) => (t || '')
   .replace(/Susponder/gi, 'Suspender').replace(/susponder/gi, 'suspender')
   .replace(/Lumbalgia mecanica/gi, 'Lumbalgia mecánica').replace(/Aplicaciòn/gi, 'Aplicación').replace(/aplicaciòn/gi, 'aplicación');
 
+// 🆕 Helpers para tablas condicionales
+const val = (v) => (v === undefined || v === null || v === '') ? null : v;
+const filaSi = (label, valor) => val(valor) ? `<tr><th>${label}</th><td>${valor}</td></tr>` : '';
+const tieneContenido = (obj) => obj && Object.keys(obj).length > 0;
+
+// 🆕 Acentos correctos
+const ACENTOS_REGION = {
+  'clavicula': 'Clavícula', 'escapula': 'Escápula', 'rotula': 'Rótula',
+  'calcaneo': 'Calcáneo', 'astragalo': 'Astrágalo', 'zigomatico': 'Zigomático',
+  'femur': 'Fémur', 'perone': 'Peroné', 'cubito': 'Cúbito',
+  'epitroclea': 'Epitróclea', 'musculocutaneo': 'Musculocutáneo',
+  'cuadriceps': 'Cuádriceps', 'soleo': 'Sóleo', 'isquion': 'Isquion',
+  'ilion': 'Ilion', 'coxis': 'Coxis', 'poplitea': 'Poplítea',
+  'masetero': 'Masetero', 'ecom': 'ECOM', 'atm': 'ATM',
+  'menisco': 'Menisco', 'isquiotibial': 'Isquiotibial',
+  'semitendinoso': 'Semitendinoso', 'seminembranoso': 'Semimembranoso',
+  'gastrocnemio': 'Gastrocnemio', 'gemelo': 'Gemelo',
+  'trapecio': 'Trapecio', 'deltoides': 'Deltoides', 'romboide': 'Romboides',
+  'esplenio': 'Esplenio', 'angular': 'Angular',
+};
+
+// 🆕 Regiones femeninas (para concordancia Izquierda/Derecha)
+const REGIONES_FEMENINAS = new Set([
+  'clavicula', 'escapula', 'rotula', 'patela', 'mano', 'pierna', 'rodilla',
+  'tibia', 'fibula', 'perone', 'fosa', 'poplitea', 'costilla', 'costillas',
+  'falange', 'falanges', 'cresta', 'cabeza', 'columna', 'pelvis',
+  'oreja', 'ceja', 'boca', 'nariz', 'frente', 'mandibula', 'atm',
+  'articulacion', 'vertebra', 'cintura', 'espalda', 'cadera', 'muneca',
+  'aponeurosis', 'pupila', 'cornea', 'sindesmosis', 'cintura_escapular',
+  'cintura_pelvica', 'planta', 'boveda', 'cúpula', 'cupula',
+]);
+
+// 🆕 Corrige la concordancia: "Clavícula Izquierdo" → "Clavícula Izquierda"
+const corregirConcordancia = (nombre) => {
+  return nombre.replace(
+    /([A-Za-zÁÉÍÓÚáéíóúñÑ]+(?:\s+[A-Za-zÁÉÍÓÚáéíóúñÑ]+)*?)\s+(Izquierdo|Derecho)\b/g,
+    (match, sustantivos, sufijo) => {
+      const palabras = sustantivos.toLowerCase().split(/\s+/);
+      const nucleo = palabras[palabras.length - 1];
+      const esFem = REGIONES_FEMENINAS.has(nucleo);
+      if (sufijo === 'Izquierdo') return `${sustantivos} ${esFem ? 'Izquierda' : 'Izquierdo'}`;
+      return `${sustantivos} ${esFem ? 'Derecha' : 'Derecho'}`;
+    }
+  );
+};
+
+const añadirLado = (nombre, lado) => {
+  if (!lado) return nombre;
+  if (/\b(Izquierdo|Izquierda|Derecho|Derecha)\b/.test(nombre)) return nombre;
+  // 🆕 Normalizar tildes para comparar con REGIONES_FEMENINAS (que está sin tildes)
+  const quitarTildes = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const palabras = nombre.split(/\s+/);
+  const nucleo = quitarTildes(palabras[palabras.length - 1]);
+  const esFem = REGIONES_FEMENINAS.has(nucleo);
+  if (lado === 'izquierdo') return `${nombre} ${esFem ? 'Izquierda' : 'Izquierdo'}`;
+  if (lado === 'derecho') return `${nombre} ${esFem ? 'Derecha' : 'Derecho'}`;
+  return nombre;
+};
+
+
 const formatearNombreRegion = (nombre) => {
   // 🆕 Casos específicos con prioridad
   const casosEspecificos = {
@@ -353,13 +413,18 @@ const formatearNombreRegion = (nombre) => {
   let resultado = nombre;
   Object.keys(map).forEach(key => { resultado = resultado.replace(new RegExp(`_${key}(_|$)`, 'g'), ` ${map[key]}$1`); });
   resultado = resultado.split('_').map(p => map[p] ? map[p] : p.charAt(0).toUpperCase() + p.slice(1)).join(' ').trim();
+
+  // 🆕 Aplicar acentos correctos palabra por palabra
+  resultado = resultado.split(' ').map(palabra => {
+    const key = palabra.toLowerCase();
+    return ACENTOS_REGION[key] || palabra;
+  }).join(' ');
+
+  // 🆕 Corregir concordancia de género
+  resultado = corregirConcordancia(resultado);
+
   return resultado;
 };
-
-// 🆕 Helpers para tablas condicionales
-const val = (v) => (v === undefined || v === null || v === '') ? null : v;
-const filaSi = (label, valor) => val(valor) ? `<tr><th>${label}</th><td>${valor}</td></tr>` : '';
-const tieneContenido = (obj) => obj && Object.keys(obj).length > 0;
 
 // ============================================================
 // FUNCIÓN PRINCIPAL
@@ -431,7 +496,7 @@ if (!imc && val(sv.peso) && val(sv.talla)) {
     imc = (p / (tm * tm)).toFixed(1);
   }
 }
-const imcClasif = clasificarIMC(imc); // 🆕
+const imcClasif = clasificarIMC(imc);
 
   // ============================================================
   // 🆕 SECCIÓN 1: DATOS DEL USUARIO (expandida)
@@ -534,8 +599,6 @@ const resumenEjecutivoHTML = `
   const fechaTomaTexto = val(sv.fecha_toma)
     ? new Date(sv.fecha_toma).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     : '';
-
-
 
   const signosVitalesHTML = tieneSignosVitales ? `
     <h2>1.1 Signos Vitales</h2>
@@ -779,25 +842,59 @@ const resumenEjecutivoHTML = `
     .map(v => [v, vistasAgrupadas[v]])
     .concat(Object.entries(vistasAgrupadas).filter(([k]) => !ordenVistasPro.includes(k)));
 
-  const vistaProHTML = vistasProOrdenadas.map(([vistaBase, data]) => {
+  // 🆕 FASE 3: Helpers para detectar lado y dividir tarjetas
+  const esVistaLateral = (vistaBase) => {
+    return ['hombro', 'brazo', 'codo', 'mano', 'pierna', 'rodilla', 'tobillo', 'pie'].includes(vistaBase);
+  };
+
+  const dividirPorLado = (claves, vistaBase) => {
+    if (!esVistaLateral(vistaBase)) {
+      return [{ lado: null, claves }];
+    }
+    const izq = [], der = [], sinLado = [];
+    claves.forEach(k => {
+      const l = regionesData[k]?.lado;
+      if (l === 'izquierdo') izq.push(k);
+      else if (l === 'derecho') der.push(k);
+      else sinLado.push(k);
+    });
+    // Claves sin lado (evaluaciones viejas) van al grupo mayoritario
+    if (sinLado.length > 0) {
+      if (izq.length >= der.length) izq.push(...sinLado);
+      else der.push(...sinLado);
+    }
+    const grupos = [];
+    if (izq.length > 0) grupos.push({ lado: 'izquierdo', claves: izq });
+    if (der.length > 0) grupos.push({ lado: 'derecho', claves: der });
+    if (grupos.length === 0) grupos.push({ lado: null, claves });
+    return grupos;
+  };
+
+
+    const vistaProHTML = vistasProOrdenadas.map(([vistaBase, data]) => {
     const afectacionesKeys = Object.keys(data.afectaciones);
     const configCaras = CARAS_CONFIG[vistaBase];
 
-    const generarTarjeta = (cara, clavesFiltradas) => {
+    const generarTarjeta = (cara, clavesFiltradas, lado) => {
       if (clavesFiltradas.length === 0) return '';
 
       const afectacionesFiltradas = {};
       clavesFiltradas.forEach(k => { afectacionesFiltradas[k] = data.afectaciones[k]; });
 
       const hallazgosHTML = clavesFiltradas.map(r => {
-        const nombre = formatearNombreRegion(r);
+        let nombre = formatearNombreRegion(r);
+        if (regionesData[r]?.lado) nombre = añadirLado(nombre, regionesData[r].lado);
         const sintomasArray = regionesData[r]?.sintomas || ['dolor'];
         const nombresSintomas = sintomasArray.map(s => SINTOMAS_NOMBRES[s] || s).join(', ');
         const colores = calcularColoresAfectacion(sintomasArray);
         return `<span style="display:inline-block; background:${colores.color}15; color:${colores.color}; border:1px solid ${colores.color}40; padding:2px 8px; border-radius:12px; font-size:8pt; font-weight:700; margin:2px;">${nombre} (${nombresSintomas})</span>`;
       }).join('');
 
-      const props = { cara: cara, lado: 'derecho', afectaciones: afectacionesFiltradas };
+      // 🆕 Lado real para renderizar SVG + título
+      const ladoFinal = lado || null;
+      const ladoSVG = ladoFinal || 'derecho';
+
+      const props = { cara: cara, lado: ladoSVG, afectaciones: afectacionesFiltradas };
       try {
         let svgStr = renderToStaticMarkup(React.createElement(data.componente, props));
         svgStr = svgStr.replace(/<h4[^>]*>.*?<\/h4>/g, '');
@@ -809,10 +906,15 @@ const resumenEjecutivoHTML = `
           .replace(/#2a475a/gi, '#e2e8f0').replace(/#354f63/gi, '#e2e8f0');
         const svgLimpio = svgStr.replace(/<svg /g, '<svg style="max-width:180px; height:auto; margin-top:10px;" ');
 
+        // 🆕 Título con lado y concordancia de género
+        const tituloBase = formatearNombreRegion(vistaBase);
+        const tituloFinal = ladoFinal ? añadirLado(tituloBase, ladoFinal) : tituloBase;
+        const tituloCara = cara.charAt(0).toUpperCase() + cara.slice(1);
+
         return `
           <div class="vista-pro">
             <div>
-              <h4 style="margin:0 0 5px 0; font-size:11pt; text-transform:capitalize; color:#0f172a;">${vistaBase.replace(/_/g, ' ')} (${cara.charAt(0).toUpperCase() + cara.slice(1)})</h4>
+              <h4 style="margin:0 0 5px 0; font-size:11pt; color:#0f172a;">${tituloFinal} (${tituloCara})</h4>
               <div style="margin-bottom:5px;">${hallazgosHTML}</div>
             </div>
             <div style="text-align:center;">${svgLimpio}</div>
@@ -821,15 +923,18 @@ const resumenEjecutivoHTML = `
       } catch (e) { return ''; }
     };
 
+    // Vistas sin caras → 1 tarjeta (o 2 si hay ambos lados)
     if (!configCaras) {
-      return generarTarjeta('anterior', afectacionesKeys);
+      return dividirPorLado(afectacionesKeys, vistaBase)
+        .map(g => generarTarjeta('anterior', g.claves, g.lado))
+        .filter(x => x).join('');
     }
 
+    // Vistas con caras (anterior/posterior, dorsal/palmar, etc.)
     return configCaras.caras.map(cara => {
       const keywordsCara = configCaras[cara] || [];
       const clavesCara = afectacionesKeys.filter(k => {
         if (!keywordsCara.some(kw => k.includes(kw))) return false;
-        // Evitar duplicados
         for (const otraCara of configCaras.caras) {
           if (otraCara === cara) continue;
           const keywordsOtra = configCaras[otraCara] || [];
@@ -837,59 +942,241 @@ const resumenEjecutivoHTML = `
         }
         return true;
       });
-      return generarTarjeta(cara, clavesCara);
+      return dividirPorLado(clavesCara, vistaBase)
+        .map(g => generarTarjeta(cara, g.claves, g.lado))
+        .filter(x => x).join('');
     }).filter(x => x).join('');
   }).join('');
 
   // ============================================================
-  // STICKMAN
+  // STICKMAN — v2: agrupación por zona visual anatómica
   // ============================================================
-  const centroides = {
-    cabeza: { cx: 100, cy: 30 }, cuello: { cx: 100, cy: 50 }, hombro_izq: { cx: 125, cy: 45 }, hombro_der: { cx: 75, cy: 45 },
-    brazo_izq: { cx: 138, cy: 80 }, brazo_der: { cx: 62, cy: 80 }, codo_izq: { cx: 138, cy: 105 }, codo_der: { cx: 62, cy: 105 },
-    mano_izq: { cx: 138, cy: 155 }, mano_der: { cx: 62, cy: 155 }, torax: { cx: 100, cy: 85 }, columna: { cx: 100, cy: 90 },
-    lumbar: { cx: 100, cy: 110 }, pelvis: { cx: 100, cy: 145 }, sacro: { cx: 100, cy: 138 },
-    grande: { cx: 138, cy: 155 }, ganchoso: { cx: 138, cy: 155 }, escafoides: { cx: 138, cy: 155 }, semilunar: { cx: 138, cy: 155 },
-    metacarpiano_1: { cx: 138, cy: 155 }, metacarpiano_2: { cx: 138, cy: 155 }, metacarpiano_3: { cx: 138, cy: 155 },
-    metacarpiano_4: { cx: 138, cy: 155 }, metacarpiano_5: { cx: 138, cy: 155 },
-    dedo_2_falanges: { cx: 138, cy: 155 }, dedo_3_falanges: { cx: 138, cy: 155 }, dedo_4_falanges: { cx: 138, cy: 155 }, dedo_5_falanges: { cx: 138, cy: 155 },
-    tendones_flexores: { cx: 138, cy: 155 }, tendones_extensores: { cx: 138, cy: 155 },
-    pulpejos_digitales: { cx: 138, cy: 155 }, pulpejos: { cx: 138, cy: 155 }, pulpejo: { cx: 138, cy: 155 },
-    almohadillas_palmares: { cx: 138, cy: 155 }, almohadillas: { cx: 138, cy: 155 }, almohadilla: { cx: 138, cy: 155 },
-    tunel_carpo: { cx: 138, cy: 155 }, nervio_mediano: { cx: 138, cy: 155 }, nervio_cubital: { cx: 138, cy: 155 },
-    retinaculo_extensor: { cx: 138, cy: 155 }, trapecio: { cx: 110, cy: 48 }
+  const GRUPOS_STICKMAN = {
+    // === Vista Anterior ===
+    cabeza_ant:        { cx: 100, cy: 30,  vista: 'anterior' },
+    cuello_ant:        { cx: 100, cy: 52,  vista: 'anterior' },
+    trapecio_izq:      { cx: 115, cy: 60,  vista: 'anterior' },
+    trapecio_der:      { cx: 85,  cy: 60,  vista: 'anterior' },
+    hombro_izq:        { cx: 122, cy: 66,  vista: 'anterior' },
+    hombro_der:        { cx: 78,  cy: 66,  vista: 'anterior' },
+    brazo_izq:         { cx: 128, cy: 95,  vista: 'anterior' },
+    brazo_der:         { cx: 72,  cy: 95,  vista: 'anterior' },
+    codo_izq:          { cx: 130, cy: 118, vista: 'anterior' },
+    codo_der:          { cx: 70,  cy: 118, vista: 'anterior' },
+    mano_izq:          { cx: 130, cy: 155, vista: 'anterior' },
+    mano_der:          { cx: 70,  cy: 155, vista: 'anterior' },
+    torax:             { cx: 100, cy: 85,  vista: 'anterior' },
+    abdomen:           { cx: 100, cy: 115, vista: 'anterior' },
+    pelvis_ant:        { cx: 100, cy: 145, vista: 'anterior' },
+    muslo_izq:         { cx: 115, cy: 185, vista: 'anterior' },
+    muslo_der:         { cx: 85,  cy: 185, vista: 'anterior' },
+    rodilla_izq:       { cx: 115, cy: 225, vista: 'anterior' },
+    rodilla_der:       { cx: 85,  cy: 225, vista: 'anterior' },
+    pierna_izq:        { cx: 115, cy: 265, vista: 'anterior' },
+    pierna_der:        { cx: 85,  cy: 265, vista: 'anterior' },
+    tobillo_izq:       { cx: 115, cy: 295, vista: 'anterior' },
+    tobillo_der:       { cx: 85,  cy: 295, vista: 'anterior' },
+    pie_izq:           { cx: 115, cy: 308, vista: 'anterior' },
+    pie_der:           { cx: 85,  cy: 308, vista: 'anterior' },
+
+    // === Vista Posterior ===
+    cabeza_post:       { cx: 100, cy: 30,  vista: 'posterior' },
+    cuello_post:       { cx: 100, cy: 52,  vista: 'posterior' },
+    trapecio_post:     { cx: 100, cy: 60,  vista: 'posterior' },
+    escapula_izq:      { cx: 115, cy: 75,  vista: 'posterior' },
+    escapula_der:      { cx: 85,  cy: 75,  vista: 'posterior' },
+    dorsal_ancho_izq:  { cx: 115, cy: 95,  vista: 'posterior' },
+    dorsal_ancho_der:  { cx: 85,  cy: 95,  vista: 'posterior' },
+    columna_dorsal:    { cx: 100, cy: 95,  vista: 'posterior' },
+    lumbar_post:       { cx: 100, cy: 122, vista: 'posterior' },
+    sacro_post:        { cx: 100, cy: 138, vista: 'posterior' },
+    gluteo_izq:        { cx: 115, cy: 160, vista: 'posterior' },
+    gluteo_der:        { cx: 85,  cy: 160, vista: 'posterior' },
+    isquio_izq:        { cx: 115, cy: 195, vista: 'posterior' },
+    isquio_der:        { cx: 85,  cy: 195, vista: 'posterior' },
+    poplitea_post:     { cx: 100, cy: 235, vista: 'posterior' },
+    gemelo_izq:        { cx: 115, cy: 265, vista: 'posterior' },
+    gemelo_der:        { cx: 85,  cy: 265, vista: 'posterior' },
   };
 
-  const esPosterior = (r) => {
-    const palmarKeys = ['tendones_flexor', 'tendon_flexor', 'nervio_mediano', 'tunel_carpo', 'tenar', 'pulpejo', 'nervio_cubital', 'almohadilla'];
-    if (palmarKeys.some(pk => r.includes(pk))) return false;
-    const dorsalKeys = ['extensor', 'retinaculo', 'escafoides', 'dedo_', 'metacarpiano', 'grande', 'ganchoso', 'semilunar'];
-    if (dorsalKeys.some(dk => r.includes(dk))) return true;
-    return ['nuca','espalda','sacro','gluteo','poplitea','lumbar','dorsal','escapula','trapecio','post','isquion','ilion'].some(p => r.includes(p));
+    const mapearGrupoStickman = (r) => {
+    const s = r.toLowerCase();
+    // 🆕 Leer lado real desde datos_regiones
+    const ladoReal = regionesData[r]?.lado;
+    const esIzq = ladoReal === 'izquierdo';
+    const esDer = ladoReal === 'derecho';
+
+    // ===== CABEZA =====
+    if (/occipital_mayor|occipital|nuca|suboccipitales/.test(s)) return 'cabeza_post';
+    if (/(cabeza|craneo|frontal|parietal|zigomatico|masetero|atm|mandibula|temporal|trigemino)/.test(s)) return 'cabeza_ant';
+
+    // ===== CUELLO =====
+    if (/cervical|ecom|cuello|escalenos|plexo_braquial/.test(s)) return 'cuello_ant';
+
+    // ===== TRAPECIO =====
+    if (/trapecio/.test(s)) {
+      if (esIzq || /_izq/.test(s)) return 'trapecio_izq';
+      if (esDer || /_der/.test(s)) return 'trapecio_der';
+      return 'trapecio_post';
+    }
+    if (/elevador_escapula/.test(s)) return 'trapecio_post';
+
+    // ===== ESCÁPULA =====
+    if (/(escapula|manguito|supraespinoso|infraespinoso|subescapular|romboide|romboides)/.test(s)) {
+      if (esIzq || /_izq/.test(s)) return 'escapula_izq';
+      if (esDer || /_der/.test(s)) return 'escapula_der';
+      return 'escapula_der';
+    }
+
+    // ===== HOMBRO =====
+    if (/(hombro|deltoides|clavicula|coracoides|glenoides|acromion)/.test(s)) {
+      if (esIzq || /_izq/.test(s)) return 'hombro_izq';
+      if (esDer || /_der/.test(s)) return 'hombro_der';
+      return 'hombro_izq';
+    }
+
+    // ===== BRAZO =====
+    if (/(brazo|biceps|triceps|humero|braquial|coracobraquial|epicondilo|epitroclea|olecranon)/.test(s)) {
+      if (esIzq || /_izq/.test(s)) return 'brazo_izq';
+      if (esDer || /_der/.test(s)) return 'brazo_der';
+      return 'brazo_izq';
+    }
+
+    // ===== CODO =====
+    if (/codo/.test(s)) {
+      if (esIzq || /_izq/.test(s)) return 'codo_izq';
+      if (esDer || /_der/.test(s)) return 'codo_der';
+      return 'codo_izq';
+    }
+
+    // ===== MANO Y NERVIOS MMSS =====
+    if (/(mano|muneca|carpo|metacarpo|metacarpiano|tenar|pulgar|grande|ganchoso|escafoides|semilunar|piramidal|pisiforme|trapezoide|dedo_\d|pulpejo|almohadilla|tendones_flexor|tendones_extensor|tendon_flexor|tendon_extensor|tunel_carpo|retinaculo|nervio_mediano|nervio_cubital|nervio_radial|nervio_musculocutaneo|lcc_pulgar|radio|cubito|braquiorradial|anconeo)/.test(s)) {
+      if (esIzq || /_izq/.test(s)) return 'mano_izq';
+      if (esDer || /_der/.test(s)) return 'mano_der';
+      return 'mano_izq';
+    }
+
+    // ===== TÓRAX =====
+    if (/(torax|pecho|costilla|costillas|esternon|pectoral|serrato)/.test(s)) return 'torax';
+
+    // ===== ABDOMEN =====
+    if (/abdomen/.test(s)) return 'abdomen';
+
+    // ===== COLUMNA =====
+    if (/dorsal_ancho/.test(s)) {
+      if (esIzq || /_izq/.test(s)) return 'dorsal_ancho_izq';
+      if (esDer || /_der/.test(s)) return 'dorsal_ancho_der';
+      return 'columna_dorsal';
+    }
+    if (/columna_dorsal|dorsal/.test(s)) return 'columna_dorsal';
+    if (/lumbar|l1|l2|l3|l4|l5|disco_l|faceta_l/.test(s)) return 'lumbar_post';
+    if (/sacro|coxis/.test(s)) return 'sacro_post';
+
+    // ===== PELVIS =====
+    if (/(pelvis|cadera|ilion|cresta_iliaca|acetabulo|pubis|isquion)/.test(s)) return 'pelvis_ant';
+
+    // ===== GLÚTEO =====
+    if (/gluteo|piriforme/.test(s)) {
+      if (esIzq || /_izq/.test(s)) return 'gluteo_izq';
+      if (esDer || /_der/.test(s)) return 'gluteo_der';
+      return 'gluteo_izq';
+    }
+
+    // ===== ISQUIOTIBIALES =====
+    if (/(isquiotibial|isquiotibiales|biceps_femoral|semitendinoso|semimembranoso)/.test(s)) {
+      if (esIzq || /_izq/.test(s)) return 'isquio_izq';
+      if (esDer || /_der/.test(s)) return 'isquio_der';
+      return 'isquio_izq';
+    }
+
+    // ===== MUSLO ANTERIOR =====
+    if (/(muslo|cuadriceps|recto_femoral|aductor|adductor|femoral|tendon_cuadriceps|tensor_fascia_lata)/.test(s)) {
+      if (esIzq || /_izq/.test(s)) return 'muslo_izq';
+      if (esDer || /_der/.test(s)) return 'muslo_der';
+      return 'muslo_izq';
+    }
+
+    // ===== RODILLA =====
+    if (/(rodilla|rotula|patela|patelar|menisco|lca|lcp|lcm|lcl|tendon_patelar)/.test(s)) {
+      if (esIzq || /_izq/.test(s)) return 'rodilla_izq';
+      if (esDer || /_der/.test(s)) return 'rodilla_der';
+      return 'rodilla_izq';
+    }
+
+    // ===== FOSA POPLÍTEA =====
+    if (/(poplitea|fosa_poplitea)/.test(s)) return 'poplitea_post';
+
+    // ===== GEMELOS / SÓLEO =====
+    if (/(gemelo|soleo|gastrocnemio)/.test(s)) {
+      if (esIzq || /_izq/.test(s)) return 'gemelo_izq';
+      if (esDer || /_der/.test(s)) return 'gemelo_der';
+      return 'gemelo_izq';
+    }
+
+    // ===== PIERNA ANTERIOR + NERVIOS =====
+    if (/(pierna|tibial|perone|peroneo|extensor_largo_dedos|nervio_tibial|nervio_peroneo|nervio_sural)/.test(s)) {
+      if (esIzq || /_izq/.test(s)) return 'pierna_izq';
+      if (esDer || /_der/.test(s)) return 'pierna_der';
+      return 'pierna_izq';
+    }
+
+    // ===== TOBILLO / AQUILES =====
+    if (/(tobillo|aquiles|tendon_aquiles|tibia_distal|perone_distal)/.test(s)) {
+      if (esIzq || /_izq/.test(s)) return 'tobillo_izq';
+      if (esDer || /_der/.test(s)) return 'tobillo_der';
+      return 'tobillo_izq';
+    }
+
+    // ===== PIE =====
+    if (/(pie|calcaneo|talon|astragalo|navicular|cuboides|cuneiforme|metatarsiano|hallux|dedo_pie|falanges_plantar|fascia_plantar|almohadilla_metatarsal|pulpejo_hallux|pulpejo_dedo|nervio_tibial_posterior|mediopie_plantar|nervio_tibial_plantar)/.test(s)) {
+      if (esIzq || /_izq/.test(s)) return 'pie_izq';
+      if (esDer || /_der/.test(s)) return 'pie_der';
+      return 'pie_izq';
+    }
+
+    return null;
   };
 
-  const generarPuntosSVG = (regionesVista, esPost) => {
-    return regionesVista.map(r => {
-      let coords = centroides[r] || centroides[r.split('_')[0]] || { cx: 100, cy: 100 };
-      if (r.includes('_izq') || regionesVista.some(rv => rv.includes('mano_izq'))) coords = { ...coords, cx: 62 };
-      const cxFinal = esPost ? (200 - coords.cx) : coords.cx;
-      const sintomasArray = regionesData[r]?.sintomas || ['dolor'];
+  const generarPuntosSVG = (todasRegiones, esPost) => {
+    const grupos = {};
+    todasRegiones.forEach(r => {
+      const grupoId = mapearGrupoStickman(r);
+      if (!grupoId || !GRUPOS_STICKMAN[grupoId]) return;
+      const g = GRUPOS_STICKMAN[grupoId];
+      if (esPost && g.vista !== 'posterior') return;
+      if (!esPost && g.vista !== 'anterior') return;
+      if (!grupos[grupoId]) grupos[grupoId] = { cx: g.cx, cy: g.cy, sintomas: new Set() };
+      (regionesData[r]?.sintomas || ['dolor']).forEach(s => grupos[grupoId].sintomas.add(s));
+    });
+
+    return Object.values(grupos).map(g => {
+      const sintomasArray = Array.from(g.sintomas);
       const { color, border } = calcularColoresAfectacion(sintomasArray);
-      return `<circle cx="${cxFinal}" cy="${coords.cy}" r="5" fill="${color}" stroke="${border}" stroke-width="2"/>`;
+      return `<circle cx="${g.cx}" cy="${g.cy}" r="5" fill="${color}" stroke="${border}" stroke-width="2"/>`;
     }).join('');
+  };
+
+  const contarGruposEnVista = (regiones, esPost) => {
+    const grupos = new Set();
+    regiones.forEach(r => {
+      const g = mapearGrupoStickman(r);
+      if (!g || !GRUPOS_STICKMAN[g]) return;
+      if (esPost && GRUPOS_STICKMAN[g].vista !== 'posterior') return;
+      if (!esPost && GRUPOS_STICKMAN[g].vista !== 'anterior') return;
+      grupos.add(g);
+    });
+    return grupos.size;
   };
 
   const siluetaPaths = `M 87,22 C 87,7 113,7 113,22 C 113,34 107,42 105,46 C 106,50 112,52 115,55 L 85,55 C 88,52 94,50 95,46 C 93,42 87,34 87,22 Z M 85,55 C 98,58 115,55 115,55 C 122,68 118,98 112,120 L 88,120 C 82,98 78,68 85,55 Z M 115,55 C 126,55 132,60 129,71 C 123,73 117,67 115,55 Z M 85,55 C 74,55 68,60 71,71 C 77,73 83,67 85,55 Z M 129,71 C 138,83 134,112 130,142 C 128,154 123,154 120,142 C 118,112 121,88 116,73 C 119,69 125,69 129,71 Z M 71,71 C 62,83 66,112 70,142 C 72,154 77,154 80,142 C 82,112 79,88 84,73 C 81,69 75,69 71,71 Z M 120,142 L 130,142 C 131,148 133,156 131,163 C 129,167 124,167 121,160 C 119,152 119,146 120,142 Z M 80,142 L 70,142 C 69,148 67,156 69,163 C 71,167 76,167 79,160 C 81,152 81,146 80,142 Z M 88,120 L 112,120 C 116,136 114,154 106,168 L 100,172 L 94,168 C 86,154 84,136 88,120 Z M 103,172 L 108,168 C 120,185 121,210 114,235 C 111,245 113,268 111,288 L 103,288 C 104,268 107,245 105,235 C 107,210 105,185 103,172 Z M 97,172 L 92,168 C 80,185 79,210 86,235 C 89,245 87,268 89,288 L 97,288 C 96,268 93,245 95,235 C 93,210 95,185 97,172 Z M 103,288 L 111,288 C 115,294 119,303 113,308 C 107,311 101,304 103,288 Z M 97,288 L 89,288 C 85,294 81,303 87,308 C 93,311 99,304 97,288 Z`;
 
-  const generarStickman = (regionesVista, tituloVista, esPost) => {
-    if (regionesVista.length === 0) return '';
-    return `<div style="text-align:center; margin: 5px 0;"><h3 style="font-size:11pt; margin: 3px 0;">${tituloVista}</h3><svg viewBox="0 0 200 320" width="140" height="224" xmlns="http://www.w3.org/2000/svg" style="max-width:160px; height:auto;"><g fill="#f8fafc" stroke="#94a3b8" stroke-width="1.2" opacity="0.9"><path d="${siluetaPaths}"/></g>${generarPuntosSVG(regionesVista, esPost)}</svg></div>`;
+  const generarStickman = (regiones, tituloVista, esPost) => {
+    if (contarGruposEnVista(regiones, esPost) === 0) return '';
+    return `<div style="text-align:center; margin: 5px 0;"><h3 style="font-size:11pt; margin: 3px 0;">${tituloVista}</h3><svg viewBox="0 0 200 320" width="140" height="224" xmlns="http://www.w3.org/2000/svg" style="max-width:160px; height:auto;"><g fill="#f8fafc" stroke="#94a3b8" stroke-width="1.2" opacity="0.9"><path d="${siluetaPaths}"/></g>${generarPuntosSVG(regiones, esPost)}</svg></div>`;
   };
 
-  const rAnt = regiones.filter(r => !esPosterior(r));
-  const rPost = regiones.filter(r => esPosterior(r));
-  const stickmanAnterior = generarStickman(rAnt, 'Vista Anterior', false);
-  const stickmanPosterior = generarStickman(rPost, 'Vista Posterior', true);
+  const stickmanAnterior = generarStickman(regiones, 'Vista Anterior', false);
+  const stickmanPosterior = generarStickman(regiones, 'Vista Posterior', true);
 
   const leyendaSintomasHTML = () => {
     const activos = new Set();
@@ -1008,8 +1295,10 @@ const jerarquia = {
       let isFirstMacroRow = true;
       macroData.subRegiones.forEach(subData => {
         let isFirstSubRow = true;
-        subData.regiones.forEach(r => {
-          const nombreFormateado = formatearNombreRegion(r);
+         subData.regiones.forEach(r => {
+          // 🆕 Aplicar lado si existe en datos_regiones
+          let nombreFormateado = formatearNombreRegion(r);
+          if (regionesData[r]?.lado) nombreFormateado = añadirLado(nombreFormateado, regionesData[r].lado);
           let tds = '';
           if (isFirstMacroRow) {
             tds += `<td rowspan="${macroData.totalMacro}" style="padding:8px; border:1px solid #cbd5e1; background:#f8fafc; font-weight:700; vertical-align:middle;">${macroData.macro}</td>`;
@@ -1030,12 +1319,15 @@ const jerarquia = {
   // ============================================================
   // TABLA EVALUACIÓN POR REGIÓN
   // ============================================================
-    const tablaRegiones = ordenarPorAnatomia(regiones).map(region => {
+  const tablaRegiones = ordenarPorAnatomia(regiones).map(region => {
     const data = regionesData[region] || {};
     const eva = data.eva !== undefined ? `${data.eva}/10` : '—';
     const sintomasArray = data.sintomas || ['dolor'];
+    // 🆕 Aplicar lado si existe
+    let nombreFormateado = formatearNombreRegion(region);
+    if (data.lado) nombreFormateado = añadirLado(nombreFormateado, data.lado);
     return {
-      region: formatearNombreRegion(region),
+      region: nombreFormateado,
       sintomasArray, eva,
       rom: data.rom || '—',
       tests: Array.isArray(data.tests) && data.tests.length > 0 ? data.tests.join(', ') : '—',

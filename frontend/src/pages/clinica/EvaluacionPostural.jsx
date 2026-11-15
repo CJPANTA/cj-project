@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import BodyChartContainer from '../../components/clinica/BodyChart/BodyChartContainer';
@@ -558,7 +558,7 @@ export default function EvaluacionPostural({ temaOscuro }) {
   // ============================================================
   // Toggle de región con síntoma
   // ============================================================
-  const toggleRegion = (regionId, sintoma = 'dolor') => {
+  const toggleRegion = (regionId, sintoma = 'dolor', lado = null) => {
     setEvaluacion(prev => {
       const dataNorm = normalizarDatosRegiones(prev.datos_regiones);
       const yaExiste = prev.regiones.includes(regionId);
@@ -575,6 +575,7 @@ export default function EvaluacionPostural({ temaOscuro }) {
         nuevasRegionesData[regionId] = {
           eva: 0,
           sintomas: [sintoma],
+          ...(lado ? { lado } : {}),  // 🆕 Guarda el lado si viene de una vista lateral
         };
       }
 
@@ -1250,6 +1251,11 @@ Responde AHORA con el JSON.`;
   const bgTarjeta = temaOscuro ? 'bg-[#0a141d] border-gray-800' : 'bg-white border-gray-200';
   const bgInput = temaOscuro ? 'bg-black/20 border-white/10 text-white' : 'bg-gray-100 border-gray-300 text-[#0f172a]';
 
+  const regionesParaChart = useMemo(
+    () => normalizarDatosRegiones(evaluacion.datos_regiones).regiones,
+    [evaluacion.datos_regiones]
+  );
+
   if (loading) {
     return <div className={`min-h-screen ${bgPrincipal} flex items-center justify-center`}><div className="animate-spin rounded-full h-10 w-10 border-4 border-[#22d3ee] border-t-transparent"></div></div>;
   }
@@ -1335,7 +1341,7 @@ Responde AHORA con el JSON.`;
               temaOscuro={temaOscuro}
               vistaDetalle={vistaDetalle}
               setVistaDetalle={setVistaDetalle}
-              datosRegiones={normalizarDatosRegiones(evaluacion.datos_regiones).regiones}
+              datosRegiones={regionesParaChart}
               onUpdateRegionData={handleUpdateRegionData}
               nombrePaciente={paciente ? `${paciente.nombre || ''} ${paciente.apellidos || ''}`.trim() : ''}
               dniPaciente={paciente?.dni}

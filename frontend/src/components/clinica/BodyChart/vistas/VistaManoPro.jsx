@@ -4,7 +4,7 @@ import React from 'react';
 // ==========================================
 // ESTRUCTURA ANATÓMICA DETALLADA DE LA MANO
 // ==========================================
-const ESTRUCTURA_MANO = {
+export const ESTRUCTURA_MANO = {
   radio_cubito: [
     { id: 'radio', nombre: 'Radio (Extremo Distal y Apófisis Estiloides)', zona: 'Antebrazo Distal' },
     { id: 'cubito', nombre: 'Cúbito / Ulna (Apófisis Estiloides)', zona: 'Antebrazo Distal' }
