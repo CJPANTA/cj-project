@@ -30,6 +30,22 @@ const normalizarDatosRegiones = (dr) => {
   return { regiones, _meta };
 };
 
+// 🆕 FASE 1A: Helpers de claves bilaterales (__izq / __der)
+// - Puro parseo, NO modifican datos.
+// - Retrocompatibles: si la clave no tiene sufijo, devuelve el `lado` del data object.
+const SIDE_SUFFIX = { izquierdo: '__izq', derecho: '__der' };
+
+const parseRegionKey = (key, data) => {
+  if (typeof key !== 'string') return { baseId: key, lado: data?.lado || null, isSuffixed: false };
+  if (key.endsWith('__izq')) return { baseId: key.slice(0, -5), lado: 'izquierdo', isSuffixed: true };
+  if (key.endsWith('__der')) return { baseId: key.slice(0, -5), lado: 'derecho', isSuffixed: true };
+  return { baseId: key, lado: data?.lado || null, isSuffixed: false };
+};
+
+const buildRegionKey = (baseId, lado) => {
+  if (!lado) return baseId;
+  return `${baseId}${SIDE_SUFFIX[lado] || ''}`;
+};
 // 🆕 Clasificación de IMC con color
 const clasificarIMC = (imc) => {
   const n = parseFloat(imc);
@@ -254,14 +270,16 @@ const SUBREGION_MAP = {
 
 // 🆕 Funciones auxiliares
 const obtenerMacroRegion = (region) => {
-  const r = (region || '').toLowerCase();
+  const { baseId } = parseRegionKey(region, null);   // 🆕 FASE 1A
+  const r = (baseId || '').toLowerCase();
   const keys = Object.keys(MACRO_REGION_MAP).sort((a, b) => b.length - a.length);
   for (const key of keys) if (r.includes(key)) return MACRO_REGION_MAP[key];
   return 'Otros';
 };
 
 const obtenerSubRegion = (region) => {
-  const r = (region || '').toLowerCase();
+  const { baseId } = parseRegionKey(region, null);   // 🆕 FASE 1A
+  const r = (baseId || '').toLowerCase();
   const keys = Object.keys(SUBREGION_MAP).sort((a, b) => b.length - a.length);
   for (const key of keys) if (r.includes(key)) return SUBREGION_MAP[key];
   return 'Otras';
@@ -385,7 +403,8 @@ const formatearNombreRegion = (nombre) => {
     'serrato_izq': 'Serrato Izquierdo',
     'costillas_izq': 'Costillas Izquierdas',
   };
-  if (casosEspecificos[nombre]) return casosEspecificos[nombre];
+  const { baseId: nombreBase } = parseRegionKey(nombre, null);   // 🆕 FASE 1A
+  if (casosEspecificos[nombreBase]) return casosEspecificos[nombreBase];
 
   const map = {
     'cabeza': 'Cabeza', 'cuello': 'Cuello', 'nuca': 'Nuca', 'torax': 'Tórax', 'pecho': 'Pecho', 'espalda': 'Espalda',
@@ -414,7 +433,7 @@ const formatearNombreRegion = (nombre) => {
     'recto_femoral': 'Recto Femoral', 'aductor': 'Aductor', 'adductor': 'Aductor',
     'perone': 'Peroneo', 'tibial_ant': 'Tibial Anterior', 'tibial_post': 'Tibial Posterior',
   };
-  let resultado = nombre;
+  let resultado = nombreBase;   // 🆕 FASE 1A (antes: nombre)
   Object.keys(map).forEach(key => { resultado = resultado.replace(new RegExp(`_${key}(_|$)`, 'g'), ` ${map[key]}$1`); });
   resultado = resultado.split('_').map(p => map[p] ? map[p] : p.charAt(0).toUpperCase() + p.slice(1)).join(' ').trim();
 
@@ -907,11 +926,12 @@ const resumenEjecutivoHTML = `
     }
     const izq = [], der = [], sinLado = [];
     claves.forEach(k => {
-      const l = regionesData[k]?.lado;
+      const l = parseRegionKey(k, regionesData[k]).lado;   // 🆕 FASE 1A
       if (l === 'izquierdo') izq.push(k);
       else if (l === 'derecho') der.push(k);
       else sinLado.push(k);
     });
+
     // Claves sin lado (evaluaciones viejas) van al grupo mayoritario
     if (sinLado.length > 0) {
       if (izq.length >= der.length) izq.push(...sinLado);
@@ -938,7 +958,8 @@ const resumenEjecutivoHTML = `
       // 🆕 Expandir con sinónimos SOLO para el SVG (badges muestran el ID original)
       const afectacionesParaSVG = { ...afectacionesFiltradas };
       clavesFiltradas.forEach(k => {
-        const sinonimos = SINONIMOS_IDS_POR_VISTA[vistaBase]?.[k];
+        const { baseId: kBase } = parseRegionKey(k, null);   // 🆕 FASE 1A
+        const sinonimos = SINONIMOS_IDS_POR_VISTA[vistaBase]?.[kBase];
         if (sinonimos) {
           sinonimos.forEach(alias => {
             afectacionesParaSVG[alias] = afectacionesFiltradas[k];
@@ -947,8 +968,9 @@ const resumenEjecutivoHTML = `
       });
 
       const hallazgosHTML = clavesFiltradas.map(r => {
-        let nombre = formatearNombreRegion(r);
-        if (regionesData[r]?.lado) nombre = añadirLado(nombre, regionesData[r].lado);
+        const { baseId: rBase, lado: ladoH } = parseRegionKey(r, regionesData[r]);   // 🆕 FASE 1A
+        let nombre = formatearNombreRegion(rBase);
+        if (ladoH) nombre = añadirLado(nombre, ladoH);
         const sintomasArray = regionesData[r]?.sintomas || ['dolor'];
         const nombresSintomas = sintomasArray.map(s => SINTOMAS_NOMBRES[s] || s).join(', ');
         const colores = calcularColoresAfectacion(sintomasArray);
@@ -1065,9 +1087,9 @@ const resumenEjecutivoHTML = `
   };
 
     const mapearGrupoStickman = (r) => {
-    const s = r.toLowerCase();
-    // 🆕 Leer lado real desde datos_regiones
-    const ladoReal = regionesData[r]?.lado;
+    // 🆕 FASE 1A: parsear sufijo __izq/__der
+    const { baseId, lado: ladoReal } = parseRegionKey(r, regionesData[r]);
+    const s = baseId.toLowerCase();
     const esIzq = ladoReal === 'izquierdo';
     const esDer = ladoReal === 'derecho';
 
@@ -1360,10 +1382,11 @@ const jerarquia = {
       let isFirstMacroRow = true;
       macroData.subRegiones.forEach(subData => {
         let isFirstSubRow = true;
-         subData.regiones.forEach(r => {
-          // 🆕 Aplicar lado si existe en datos_regiones
-          let nombreFormateado = formatearNombreRegion(r);
-          if (regionesData[r]?.lado) nombreFormateado = añadirLado(nombreFormateado, regionesData[r].lado);
+        subData.regiones.forEach(r => {
+          // 🆕 FASE 1A: parsear sufijo __izq/__der
+          const { baseId: rBase, lado: ladoT5 } = parseRegionKey(r, regionesData[r]);
+          let nombreFormateado = formatearNombreRegion(rBase);
+          if (ladoT5) nombreFormateado = añadirLado(nombreFormateado, ladoT5);
           let tds = '';
           if (isFirstMacroRow) {
             tds += `<td rowspan="${macroData.totalMacro}" style="padding:8px; border:1px solid #cbd5e1; background:#f8fafc; font-weight:700; vertical-align:middle;">${macroData.macro}</td>`;
@@ -1384,13 +1407,14 @@ const jerarquia = {
   // ============================================================
   // TABLA EVALUACIÓN POR REGIÓN
   // ============================================================
-  const tablaRegiones = ordenarPorAnatomia(regiones).map(region => {
+    const tablaRegiones = ordenarPorAnatomia(regiones).map(region => {
     const data = regionesData[region] || {};
     const eva = data.eva !== undefined ? `${data.eva}/10` : '—';
     const sintomasArray = data.sintomas || ['dolor'];
-    // 🆕 Aplicar lado si existe
-    let nombreFormateado = formatearNombreRegion(region);
-    if (data.lado) nombreFormateado = añadirLado(nombreFormateado, data.lado);
+    // 🆕 FASE 1A: parsear sufijo __izq/__der
+    const { baseId: regionBase, lado: ladoT6 } = parseRegionKey(region, data);
+    let nombreFormateado = formatearNombreRegion(regionBase);
+    if (ladoT6) nombreFormateado = añadirLado(nombreFormateado, ladoT6);
     return {
       region: nombreFormateado,
       sintomasArray, eva,
