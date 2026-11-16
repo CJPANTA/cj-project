@@ -43,6 +43,14 @@ const normalizarDatosRegiones = (dr) => {
   return { regiones, _meta };
 };
 
+// 🆕 FASE 1B.1: helper de parseo de sufijo bilateral
+const parseRegionId = (id) => {
+  if (!id) return { baseId: id, lado: null };
+  if (id.endsWith('__izq')) return { baseId: id.slice(0, -5), lado: 'izquierdo' };
+  if (id.endsWith('__der')) return { baseId: id.slice(0, -5), lado: 'derecho' };
+    return { baseId: id, lado: null };
+};
+
 export default function EvaluacionPostural({ temaOscuro }) {
   const { pacienteId } = useParams();
   const navigate = useNavigate();
@@ -328,10 +336,10 @@ export default function EvaluacionPostural({ temaOscuro }) {
             const region = partes.slice(1).join('_');
             const campoReal = tipo === 'obs' ? 'observaciones' : 'notas';
             handleRegionDataChange(region, campoReal, transcript);
-          } else if (campoActivo.startsWith('test_')) {
-            const partes = campoActivo.split('_');
-            const region = partes[1];
-            const testNombre = partes.slice(2).join('_');
+          } else if (campoActivo.startsWith('test|')) {
+            // 🆕 FASE 1B.1: formato test|<region>|<test> evita colisión con __izq/__der
+            const [, region, ...restTest] = campoActivo.split('|');
+            const testNombre = restTest.join('|');
             handleTestDetalleChange(region, testNombre, transcript);
           } else {
             handleInputChange(campoActivo, transcript);
@@ -893,6 +901,19 @@ export default function EvaluacionPostural({ temaOscuro }) {
   // FORMATEAR NOMBRES DE REGIONES
   // ============================================================
   const formatearNombreRegion = (nombre) => {
+    if (!nombre) return '';
+
+    // 🆕 FASE 1B.1: parsear sufijo bilateral __izq / __der antes del formateo
+    let baseNombre = nombre;
+    let ladoTexto = '';
+    if (nombre.endsWith('__izq')) {
+      baseNombre = nombre.slice(0, -5);
+      ladoTexto = ' Izquierdo';
+    } else if (nombre.endsWith('__der')) {
+      baseNombre = nombre.slice(0, -5);
+      ladoTexto = ' Derecho';
+    }
+
     const map = {
       'cabeza': 'Cabeza', 'cuello': 'Cuello', 'nuca': 'Nuca',
       'torax': 'Tórax', 'pecho': 'Pecho', 'espalda': 'Espalda',
@@ -922,7 +943,7 @@ export default function EvaluacionPostural({ temaOscuro }) {
       'pulgar': 'Pulgar', 'eminencia_tenar': 'Eminencia Tenar',
     };
 
-    let resultado = nombre;
+    let resultado = baseNombre;
     Object.keys(map).forEach(key => {
       resultado = resultado.replace(new RegExp(`_${key}(_|$)`, 'g'), ` ${map[key]}$1`);
     });
@@ -936,7 +957,7 @@ export default function EvaluacionPostural({ temaOscuro }) {
     resultado = resultado.replace(/\bLCM\b/g, 'Ligamento Colateral Medial');
     resultado = resultado.replace(/\bLCL\b/g, 'Ligamento Colateral Lateral');
 
-    return resultado;
+    return resultado + ladoTexto;
   };
 
   // ============================================================
@@ -1374,11 +1395,13 @@ Responde AHORA con el JSON.`;
               <div className="space-y-8 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
                 {evaluacion.regiones.map((region) => {
                   const data = normalizarDatosRegiones(evaluacion.datos_regiones).regiones[region] || {};
-                  const tests = TESTS_POR_REGION[region] || ['Test realizado (escribir cuál)'];
-                  const rangos = RANGOS_ROM[region] || {};
+                  // 🆕 FASE 1B.1: parsear sufijo para lookups de configuración
+                  const { baseId: regionBase } = parseRegionId(region);
+                  const tests = TESTS_POR_REGION[regionBase] || ['Test realizado (escribir cuál)'];
+                  const rangos = RANGOS_ROM[regionBase] || {};
                   return (
                     <div key={region} className={`p-5 rounded-2xl border ${temaOscuro ? 'border-gray-700' : 'border-gray-200'} shadow-sm`}>
-                      <h3 className={`text-lg font-bold ${textoPrincipal} capitalize mb-3`}>{region.replace('_', ' ')}</h3>
+                      <h3 className={`text-lg font-bold ${textoPrincipal} mb-3`}>{formatearNombreRegion(region)}</h3>
 
                       <div className="mb-4">
                         <label className={`block text-[10px] font-bold uppercase tracking-wider ${textoPrincipal} mb-1`}>ROM (grados)</label>
@@ -1441,8 +1464,8 @@ Responde AHORA con el JSON.`;
                                       className={`w-full ${bgInput} border p-2 rounded-lg outline-none focus:border-[#22d3ee] transition-all text-xs pr-10`}
                                     />
                                     <button
-                                      onClick={() => iniciarDictado(`test_${region}_${test}`)}
-                                      className={`absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full ${escuchando && campoActivo === `test_${region}_${test}` ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}
+                                      onClick={() => iniciarDictado(`test|${region}|${test}`)}
+                                      className={`absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full ${escuchando && campoActivo === `test|${region}|${test}` ? 'bg-red-500 animate-pulse' : 'bg-purple-600'} text-white hover:opacity-80 transition-all text-xs`}
                                       title="Dictar por voz"
                                     >
                                       🎙️

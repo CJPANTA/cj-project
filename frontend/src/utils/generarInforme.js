@@ -953,7 +953,11 @@ const resumenEjecutivoHTML = `
       if (clavesFiltradas.length === 0) return '';
 
     const afectacionesFiltradas = {};
-      clavesFiltradas.forEach(k => { afectacionesFiltradas[k] = data.afectaciones[k]; });
+      clavesFiltradas.forEach(k => {
+        // 🆕 FASE 1C: parsear sufijo para que el SVG (VistaRodillaPro, etc.) pinte correctamente
+      const { baseId } = parseRegionKey(k, regionesData[k]);
+        afectacionesFiltradas[baseId] = data.afectaciones[k];
+      });
 
       // 🆕 Expandir con sinónimos SOLO para el SVG (badges muestran el ID original)
       const afectacionesParaSVG = { ...afectacionesFiltradas };

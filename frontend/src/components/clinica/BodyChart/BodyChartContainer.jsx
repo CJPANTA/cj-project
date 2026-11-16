@@ -120,6 +120,19 @@ const parsearVista = (vistaDetalle) => {
 
 const capitalizar = (s) => s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
+// 🆕 FASE 1B.1: helpers de sufijo bilateral (dobles guiones bajos)
+const SIDE_SUFFIX = { izquierdo: '__izq', derecho: '__der' };
+const buildRegionId = (baseId, lado) => {
+  if (!lado) return baseId;
+  return `${baseId}${SIDE_SUFFIX[lado] || ''}`;
+};
+const parseRegionId = (id) => {
+  if (!id) return { baseId: id, lado: null };
+  if (id.endsWith('__izq')) return { baseId: id.slice(0, -5), lado: 'izquierdo' };
+  if (id.endsWith('__der')) return { baseId: id.slice(0, -5), lado: 'derecho' };
+  return { baseId: id, lado: null };
+};
+
 export default function BodyChartContainer({
   regionesSeleccionadas = [],
   onRegionToggle,
@@ -166,21 +179,24 @@ export default function BodyChartContainer({
     }
   }, [alertaAura]);
 
-  // 🆕 FASE 1: procesarToggle pasa el lado anatómico al padre
+  // 🆕 FASE 1B.1: procesarToggle emite id sufijado (__izq/__der) en vistas laterales
   const procesarToggle = useCallback((id, sintoma) => {
-    // Guardar contexto (vista/lado) desde donde se hizo clic
-    if (vistaBase) {
-      setContextoRegion(prev => ({ ...prev, [id]: { vistaBase, lado: lado || 'derecho' } }));
-    }
-
-    // 🆕 Determinar lado anatómico: solo si estamos en una vista lateral
     const VISTAS_LATERALES = new Set(['hombro', 'brazo', 'codo', 'mano', 'pierna', 'rodilla', 'tobillo', 'pie']);
     const ladoAnatomico = (vistaBase && VISTAS_LATERALES.has(vistaBase) && lado) ? lado : null;
 
-    onRegionToggle(id, sintoma, ladoAnatomico);
+    // 🆕 Construir id final (con sufijo si es vista lateral)
+    const idFinal = buildRegionId(id, ladoAnatomico);
 
-    if (!regionesSeleccionadas.includes(id)) {
-      const regla = buscarReglaClinica(id);
+    // Guardar contexto por id final (para macroAfectadas y Hallazgos)
+    if (vistaBase) {
+      setContextoRegion(prev => ({ ...prev, [idFinal]: { vistaBase, lado: lado || 'derecho' } }));
+    }
+
+    // 🆕 lado va implícito en el sufijo, no en 3er argumento
+    onRegionToggle(idFinal, sintoma, null);
+
+    if (!regionesSeleccionadas.includes(idFinal)) {
+      const regla = buscarReglaClinica(id); // reglas clínicas usan id base
       if (regla) setAlertaAura(regla);
     }
   }, [onRegionToggle, regionesSeleccionadas, vistaBase, lado]);
@@ -196,21 +212,45 @@ export default function BodyChartContainer({
     }
   }, [setVistaDetalle, procesarToggle, sintomaActivo]);
 
+  // 🆕 FASE 1B.1: afectaciones indexadas por baseId cuando estamos en vista lateral
+  // (VistaRodillaPro busca afectaciones['rotula'], no afectaciones['rotula__izq'])
   const afectacionesPro = useMemo(() => {
+    const VISTAS_LATERALES = new Set(['hombro', 'brazo', 'codo', 'mano', 'pierna', 'rodilla', 'tobillo', 'pie']);
+    const esVistaLateralActual = !!(vistaBase && VISTAS_LATERALES.has(vistaBase));
+
     return regionesSeleccionadas.reduce((acc, id) => {
+      const { baseId, lado: ladoSufijo } = parseRegionId(id);
       const sintomas = datosRegiones[id]?.sintomas || ['dolor'];
       const colores = calcularColores(sintomas);
-      acc[id] = { color: colores.color, border: colores.border };
+
+      if (!esVistaLateralActual) {
+        // Vista General o vista central: comportamiento legacy
+        acc[id] = { color: colores.color, border: colores.border };
+        return acc;
+      }
+
+      // Vista lateral actual
+      if (ladoSufijo) {
+        // Modelo nuevo: solo mostrar si el lado coincide con la vista actual
+        if (lado && ladoSufijo !== lado) return acc;
+        acc[baseId] = { color: colores.color, border: colores.border };
+      } else {
+        // Modelo viejo (sin sufijo): mostrar siempre (retrocompatibilidad)
+        acc[baseId] = { color: colores.color, border: colores.border };
+      }
       return acc;
     }, {});
-  }, [regionesSeleccionadas, datosRegiones]);
+  }, [regionesSeleccionadas, datosRegiones, vistaBase, lado]);
 
   // 🆕 macroAfectadas: usa el contexto guardado (no depende de vistaDetalle actual)
   const macroAfectadas = useMemo(() => {
     const set = new Set();
     regionesSeleccionadas.forEach((id) => {
-      // Macro directa
+      // Macro directa (sin sufijo bilateral)
       if (MAPA_VISTAS[id]) { set.add(id); return; }
+
+      // 🆕 FASE 1B.1: parsear sufijo __izq/__der
+      const { baseId, lado: ladoSufijo } = parseRegionId(id);
 
       // Sub-región: usar contexto guardado
       const ctx = contextoRegion[id];
@@ -220,24 +260,28 @@ export default function BodyChartContainer({
       }
 
       // Fallback: si existe en ID_A_INFO (regiones cargadas desde BD sin contexto)
-      const infos = ID_A_INFO[id];
+      const infos = ID_A_INFO[baseId];
       if (infos) {
         infos.forEach(({ vistaBase: vb, item }) => {
           const cfg = VISTAS_PRO[vb];
           if (!cfg) return;
-          let ladoItem = 'derecho';
-          if (item.id.endsWith('_izq')) ladoItem = 'izquierdo';
-          else if (item.id.endsWith('_der')) ladoItem = 'derecho';
+          let ladoItem = ladoSufijo || 'derecho';
+          if (!ladoSufijo) {
+            if (item.id.endsWith('_izq')) ladoItem = 'izquierdo';
+            else if (item.id.endsWith('_der')) ladoItem = 'derecho';
+          }
           set.add(cfg.macro(ladoItem));
         });
         return;
       }
 
       // Fallback mano/pie (estructuras no exportadas)
-      if (REGIONES_MANO.has(id)) {
-        set.add(ctx?.lado === 'izquierdo' ? 'mano_izq' : 'mano_der');
-      } else if (REGIONES_PIE.has(id)) {
-        set.add(ctx?.lado === 'izquierdo' ? 'pie_izq' : 'pie_der');
+      if (REGIONES_MANO.has(baseId)) {
+        const ladoFinal = ladoSufijo || ctx?.lado || 'derecho';
+        set.add(ladoFinal === 'izquierdo' ? 'mano_izq' : 'mano_der');
+      } else if (REGIONES_PIE.has(baseId)) {
+        const ladoFinal = ladoSufijo || ctx?.lado || 'derecho';
+        set.add(ladoFinal === 'izquierdo' ? 'pie_izq' : 'pie_der');
       }
     });
     return [...set];
@@ -257,15 +301,20 @@ export default function BodyChartContainer({
   }, [regionesSeleccionadas, datosRegiones]);
 
   // Nombre de la región para el Reporte de Hallazgos
-  const nombreRegion = (id) =>
-    ID_A_INFO[id]?.[0]?.item?.nombre || capitalizar(id);
+  // 🆕 FASE 1B.1: parsea sufijo y añade lado al nombre
+  const nombreRegion = (id) => {
+    const { baseId, lado: ladoSufijo } = parseRegionId(id);
+    const nombreBase = ID_A_INFO[baseId]?.[0]?.item?.nombre || capitalizar(baseId);
+    if (!ladoSufijo) return nombreBase;
+    return `${nombreBase} ${ladoSufijo === 'izquierdo' ? 'Izquierdo' : 'Derecho'}`;
+  };
 
   return (
     <div className={`w-full max-w-2xl mx-auto p-4 md:p-6 rounded-2xl ${bgContainer} border border-gray-700 relative`}>
 
       {/* Toast de sugerencias de Aura */}
       {alertaAura && (
-        <div className={`absolute top-2 right-2 z-[100] p-3 rounded-lg shadow-2xl flex items-start gap-3 w-72 animate-slide-in border-l-4 border-[#22d3ee] ${
+       <div className={`fixed top-4 right-4 md:right-10 z-[9999] p-3 rounded-lg shadow-2xl flex items-start gap-3 w-72 animate-slide-in border-l-4 border-[#22d3ee] ${
           temaOscuro ? 'bg-[#1e293b] text-white' : 'bg-white text-slate-800 border-y border-r border-gray-200'
         }`}>
           <div className="text-2xl">🧠</div>
