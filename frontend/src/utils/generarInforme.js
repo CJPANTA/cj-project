@@ -190,6 +190,8 @@ const MACRO_REGION_MAP = {
   'metatarsiano': 'Miembro Inferior', 'metatarsianos_plantar': 'Miembro Inferior',
   'antepie': 'Miembro Inferior', 'hallux': 'Miembro Inferior', 'dedo_pie': 'Miembro Inferior',
   'falanges_plantar': 'Miembro Inferior', 'almohadilla_metatarsal': 'Miembro Inferior',
+  'patela': 'Miembro Inferior', 'femur': 'Miembro Inferior', 'semitendinoso_membranoso': 'Miembro Inferior',
+  'tensor_fascia_lata': 'Miembro Inferior', 'fascia_plantar': 'Miembro Inferior',
 };
 
 // 🆕 MAPA MAESTRO: cada región → su SUB-región específica (elimina "General")
@@ -246,6 +248,8 @@ const SUBREGION_MAP = {
   'astragalo': 'Pie', 'mediopie': 'Pie', 'navicular': 'Pie', 'cuboides': 'Pie', 'cuneiforme': 'Pie',
   'metatarsiano': 'Pie', 'metatarsianos_plantar': 'Pie', 'antepie': 'Pie', 'hallux': 'Pie', 'dedo_pie': 'Pie',
   'falanges_plantar': 'Pie', 'almohadilla_metatarsal': 'Pie',
+  'patela': 'Rodilla', 'femur': 'Muslo', 'semitendinoso_membranoso': 'Muslo',
+  'tensor_fascia_lata': 'Muslo', 'fascia_plantar': 'Pie',
 };
 
 // 🆕 Funciones auxiliares
@@ -791,6 +795,38 @@ const resumenEjecutivoHTML = `
   // ============================================================
   // CONFIGURACIÓN DE VISTAS PRO (mantenido)
   // ============================================================
+  
+  // 🆕 Mapeo de IDs genéricos → IDs específicos que las Vistas Pro esperan
+  const SINONIMOS_IDS_POR_VISTA = {
+    torax: {
+      'trapecio': ['trapecio_der', 'trapecio_izq'],
+      'trapecio_sup': ['trapecio_der', 'trapecio_izq'],
+    },
+    lumbar: {
+      'cuadrado_lumbar': ['cuadrado_lumbar_der', 'cuadrado_lumbar_izq'],
+      // 🆕 'lumbar' genérico → resaltar las 5 vértebras
+      'lumbar': ['l1', 'l2', 'l3', 'l4', 'l5'],
+      'columna': ['l1', 'l2', 'l3', 'l4', 'l5'],
+    },
+    pierna: {
+      // 🆕 tendon_cuadriceps → resaltar los 3 vientres del cuádriceps
+      'tendon_cuadriceps': ['recto_femoral', 'vasto_lateral', 'vasto_medial'],
+      'cuadriceps': ['recto_femoral', 'vasto_lateral', 'vasto_medial'],
+      'nervio_tibial_plantar': ['nervio_tibial'],
+      'nervio_peroneo_comun': ['nervio_peroneo_comun'],
+    },
+    rodilla: {
+      // 🆕 patela → rotula (VistaRodillaPro usa 'rotula')
+      'patela': ['rotula'],
+    },
+    pie: {
+      // 🆕 en lateral, el talón es el calcáneo
+      'talon_plantar': ['calcaneo'],
+      // 🆕 en lateral, el mediopié son navicular + cuboides
+      'mediopie_plantar': ['navicular', 'cuboides'],
+    },
+  };
+  
   const VISTAS_PRO_CONFIG = {
     rodilla: { componente: VistaRodillaPro, keywords: ['rodilla', 'menisco', 'lca', 'lcp', 'rotula', 'poplitea'] },
     pie: { componente: VistaPiePro, keywords: ['pie', 'calcaneo', 'talon', 'fascia_plantar', 'metatarsiano', 'hallux', 'falanges_plantar', 'mediopie', 'antepie', 'dedo_pie'] },
@@ -812,10 +848,26 @@ const resumenEjecutivoHTML = `
     columna: { caras: ['anterior', 'posterior'], anterior: ['cervical_ant', 'dorsal_ant', 'lumbar_ant', 'esternon_col'], posterior: ['cervical', 'dorsal', 'lumbar', 'sacro', 'columna', 'l1', 'l2', 'l3', 'l4', 'l5', 'disco_l', 'faceta_l', 'coxis'] },
     torax: { caras: ['anterior', 'posterior'], anterior: ['torax', 'pecho', 'costilla', 'esternon', 'pectoral'], posterior: ['escapula', 'trapecio', 'dorsal', 'costilla_post'] },
     mano: { caras: ['palmar', 'dorsal'], palmar: ['tendones_flexor', 'tendon_flexor', 'nervio_mediano', 'tunel_carpo', 'tenar', 'pulpejo', 'nervio_cubital', 'almohadilla'], dorsal: ['extensor', 'retinaculo', 'escafoides', 'dedo_', 'metacarpiano', 'grande', 'ganchoso', 'semilunar', 'piramidal', 'pisiforme', 'trapezoide'] },
-    pierna: { caras: ['anterior', 'posterior'], anterior: ['tibial', 'peroneo', 'cuadriceps', 'pierna_ant'], posterior: ['gemelo', 'soleo', 'femoral', 'isquiotibial', 'pierna_post'] },
+        pierna: {
+      caras: ['anterior', 'posterior'],
+      anterior: [
+        'tibial_anterior', 'tibial_ant', 'perone', 'peroneo',
+        'recto_femoral', 'vasto_lateral', 'vasto_medial', 'sartorio', 'tensor_fascia_lata',
+        'cuadriceps', 'extensor_largo_dedos', 'nervio_femoral', 'nervio_peroneo',
+        'tendon_cuadriceps',
+        'femur', 'patela', 'tibia', 'pierna_ant'
+      ],
+      posterior: [
+        'biceps_femoral', 'semitendinoso', 'semimembranoso',
+        'gastrocnemio', 'gemelo', 'soleo', 'tendon_aquiles',
+        'nervio_ciatico', 'nervio_tibial', 'isquiotibial', 'pierna_post'
+      ]
+    },
     pelvis: { caras: ['anterior', 'posterior'], anterior: ['pubis', 'cresta_iliaca_ant', 'cadera_ant', 'ilion_ant'], posterior: ['sacro', 'gluteo', 'isquion', 'coxis', 'cresta_iliaca', 'ilion', 'acetabulo', 'cadera_post'] },
     rodilla: { caras: ['anterior', 'posterior'], anterior: ['rotula', 'rodilla_ant', 'tendon_rotuliano'], posterior: ['poplitea', 'menisco_post', 'lca', 'lcp', 'rodilla_post'] },
-    pie: { caras: ['lateral', 'plantar'], lateral: ['pie', 'metatarsiano', 'hallux', 'dedo_pie', 'calcaneo', 'talon', 'aquiles', 'tobillo'], plantar: ['fascia_plantar', 'talon_plantar', 'pulpejo_plantar', 'metatarsianos_plantar'] }
+    pie: { caras: ['lateral', 'plantar'], lateral: ['pie', 'metatarsiano', 'hallux', 'dedo_pie', 'calcaneo', 'aquiles', 'tobillo'],  // 🔧 quitar 'talon' (rompe 'talon_plantar')
+    plantar: ['fascia_plantar', 'talon_plantar', 'pulpejo_plantar', 'metatarsianos_plantar', 'mediopie_plantar']  // 🆕 añadir mediopie_plantar
+    }
   };
 
   const vistasAgrupadas = {};
@@ -825,6 +877,8 @@ const resumenEjecutivoHTML = `
         if (!vistasAgrupadas[vistaBase]) vistasAgrupadas[vistaBase] = { componente: config.componente, afectaciones: {} };
         const sintomasArray = regionesData[r]?.sintomas || ['dolor'];
         const colores = calcularColoresAfectacion(sintomasArray);
+
+      // Guardar el ID original (los sinónimos se expanden al renderizar SVG)
         vistasAgrupadas[vistaBase].afectaciones[r] = {
           color: colores.color, border: colores.border,
           sintomas: sintomasArray,
@@ -878,8 +932,19 @@ const resumenEjecutivoHTML = `
     const generarTarjeta = (cara, clavesFiltradas, lado) => {
       if (clavesFiltradas.length === 0) return '';
 
-      const afectacionesFiltradas = {};
+    const afectacionesFiltradas = {};
       clavesFiltradas.forEach(k => { afectacionesFiltradas[k] = data.afectaciones[k]; });
+
+      // 🆕 Expandir con sinónimos SOLO para el SVG (badges muestran el ID original)
+      const afectacionesParaSVG = { ...afectacionesFiltradas };
+      clavesFiltradas.forEach(k => {
+        const sinonimos = SINONIMOS_IDS_POR_VISTA[vistaBase]?.[k];
+        if (sinonimos) {
+          sinonimos.forEach(alias => {
+            afectacionesParaSVG[alias] = afectacionesFiltradas[k];
+          });
+        }
+      });
 
       const hallazgosHTML = clavesFiltradas.map(r => {
         let nombre = formatearNombreRegion(r);
@@ -894,7 +959,7 @@ const resumenEjecutivoHTML = `
       const ladoFinal = lado || null;
       const ladoSVG = ladoFinal || 'derecho';
 
-      const props = { cara: cara, lado: ladoSVG, afectaciones: afectacionesFiltradas };
+      const props = { cara: cara, lado: ladoSVG, afectaciones: afectacionesParaSVG };
       try {
         let svgStr = renderToStaticMarkup(React.createElement(data.componente, props));
         svgStr = svgStr.replace(/<h4[^>]*>.*?<\/h4>/g, '');
@@ -1035,6 +1100,13 @@ const resumenEjecutivoHTML = `
       return 'hombro_izq';
     }
 
+    // ===== ISQUIOTIBIALES (muslo posterior) — ANTES que brazo para no capturar biceps_femoral =====
+    if (/(isquiotibial|isquiotibiales|biceps_femoral|semitendinoso|semimembranoso)/.test(s)) {
+      if (esIzq || /_izq/.test(s)) return 'isquio_izq';
+      if (esDer || /_der/.test(s)) return 'isquio_der';
+      return 'isquio_izq';
+    }
+
     // ===== BRAZO =====
     if (/(brazo|biceps|triceps|humero|braquial|coracobraquial|epicondilo|epitroclea|olecranon)/.test(s)) {
       if (esIzq || /_izq/.test(s)) return 'brazo_izq';
@@ -1080,13 +1152,6 @@ const resumenEjecutivoHTML = `
       if (esIzq || /_izq/.test(s)) return 'gluteo_izq';
       if (esDer || /_der/.test(s)) return 'gluteo_der';
       return 'gluteo_izq';
-    }
-
-    // ===== ISQUIOTIBIALES =====
-    if (/(isquiotibial|isquiotibiales|biceps_femoral|semitendinoso|semimembranoso)/.test(s)) {
-      if (esIzq || /_izq/.test(s)) return 'isquio_izq';
-      if (esDer || /_der/.test(s)) return 'isquio_der';
-      return 'isquio_izq';
     }
 
     // ===== MUSLO ANTERIOR =====
@@ -1431,7 +1496,7 @@ const jerarquia = {
         /* Footer GLOBAL fijo que se repite en cada hoja */
         .footer-global {
           position: fixed;
-          bottom: 2mm;
+          bottom: 0mm;
           left: 1.4cm;
           right: 1.4cm;
           font-size: 6.5pt;
