@@ -287,7 +287,8 @@ const obtenerSubRegion = (region) => {
 
 // 🆕 QR sin librería externa (usa API pública de qrserver)
 const URL_APP = 'https://cj-project-86im.vercel.app';
-const generarQR = (url, size = 120) => `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}&bgcolor=ffffff&color=0f172a&margin=0`;
+// 🆕 FASE 1B.2: Tamaño por defecto aumentado a 200
+const generarQR = (url, size = 200) => `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}&bgcolor=ffffff&color=0f172a&margin=0`;
 
 // 🆕 Numerar recomendaciones automáticamente
 const numerarRecomendaciones = (texto) => {
@@ -467,7 +468,9 @@ export async function generarInformeDesdeEvaluacion(evaluacionId) {
     const { data: centro } = await supabase.from('centros').select('nombre, logo_url').eq('id', perfil.centro_id).single();
     if (centro) { centroNombre = centro.nombre || 'Centro CJ'; logoUrl = centro.logo_url || ''; }
   }
-  const logoBase64 = await urlToBase64(logoUrl);
+  const logoBase64 = await urlToBase64(logoUrl); 
+  // 🆕 FASE 1B.2: Precargar el QR como Base64 para evitar que salga en blanco en móviles
+  const qrBase64 = await urlToBase64(generarQR(`${URL_APP}/login?redirect=/mi-ficha`));
 
   const nombrePaciente = pacienteData ? `${pacienteData.nombre} ${pacienteData.apellidos}` : 'Paciente';
   const fecha = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -1569,13 +1572,13 @@ const jerarquia = {
 
         <!-- 🆕 QR + Resumen Ejecutivo en 50/50 (AHORA ARRIBA) -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
-          <!-- Columna izquierda: QR compacto -->
-          <div style="border: 1px solid #22d3ee; border-radius: 6px; padding: 8px; background: #f0f9ff; display: flex; align-items: center; gap: 8px;">
-            <img src="${generarQR(`${URL_APP}/login?redirect=/mi-ficha`, 120)}" alt="QR Ficha" style="width: 65px; height: 65px; border-radius: 4px; flex-shrink: 0;" />
+         <!-- Columna izquierda: QR (Ahora más grande y usando Base64) -->
+          <div style="border: 1px solid #22d3ee; border-radius: 6px; padding: 8px; background: #f0f9ff; display: flex; align-items: center; gap: 12px;">
+            <img src="${qrBase64}" alt="QR Ficha" style="width: 105px; height: 105px; border-radius: 4px; flex-shrink: 0;" />
             <div style="font-size: 7.5pt; color: #0f172a; line-height: 1.25;">
-              <div style="font-weight: 800; font-size: 9pt; margin-bottom: 1px;">📱 Mi ficha</div>
-              <div style="font-size: 7pt; color: #475569;">Escanea para entrar a tu cuenta</div>
-              <div style="color: #64748b; margin-top: 2px; font-size: 6.5pt;">${URL_APP}</div>
+              <div style="font-weight: 800; font-size: 10pt; margin-bottom: 2px;">📱 Mi ficha</div>
+              <div style="font-size: 7.5pt; color: #475569;">Escanea para entrar a tu cuenta</div>
+              <div style="color: #64748b; margin-top: 4px; font-size: 7pt;">${URL_APP}</div>
             </div>
           </div>
 
