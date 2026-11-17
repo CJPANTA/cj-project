@@ -144,7 +144,7 @@ const PRIORIDAD_ANATOMICA = {
 const prioridadAnatomica = (region) => {
   const r = (region || '').toLowerCase();
   for (const key of Object.keys(PRIORIDAD_ANATOMICA).sort((a, b) => b.length - a.length)) {
-    if (r.includes(key)) return PRIORIDAD_ANATOMICA[key];
+    if (matcheaKeyword(r, key)) return PRIORIDAD_ANATOMICA[key];
   }
   return 999;
 };
@@ -277,11 +277,21 @@ const obtenerMacroRegion = (region) => {
   return 'Otros';
 };
 
+// 🆕 TAREA 3: Matcher estricto para evitar falsos positivos (ej: 'calcaneo' contiene 'lca')
+const matcheaKeyword = (key, keyword) => {
+  if (!key || !keyword) return false;
+  if (key === keyword) return true;
+  if (key.startsWith(keyword + '_')) return true;
+  if (key.endsWith('_' + keyword)) return true;
+  if (key.includes('_' + keyword + '_')) return true;
+  return false;
+};
+
 const obtenerSubRegion = (region) => {
   const { baseId } = parseRegionKey(region, null);   // 🆕 FASE 1A
   const r = (baseId || '').toLowerCase();
   const keys = Object.keys(SUBREGION_MAP).sort((a, b) => b.length - a.length);
-  for (const key of keys) if (r.includes(key)) return SUBREGION_MAP[key];
+  for (const key of keys) if (matcheaKeyword(r, key)) return SUBREGION_MAP[key];
   return 'Otras';
 };
 
@@ -895,7 +905,7 @@ const resumenEjecutivoHTML = `
   const vistasAgrupadas = {};
   regiones.forEach(r => {
     for (const [vistaBase, config] of Object.entries(VISTAS_PRO_CONFIG)) {
-      if (config.keywords.some(k => r.includes(k)) || r === vistaBase) {
+        if (config.keywords.some(k => matcheaKeyword(r, k)) || r === vistaBase) {
         if (!vistasAgrupadas[vistaBase]) vistasAgrupadas[vistaBase] = { componente: config.componente, afectaciones: {} };
         const sintomasArray = regionesData[r]?.sintomas || ['dolor'];
         const colores = calcularColoresAfectacion(sintomasArray);
@@ -1028,14 +1038,15 @@ const resumenEjecutivoHTML = `
     return configCaras.caras.map(cara => {
       const keywordsCara = configCaras[cara] || [];
       const clavesCara = afectacionesKeys.filter(k => {
-        if (!keywordsCara.some(kw => k.includes(kw))) return false;
-        for (const otraCara of configCaras.caras) {
-          if (otraCara === cara) continue;
-          const keywordsOtra = configCaras[otraCara] || [];
-          if (keywordsOtra.some(kw => k.includes(kw)) && configCaras.caras.indexOf(otraCara) < configCaras.caras.indexOf(cara)) return false;
-        }
-        return true;
-      });
+  // 🆕 TAREA 3: Usar matcheaKeyword para evitar que 'lca' atrape a 'calcaneo', etc.
+  if (!keywordsCara.some(kw => matcheaKeyword(k, kw))) return false;
+  for (const otraCara of configCaras.caras) {
+    if (otraCara === cara) continue;
+    const keywordsOtra = configCaras[otraCara] || [];
+    if (keywordsOtra.some(kw => matcheaKeyword(k, kw)) && configCaras.caras.indexOf(otraCara) < configCaras.caras.indexOf(cara)) return false;
+  }
+  return true;
+});
       return dividirPorLado(clavesCara, vistaBase)
         .map(g => generarTarjeta(cara, g.claves, g.lado))
         .filter(x => x).join('');
