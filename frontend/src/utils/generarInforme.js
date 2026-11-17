@@ -214,7 +214,7 @@ const MACRO_REGION_MAP = {
 const SUBREGION_MAP = {
   // Cabeza y Cuello
   'cabeza': 'Cráneo', 'craneo': 'Cráneo', 'frontal': 'Cráneo', 'parietal': 'Cráneo',
-  'occipital': 'Cráneo', 'occipital_mayor': 'Cráneo',
+  'occipital': 'Cráneo', 'occipital_mayor': 'Cráneo', 'suboccipitales': 'Cráneo',
   'temporal': 'Cara', 'temporal_musc': 'Cara', 'zigomatico': 'Cara', 'masetero': 'Cara', 'atm': 'Cara', 'mandibula': 'Cara',
   'ecom': 'Cuello', 'cuello': 'Cuello', 'nuca': 'Cuello',
   'trapecio': 'Cuello/Trapecio', 'trapecio_sup': 'Cuello/Trapecio', 'trapecio_der': 'Cuello/Trapecio', 'trapecio_izq': 'Cuello/Trapecio',
@@ -1666,12 +1666,10 @@ const jerarquia = {
       </div>
 
       <!-- ============ PÁGINA 5: Detalle Anatómico ============ -->
-      <div class="pagina">
-        <div class="seccion-anatomica">
-          <h1>6.5 Detalle Anatómico</h1>
-          <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:15px;">
-            ${vistaProHTML}
-          </div>
+      <div class="seccion-anatomica" style="page-break-after: always; break-after: page;">
+        <h1>6.5 Detalle Anatómico</h1>
+        <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:15px;">
+          ${vistaProHTML}
         </div>
       </div>
 
