@@ -446,7 +446,7 @@ export default function BodyChartContainer({
             Hallazgos ({regionesSeleccionadas.length})
           </p>
           <div className="space-y-3 max-h-[280px] overflow-y-auto pr-1 custom-scrollbar">
-            {regionesSeleccionadas.map((id) => {
+            {[...regionesSeleccionadas].reverse().map((id) => {
               const info = datosRegiones[id] || {};
               const nombre = nombreRegion(id);
               const sintomas = info.sintomas || ['dolor'];

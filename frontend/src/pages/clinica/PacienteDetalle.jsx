@@ -149,7 +149,8 @@ const [modalSesionAbierto, setModalSesionAbierto] = useState(false);
           .single();
         if (evalError) throw evalError;
 
-        const diagnosticoSugerido = evalData?.datos_regiones?._diagnostico_sugerido || '';
+      // 🆕 FIX: El diagnóstico se guarda dentro de _meta
+      const diagnosticoSugerido = evalData?.datos_regiones?._meta?._diagnostico_sugerido || ''; 
 
         if (diagnosticoSugerido) {
           const { data: pacienteActual, error: pacError } = await supabase
@@ -640,7 +641,6 @@ const cargarSesiones = async (pacienteId) => {
 </div>
 <p className="text-xs text-gray-400">Regiones: {(ev.regiones || []).join(', ') || 'No especificadas'}</p>
 {ev.analisis_ia && <p className="text-xs text-purple-400 mt-1 truncate max-w-md">Diagnóstico IA: {ev.analisis_ia.substring(0, 100)}...</p>}
-                            {ev.analisis_ia && <p className="text-xs text-purple-400 mt-1 truncate max-w-md">Diagnóstico IA: {ev.analisis_ia.substring(0, 100)}...</p>}
                           </div>
                           <div className="flex flex-wrap gap-2">
                             {puedeEditar && (

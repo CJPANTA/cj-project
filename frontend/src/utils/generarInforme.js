@@ -1688,45 +1688,47 @@ const jerarquia = {
         ${firmaComoTecnico ? `<p class="aviso"><strong>Nota:</strong> Los agentes físicos y técnicas manuales aquí descritos son <strong>sugerencias de aplicación</strong> basadas en protocolos estándar. Su aplicación está sujeta a validación por un <strong>Lic. T.M. Fisioterapia</strong>.</p>` : ''}
         ${planHTML}
 
-        <h1>9. Alertas de Seguridad</h1>
-        ${(() => {
-          const alertasTexto = corregirTypos(meta._alertas) || 'Sin banderas rojas detectadas.';
-          const tieneBanderaRoja = banderasRojas.length > 0;
-          const tieneAlertaVital = alertasSV.length > 0;
-          const esCritico = tieneBanderaRoja;
-          const esMedio = !esCritico && tieneAlertaVital;
-          const bg = esCritico ? '#fee2e2' : esMedio ? '#fef3c7' : '#d1fae5';
-          const border = esCritico ? '#ef4444' : esMedio ? '#f59e0b' : '#10b981';
-          const icono = esCritico ? '🚨' : esMedio ? '⚠️' : '✅';
-          const etiqueta = esCritico ? 'CRÍTICO' : esMedio ? 'PRECAUCIÓN' : 'SIN ALERTAS';
-          return `
-            <div style="background: ${bg}; border-left: 4px solid ${border}; padding: 8px 12px; margin: 6px 0; border-radius: 3px;">
-              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                <span style="font-size: 14pt;">${icono}</span>
-                <span style="font-weight: 800; font-size: 9pt; color: ${border}; text-transform: uppercase; letter-spacing: 0.5px;">${etiqueta}</span>
+        <div style="page-break-inside: avoid; break-inside: avoid; page-break-before: auto;">
+          <h1>9. Alertas de Seguridad</h1>
+          ${(() => {
+            // ... (todo tu código de las alertas se mantiene igual)
+            const alertasTexto = corregirTypos(meta._alertas) || 'Sin banderas rojas detectadas.';
+            const tieneBanderaRoja = banderasRojas.length > 0;
+            const tieneAlertaVital = alertasSV.length > 0;
+            const esCritico = tieneBanderaRoja;
+            const esMedio = !esCritico && tieneAlertaVital;
+            const bg = esCritico ? '#fee2e2' : esMedio ? '#fef3c7' : '#d1fae5';
+            const border = esCritico ? '#ef4444' : esMedio ? '#f59e0b' : '#10b981';
+            const icono = esCritico ? '🚨' : esMedio ? '⚠️' : '✅';
+            const etiqueta = esCritico ? 'CRÍTICO' : esMedio ? 'PRECAUCIÓN' : 'SIN ALERTAS';
+            return `
+              <div style="background: ${bg}; border-left: 4px solid ${border}; padding: 8px 12px; margin: 6px 0; border-radius: 3px;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                  <span style="font-size: 14pt;">${icono}</span>
+                  <span style="font-weight: 800; font-size: 9pt; color: ${border}; text-transform: uppercase; letter-spacing: 0.5px;">${etiqueta}</span>
+                </div>
+                <div style="font-size: 9pt; color: #1e293b; white-space: pre-line;">${alertasTexto}</div>
+                ${tieneBanderaRoja ? `<div style="margin-top: 6px; font-size: 8.5pt; font-weight: 700; color: #991b1b;">Banderas rojas: ${banderasRojas.map(id => BANDERAS_ROJAS_LABELS[id] || id).join(' · ')}</div>` : ''}
+                ${tieneAlertaVital && !tieneBanderaRoja ? `<div style="margin-top: 6px; font-size: 8.5pt; color: #78350f;">Alertas vitales: ${alertasSV.join(' · ')}</div>` : ''}
               </div>
-              <div style="font-size: 9pt; color: #1e293b; white-space: pre-line;">${alertasTexto}</div>
-              ${tieneBanderaRoja ? `<div style="margin-top: 6px; font-size: 8.5pt; font-weight: 700; color: #991b1b;">Banderas rojas: ${banderasRojas.map(id => BANDERAS_ROJAS_LABELS[id] || id).join(' · ')}</div>` : ''}
-              ${tieneAlertaVital && !tieneBanderaRoja ? `<div style="margin-top: 6px; font-size: 8.5pt; color: #78350f;">Alertas vitales: ${alertasSV.join(' · ')}</div>` : ''}
-            </div>
-          `;
-        })()}
-        ${firmaComoTecnico ? `<p class="aviso" style="margin-top:10px;"><strong>AVISO:</strong> Documento funcional elaborado por un Técnico en Fisioterapia y Rehabilitación. NO constituye diagnóstico clínico ni prescripción médica. Para diagnóstico o prescripción, consulte con un Lic. T.M. Fisioterapia.</p>` : ''}
+            `;
+          })()}
+          ${firmaComoTecnico ? `<p class="aviso" style="margin-top:10px;"><strong>AVISO:</strong> Documento funcional elaborado por un Técnico en Fisioterapia y Rehabilitación. NO constituye diagnóstico clínico ni prescripción médica. Para diagnóstico o prescripción, consulte con un Lic. T.M. Fisioterapia.</p>` : ''}
 
-        <h1>10. Datos de Generación</h1>
-        <table>
-          <tr><th>Documento generado por</th><td>${usuario}</td></tr>
-          <tr><th>Tipo de profesional</th><td>${firmaComoTecnico ? 'Técnico en Fisioterapia y Rehabilitación' : 'Licenciado en Tecnología Médica - Fisioterapia'}</td></tr>
-          <tr><th>Fecha de generación</th><td>${fecha} ${hora}</td></tr>
-          <tr><th>Centro</th><td>${centroNombre}</td></tr>
-        </table>
+          <h1>10. Datos de Generación</h1>
+          <table>
+            <tr><th>Documento generado por</th><td>${usuario}</td></tr>
+            <tr><th>Tipo de profesional</th><td>${firmaComoTecnico ? 'Técnico en Fisioterapia y Rehabilitación' : 'Licenciado en Tecnología Médica - Fisioterapia'}</td></tr>
+            <tr><th>Fecha de generación</th><td>${fecha} ${hora}</td></tr>
+            <tr><th>Centro</th><td>${centroNombre}</td></tr>
+          </table>
 
-        <div style="margin-top:50px; text-align:right;">
-          <p style="margin:0 0 70px 0; font-size:9.5pt;">Firma del Profesional:</p>
-          <p style="border-top:1px solid #000; display:inline-block; padding-top:5px; min-width:320px; font-weight:bold; text-align:center;">${usuario}</p>
-          <p style="margin:2px 0 0 0; font-size:8.5pt; color:#64748b;">${credenciales}</p>
+          <div style="margin-top:50px; text-align:right;">
+            <p style="margin:0 0 70px 0; font-size:9.5pt;">Firma del Profesional:</p>
+            <p style="border-top:1px solid #000; display:inline-block; padding-top:5px; min-width:320px; font-weight:bold; text-align:center;">${usuario}</p>
+            <p style="margin:2px 0 0 0; font-size:8.5pt; color:#64748b;">${credenciales}</p>
+          </div>
         </div>
-      </div>
 
         </body>
     </html>
