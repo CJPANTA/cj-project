@@ -1510,16 +1510,17 @@ const jerarquia = {
         
         /* Marca de agua con logo (o texto fallback) */
         .marca-agua {
-          position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          opacity: 0.06;
-          width: 55%;
-          max-width: 450px;
-          height: auto;
-          z-index: 0;
-          pointer-events: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 350px; /* Ajusta el tamaño según tu logo */
+        opacity: 0.1; /* Qué tan transparente se ve */
+        z-index: -1;
+         /* 🆕 ESTO QUITA LOS CUADRITOS EN EL PDF */
+        mix-blend-mode: multiply; 
+        background: transparent;
+         pointer-events: none;
         }
         .marca-agua-texto {
           position: fixed;
@@ -1562,8 +1563,8 @@ const jerarquia = {
         <body>
       <!-- 🆕 Marca de agua = logo del centro (o texto fallback) -->
       ${logoBase64 
-        ? `<img src="${logoBase64}" class="marca-agua" alt="" />` 
-        : `<div class="marca-agua-texto">CJPANTA</div>`
+      ? `<div class="marca-agua" style="background-image: url('${logoBase64}'); background-size: contain; background-repeat: no-repeat; background-position: center; width: 350px; height: 350px;"></div>` 
+      : `<div class="marca-agua-texto">CJPANTA</div>`
       }
 
       <!-- ============ PÁGINA 1: Header + Resumen/QR + Datos + Signos ============ -->
