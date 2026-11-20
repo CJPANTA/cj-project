@@ -1508,19 +1508,26 @@ const jerarquia = {
         .pagina { page-break-after: always; padding-bottom: 22mm; position: relative; z-index: 1; min-height: 235mm; }
         .pagina:last-of-type { page-break-after: auto; }
         
-        /* Marca de agua con logo (o texto fallback) */
-        .marca-agua {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 350px; /* Ajusta el tamaño según tu logo */
-        opacity: 0.1; /* Qué tan transparente se ve */
-        z-index: -1;
-         /* 🆕 ESTO QUITA LOS CUADRITOS EN EL PDF */
-        mix-blend-mode: multiply; 
-        background: transparent;
-         pointer-events: none;
+        /* Marca de agua con logo (a prueba de impresión) */
+        .marca-agua-wrapper {
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 400px; 
+          height: 400px;
+          z-index: -1;
+          mix-blend-mode: multiply; /* Fusiona el fondo blanco con el papel */
+          pointer-events: none;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        .marca-agua-img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          background-color: #ffffff; /* 🆕 Fondo blanco sólido para matar los cuadritos */
+          opacity: 0.12; /* Transparencia del logo */
         }
         .marca-agua-texto {
           position: fixed;
@@ -1561,10 +1568,10 @@ const jerarquia = {
       </style>
     </head>
         <body>
-      <!-- 🆕 Marca de agua = logo del centro (o texto fallback) -->
+      <!-- 🆕 Marca de agua = logo del centro (con fondo blanco y blend-mode) -->
       ${logoBase64 
-      ? `<div class="marca-agua" style="background-image: url('${logoBase64}'); background-size: contain; background-repeat: no-repeat; background-position: center; width: 350px; height: 350px;"></div>` 
-      : `<div class="marca-agua-texto">CJPANTA</div>`
+        ? `<div class="marca-agua-wrapper"><img src="${logoBase64}" class="marca-agua-img" alt="" /></div>` 
+        : `<div class="marca-agua-texto">CJPANTA</div>`
       }
 
       <!-- ============ PÁGINA 1: Header + Resumen/QR + Datos + Signos ============ -->
